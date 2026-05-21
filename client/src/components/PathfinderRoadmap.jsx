@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import * as sound from "../utils/audio";
 
-const BACKEND_URL = window.location.hostname === "localhost" ? "http://localhost:5000" : "";
+const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
 
 // Status visual config
 const STATUS_CONFIG = {
@@ -139,41 +139,690 @@ function MilestoneNode({ milestone, levelColor, isLastInLevel, onSelect, isSelec
   );
 }
 
-function MilestoneDetailPanel({ milestone, roadmapTopic, levelColor, onClose, onSearchDuel, onMarkComplete, username }) {
-  const [studyNotes, setStudyNotes] = useState(null);
-  const [loadingNotes, setLoadingNotes] = useState(false);
-  const cfg = STATUS_CONFIG[milestone.status] || STATUS_CONFIG.locked;
+// JavaScript syntax highlighting helper
+function highlightJS(code) {
+  // Escape HTML
+  let html = code
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 
-  const loadStudyNotes = async () => {
-    if (studyNotes || loadingNotes) return;
-    setLoadingNotes(true);
+  // Highlight comments (double slash or block)
+  html = html.replace(/(\/\/[^\n]*)/g, '<span style="color: #6a737d; font-style: italic;">$1</span>');
+  html = html.replace(/(\/\*[\s\S]*?\*\/)/g, '<span style="color: #6a737d; font-style: italic;">$1</span>');
+  
+  // Highlight strings (double quotes, single quotes, backticks)
+  html = html.replace(/(["'`])(.*?)\1/g, '<span style="color: #9ecbff;">$1$2$1</span>');
+  
+  // Highlight keywords: let, const, var, function, return, class, import, export, from, if, else, for, while, async, await, new, try, catch, throw
+  const keywords = /\b(let|const|var|function|return|class|import|export|from|if|else|for|while|async|await|new|try|catch|throw|default|switch|case|break|continue|typeof|instanceof)\b/g;
+  html = html.replace(keywords, '<span style="color: #ff7b72; font-weight: bold;">$1</span>');
+
+  // Highlight built-ins/globals: console, log, window, document, process, Map, Set, Object, Array, String, Number, Boolean, Symbol, Promise
+  const builtins = /\b(console|log|window|document|process|Map|Set|Object|Array|String|Number|Boolean|Symbol|Promise|undefined|null|true|false)\b/g;
+  html = html.replace(builtins, '<span style="color: #79c0ff;">$1</span>');
+
+  // Highlight function calls: foo() -> foo is highlighted
+  html = html.replace(/\b([a-zA-Z0-9_]+)(?=\()/g, '<span style="color: #d2a8ff;">$1</span>');
+
+  // Highlight numbers
+  html = html.replace(/\b(\d+)\b/g, '<span style="color: #ff9e64;">$1</span>');
+
+  return html;
+}
+
+function highlightCode(code, lang) {
+  const l = (lang || "").toLowerCase();
+  if (l === "javascript" || l === "js" || l === "jsx" || l === "ts" || l === "tsx" || l === "html" || l === "css") {
+    return highlightJS(code);
+  }
+  // Generic escape
+  return code
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function parseMarkdownToHTML(md) {
+  if (!md) return "";
+  
+  // 1. Separate code blocks from the rest of the text
+  const parts = md.split(/```/);
+  let isInsideCode = false;
+  let resultHtml = "";
+  
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (isInsideCode) {
+      // The first line might be the language name
+      const firstNewLineIdx = part.indexOf("\n");
+      let lang = "javascript";
+      let code = part;
+      if (firstNewLineIdx !== -1) {
+        const potentialLang = part.substring(0, firstNewLineIdx).trim();
+        if (potentialLang.length < 15) {
+          lang = potentialLang || "javascript";
+          code = part.substring(firstNewLineIdx + 1);
+        }
+      }
+      
+      // Trim trailing newline
+      code = code.replace(/\n$/, "");
+      const highlighted = highlightCode(code, lang);
+      
+      // Render code block with window styling (macOS window bar)
+      resultHtml += `
+        <div class="code-screenshot-window" style="
+          background: #090d16;
+          border-radius: 12px;
+          margin: 24px 0;
+          box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+          border: 1px solid #1e293b;
+          overflow: hidden;
+          font-family: 'Fira Code', 'Courier New', Courier, monospace;
+          text-align: left;
+        ">
+          <div style="
+            background: #0d1321;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #1e293b;
+          ">
+            <div style="display: flex; gap: 8px;">
+              <span style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f56; display: inline-block;"></span>
+              <span style="width: 12px; height: 12px; border-radius: 50%; background: #ffbd2e; display: inline-block;"></span>
+              <span style="width: 12px; height: 12px; border-radius: 50%; background: #27c93f; display: inline-block;"></span>
+            </div>
+            <span style="color: #64748b; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${lang}</span>
+            <button 
+              style="
+                color: #64748b; 
+                font-size: 11px; 
+                background: none; 
+                border: none; 
+                cursor: pointer;
+                padding: 2px 6px;
+                border-radius: 4px;
+                transition: all 0.2s;
+              "
+              onmouseover="this.style.color='#ea580c'; this.style.background='rgba(255,106,0,0.1)';"
+              onmouseout="this.style.color='#64748b'; this.style.background='none';"
+              onclick="navigator.clipboard.writeText(\`${code.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`).then(() => {
+                const prevText = this.innerText;
+                this.innerText = '✓ Copied!';
+                setTimeout(() => { this.innerText = prevText; }, 2000);
+              })"
+            >
+              📋 Copy
+            </button>
+          </div>
+          <div style="
+            padding: 20px 24px;
+            margin: 0;
+            overflow-x: auto;
+            font-size: 14px;
+            line-height: 1.65;
+            color: #f8fafc;
+            background: #05070c;
+          ">
+            <pre style="margin: 0; white-space: pre; font-family: inherit;"><code>${highlighted}</code></pre>
+          </div>
+        </div>
+      `;
+      isInsideCode = false;
+    } else {
+      let mdText = part;
+      
+      // Inline code
+      mdText = mdText.replace(/`([^`\n]+)`/g, '<code style="background: rgba(255,106,0,0.1); color: #ea580c; padding: 2px 6px; border-radius: 6px; font-size: 0.9em; font-family: monospace; font-weight: bold;">$1</code>');
+      
+      // Headers
+      mdText = mdText.replace(/^# (.+)$/gm, '<h1 style="font-size: 28px; font-weight: 900; color: #0f172a; margin: 36px 0 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; letter-spacing: -0.5px;">$1</h1>');
+      mdText = mdText.replace(/^## (.+)$/gm, '<h2 style="font-size: 22px; font-weight: 850; color: #0f172a; margin: 30px 0 14px; border-left: 4px solid #ff6a00; padding-left: 14px; letter-spacing: -0.3px;">$1</h2>');
+      mdText = mdText.replace(/^### (.+)$/gm, '<h3 style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 24px 0 10px;">$1</h3>');
+      mdText = mdText.replace(/^#### (.+)$/gm, '<h4 style="font-size: 15px; font-weight: 700; color: #334155; margin: 18px 0 6px;">$1</h4>');
+      
+      // Tables
+      const lines = mdText.split("\n");
+      let inTable = false;
+      let tableHtml = "";
+      let normalLines = [];
+      
+      for (let j = 0; j < lines.length; j++) {
+        const line = lines[j].trim();
+        if (line.startsWith("|") && line.endsWith("|")) {
+          if (!inTable) {
+            inTable = true;
+            tableHtml = '<div style="overflow-x: auto; margin: 24px 0; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);"><table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">';
+          }
+          if (line.includes("---") || line.includes("===")) {
+            continue;
+          }
+          const cells = line.split("|").slice(1, -1).map(c => c.trim());
+          const isHeader = !tableHtml.includes("</thead>") && !tableHtml.includes("</tr>");
+          
+          if (isHeader) {
+            tableHtml += '<thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;"><tr>';
+            cells.forEach(c => {
+              tableHtml += `<th style="padding: 14px 18px; font-weight: 800; color: #0f172a;">${c}</th>`;
+            });
+            tableHtml += '</tr></thead><tbody>';
+          } else {
+            tableHtml += '<tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.backgroundColor=\'#f8fafc\'" onmouseout="this.style.backgroundColor=\'transparent\'">';
+            cells.forEach(c => {
+              tableHtml += `<td style="padding: 14px 18px; color: #334155; line-height: 1.5;">${c}</td>`;
+            });
+            tableHtml += '</tr>';
+          }
+        } else {
+          if (inTable) {
+            inTable = false;
+            tableHtml += '</tbody></table></div>';
+            normalLines.push(tableHtml);
+            tableHtml = "";
+          }
+          normalLines.push(lines[j]);
+        }
+      }
+      if (inTable) {
+        tableHtml += '</tbody></table></div>';
+        normalLines.push(tableHtml);
+      }
+      mdText = normalLines.join("\n");
+      
+      // Bold & Italics
+      mdText = mdText.replace(/\*\*([^*]+)\*\*/g, '<strong style="color: #0f172a; font-weight: 700;">$1</strong>');
+      mdText = mdText.replace(/\*([^*]+)\*/g, '<em style="font-style: italic;">$1</em>');
+      
+      // Lists
+      mdText = mdText.replace(/^\s*-\s+(.+)$/gm, '<li style="color: #334155; font-size: 15px; line-height: 1.8; margin-bottom: 8px; list-style-type: disc; margin-left: 24px;">$1</li>');
+      mdText = mdText.replace(/^\s*\*\s+(.+)$/gm, '<li style="color: #334155; font-size: 15px; line-height: 1.8; margin-bottom: 8px; list-style-type: disc; margin-left: 24px;">$1</li>');
+      
+      // Group adjacent <li> elements into <ul>
+      mdText = mdText.replace(/(<li[^>]*>.*?<\/li>)+/gs, '<ul style="padding-left: 0; margin: 12px 0 20px;">$&</ul>');
+      
+      // Paragraphs
+      const blocks = mdText.split(/\n\n+/);
+      const parsedBlocks = blocks.map(block => {
+        const trimmed = block.trim();
+        if (!trimmed) return "";
+        if (trimmed.startsWith("<h") || trimmed.startsWith("<ul") || trimmed.startsWith("<div") || trimmed.startsWith("<table") || trimmed.startsWith("<blockquote")) {
+          return trimmed;
+        }
+        return `<p style="color: #334155; font-size: 15.5px; line-height: 1.8; margin: 0 0 18px;">${trimmed.replace(/\n/g, "<br/>")}</p>`;
+      });
+      
+      resultHtml += parsedBlocks.join("\n");
+      isInsideCode = true;
+    }
+  }
+  
+  return resultHtml;
+}
+
+const STUDY_GEN_LOGS = [
+  "🔍 Extracting milestone concepts and keys...",
+  "🎯 Aligning guide with onboarding goals...",
+  "📚 Structuring deep theoretical breakdown...",
+  "📋 Constructing syntax comparison matrices...",
+  "💻 Formulating Before/After code examples...",
+  "💼 Pinpointing core mock interview questions...",
+  "⚡ Preparing interactive practice challenges...",
+  "✨ Finalizing formatting and rendering guide..."
+];
+
+function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, onSearchDuel, onMarkComplete, username, onSaveNotes }) {
+  const [loading, setLoading] = useState(false);
+  const [notes, setNotes] = useState(milestone.studyNotes || null);
+  const [genStep, setGenStep] = useState(0);
+  const [genLog, setGenLog] = useState([]);
+
+  // Load answers for personalization
+  const answersKey = `ytplay_roadmap_answers_${username}`;
+  const savedAnswers = localStorage.getItem(answersKey);
+  const answers = savedAnswers ? JSON.parse(savedAnswers) : [];
+  const userReason = answers.find(a => a.question.toLowerCase().includes("why"))?.answer || "learning";
+
+  const handleGenerate = async () => {
+    setLoading(true);
+    setGenStep(0);
+    setGenLog([STUDY_GEN_LOGS[0]]);
+
+    // Log timer
+    const logInterval = setInterval(() => {
+      setGenStep(prev => {
+        const next = prev + 1;
+        if (next < STUDY_GEN_LOGS.length) {
+          setGenLog(logs => [...logs, STUDY_GEN_LOGS[next]]);
+          return next;
+        } else {
+          clearInterval(logInterval);
+          return prev;
+        }
+      });
+    }, 1200);
+
     try {
+      sound.playClockTick();
       const res = await fetch(`${BACKEND_URL}/api/pathfinder/study-notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: roadmapTopic, milestone })
+        body: JSON.stringify({ topic: roadmapTopic, milestone, answers })
       });
       const data = await res.json();
-      setStudyNotes(data.notes);
+      clearInterval(logInterval);
+      setNotes(data.notes);
+      onSaveNotes(milestone.id, data.notes);
+      sound.playCorrect();
     } catch (err) {
-      setStudyNotes(`## ${milestone.title}\n\n${milestone.description}\n\n${(milestone.keyPoints || []).map(p => `- ${p}`).join("\n")}`);
+      clearInterval(logInterval);
+      const fallback = `## ${milestone.title}\n\n${milestone.description}\n\n${(milestone.keyPoints || []).map(p => `- ${p}`).join("\n")}`;
+      setNotes(fallback);
+      onSaveNotes(milestone.id, fallback);
     } finally {
-      setLoadingNotes(false);
+      setLoading(false);
     }
   };
 
-  // Render basic markdown to HTML (minimal)
-  const renderMd = (text) => {
-    if (!text) return "";
-    return text
-      .replace(/^## (.+)$/gm, '<h2 style="font-size:18px;font-weight:800;color:#0f172a;margin:20px 0 8px">$1</h2>')
-      .replace(/^### (.+)$/gm, '<h3 style="font-size:14px;font-weight:800;color:#ff6a00;margin:16px 0 6px;text-transform:uppercase;letter-spacing:0.5px">$1</h3>')
-      .replace(/^- (.+)$/gm, '<li style="color:#475569;font-size:14px;line-height:1.7;margin-bottom:4px">$1</li>')
-      .replace(/(<li[^>]*>.*<\/li>)/gs, '<ul style="padding-left:20px;margin:8px 0">$1</ul>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#0f172a">$1</strong>')
-      .replace(/\n\n/g, '</p><p style="color:#64748b;font-size:14px;line-height:1.7;margin:8px 0">')
-      .replace(/^(?!<[h|u|l|p])(.+)$/gm, '<p style="color:#64748b;font-size:14px;line-height:1.7;margin:8px 0">$1</p>');
-  };
+  const isCompleted = milestone.status === "completed";
+  const cfg = STATUS_CONFIG[milestone.status] || STATUS_CONFIG.locked;
+
+  return (
+    <div style={{
+      position: "fixed",
+      inset: 0,
+      zIndex: 2000,
+      background: "#f8fafc",
+      display: "flex",
+      flexDirection: "row",
+      overflow: "hidden"
+    }} className="animate-slideup">
+      <style>{`
+        @keyframes slideUp {
+          from { transform: translateY(100vh); }
+          to { transform: translateY(0); }
+        }
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.05); opacity: 1; }
+          100% { transform: scale(1); opacity: 0.8; }
+        }
+        .animate-slideup {
+          animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-pulse-brain {
+          animation: pulse 1.8s infinite ease-in-out;
+        }
+      `}</style>
+
+      {/* Left Sidebar (Stats, checklist, action items) */}
+      <div style={{
+        width: "340px",
+        background: "#ffffff",
+        borderRight: "1px solid #e2e8f0",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        flexShrink: 0,
+        boxSizing: "border-box"
+      }}>
+        {/* Top sidebar content */}
+        <div style={{ padding: "32px", overflowY: "auto", flex: 1 }}>
+          {/* Back button */}
+          <button 
+            onClick={onClose}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              background: "none",
+              border: "none",
+              color: "#64748b",
+              fontWeight: "700",
+              fontSize: "14px",
+              cursor: "pointer",
+              padding: "8px 12px",
+              borderRadius: "8px",
+              marginLeft: "-12px",
+              transition: "all 0.2s"
+            }}
+            onMouseOver={e => { e.currentTarget.style.color = "#0f172a"; e.currentTarget.style.background = "#f1f5f9"; }}
+            onMouseOut={e => { e.currentTarget.style.color = "#64748b"; e.currentTarget.style.background = "none"; }}
+          >
+            ← Back to Roadmap
+          </button>
+
+          <div style={{ marginTop: "28px" }}>
+            <span style={{
+              fontSize: "10px",
+              fontWeight: "800",
+              color: levelColor,
+              background: `${levelColor}15`,
+              padding: "4px 10px",
+              borderRadius: "8px",
+              textTransform: "uppercase",
+              letterSpacing: "1px"
+            }}>
+              {cfg.label}
+            </span>
+            <h2 style={{ fontSize: "24px", fontWeight: "900", color: "#0f172a", marginTop: "12px", marginBottom: "8px", lineHeight: "1.25" }}>
+              {milestone.title}
+            </h2>
+            <p style={{ fontSize: "14px", color: "#64748b", lineHeight: "1.5", marginBottom: "24px" }}>
+              {milestone.description}
+            </p>
+          </div>
+
+          {/* Key Stats card */}
+          <div style={{
+            background: "#f8fafc",
+            borderRadius: "16px",
+            padding: "16px",
+            border: "1px solid #e2e8f0",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "12px",
+            marginBottom: "28px"
+          }}>
+            <div>
+              <div style={{ fontSize: "10px", color: "#64748b", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>XP Reward</div>
+              <div style={{ fontSize: "18px", fontWeight: "900", color: levelColor }}>+{milestone.xpReward || 50} XP</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "10px", color: "#64748b", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Duration</div>
+              <div style={{ fontSize: "18px", fontWeight: "900", color: "#0f172a" }}>⏱ {milestone.estimatedMinutes || 45}m</div>
+            </div>
+          </div>
+
+          {/* Key points checklist */}
+          {milestone.keyPoints?.length > 0 && (
+            <div>
+              <h3 style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>
+                📌 Key Objectives
+              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {milestone.keyPoints.map((pt, i) => (
+                  <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+                    <div style={{
+                      width: "18px",
+                      height: "18px",
+                      borderRadius: "50%",
+                      background: isCompleted ? "#10b981" : "#e2e8f0",
+                      color: "#ffffff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "10px",
+                      fontWeight: "900",
+                      marginTop: "2px",
+                      flexShrink: 0
+                    }}>
+                      {isCompleted ? "✓" : i + 1}
+                    </div>
+                    <span style={{ fontSize: "13px", color: "#475569", lineHeight: "1.4" }}>{pt}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom actions block */}
+        <div style={{
+          padding: "24px 32px",
+          borderTop: "1px solid #e2e8f0",
+          background: "#fafafa",
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px"
+        }}>
+          {milestone.status !== "locked" && (
+            <button
+              onClick={() => { sound.playClockTick(); onSearchDuel(milestone); onClose(); }}
+              style={{
+                width: "100%",
+                padding: "14px",
+                borderRadius: "12px",
+                border: "none",
+                background: `linear-gradient(135deg, ${levelColor}, ${levelColor}dd)`,
+                color: "#ffffff",
+                fontWeight: "800",
+                fontSize: "14px",
+                cursor: "pointer",
+                boxShadow: `0 6px 18px ${levelColor}35`,
+                transition: "all 0.2s"
+              }}
+              onMouseOver={e => e.currentTarget.style.transform = "translateY(-1px)"}
+              onMouseOut={e => e.currentTarget.style.transform = "none"}
+            >
+              ⚔️ Search & Duel Topic
+            </button>
+          )}
+
+          {milestone.status === "unlocked" && (
+            <button
+              onClick={() => { sound.playClockTick(); onMarkComplete(milestone); onClose(); }}
+              style={{
+                width: "100%",
+                padding: "14px",
+                borderRadius: "12px",
+                border: `1.5px solid ${levelColor}`,
+                background: "#ffffff",
+                color: levelColor,
+                fontWeight: "700",
+                fontSize: "14px",
+                cursor: "pointer",
+                transition: "all 0.2s"
+              }}
+              onMouseOver={e => { e.currentTarget.style.background = `${levelColor}08`; }}
+              onMouseOut={e => { e.currentTarget.style.background = "#ffffff"; }}
+            >
+              ✓ Mark Complete
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Right Content Area (Detailed Study Notes) */}
+      <div style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden"
+      }}>
+        {/* Fullscreen study notes header */}
+        <div style={{
+          background: `linear-gradient(135deg, ${levelColor} 0%, #1e1b4b 100%)`,
+          padding: "24px 48px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexShrink: 0
+        }}>
+          <div>
+            <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px" }}>
+              ytPlay Pathfinder Study Suite
+            </div>
+            <div style={{ color: "#ffffff", fontSize: "20px", fontWeight: "950", marginTop: "2px" }}>
+              📖 {milestone.title} Notes
+            </div>
+          </div>
+          <button 
+            onClick={onClose}
+            style={{
+              padding: "8px 16px",
+              borderRadius: "8px",
+              background: "rgba(255,255,255,0.15)",
+              border: "1px solid rgba(255,255,255,0.25)",
+              color: "#ffffff",
+              fontWeight: "700",
+              fontSize: "13px",
+              cursor: "pointer",
+              transition: "all 0.2s"
+            }}
+            onMouseOver={e => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
+            onMouseOut={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}
+          >
+            Close Guide
+          </button>
+        </div>
+
+        {/* Scrollable Document Pane */}
+        <div style={{
+          flex: 1,
+          overflowY: "auto",
+          background: "#f1f5f9",
+          padding: "48px"
+        }}>
+          <div style={{
+            maxWidth: "880px",
+            margin: "0 auto",
+            background: "#ffffff",
+            borderRadius: "24px",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+            border: "1px solid #e2e8f0",
+            padding: "48px 64px",
+            minHeight: "100%",
+            boxSizing: "border-box"
+          }}>
+            {loading ? (
+              /* Beautiful Generation Loader Screen */
+              <div style={{
+                height: "100%",
+                minHeight: "400px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center"
+              }}>
+                <div 
+                  className="animate-pulse-brain"
+                  style={{
+                    width: "90px",
+                    height: "90px",
+                    borderRadius: "50%",
+                    background: `linear-gradient(135deg, ${levelColor}, #ff6a00)`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "44px",
+                    color: "#ffffff",
+                    boxShadow: `0 0 30px ${levelColor}55`,
+                    marginBottom: "32px"
+                  }}
+                >
+                  🧠
+                </div>
+                <h3 style={{ fontSize: "22px", fontWeight: "900", color: "#0f172a", marginBottom: "8px", textAlign: "center" }}>
+                  Generating High-Fidelity Study Guide
+                </h3>
+                <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "32px", textAlign: "center", maxWidth: "400px" }}>
+                  Our AI engine is compiling detailed explanations, tables, before/after code blocks, and job interview questions...
+                </p>
+
+                {/* Progress Terminal Log */}
+                <div style={{
+                  width: "100%",
+                  maxWidth: "480px",
+                  background: "#090d16",
+                  borderRadius: "16px",
+                  padding: "20px 24px",
+                  border: "1px solid #1e293b",
+                  boxShadow: "0 12px 24px rgba(0,0,0,0.1)"
+                }}>
+                  {genLog.map((log, idx) => (
+                    <div key={idx} style={{
+                      fontFamily: "monospace",
+                      fontSize: "12.5px",
+                      color: idx === genLog.length - 1 ? "#ea580c" : "#94a3b8",
+                      marginBottom: "6px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px"
+                    }}>
+                      <span style={{ color: idx < genLog.length - 1 ? "#10b981" : "#ea580c" }}>
+                        {idx < genLog.length - 1 ? "✓" : "⚡"}
+                      </span>
+                      {log}
+                    </div>
+                  ))}
+                  {genStep < STUDY_GEN_LOGS.length - 1 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <div style={{
+                        width: "6px",
+                        height: "6px",
+                        borderRadius: "50%",
+                        background: "#ea580c",
+                        animation: "pulse 0.8s infinite"
+                      }} />
+                      <span style={{ fontFamily: "monospace", fontSize: "11px", color: "#475569" }}>
+                        processing...
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : notes ? (
+              /* Display Generated Notes */
+              <div 
+                style={{
+                  lineHeight: "1.8",
+                  fontFamily: "var(--font-sans)",
+                  textAlign: "left"
+                }}
+                dangerouslySetInnerHTML={{ __html: parseMarkdownToHTML(notes) }}
+              />
+            ) : (
+              /* Call to Action to Generate Notes */
+              <div style={{
+                height: "100%",
+                minHeight: "350px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center"
+              }}>
+                <div style={{ fontSize: "52px", marginBottom: "20px" }}>✨</div>
+                <h3 style={{ fontSize: "22px", fontWeight: "900", color: "#0f172a", marginBottom: "8px" }}>
+                  Detailed Study Notes & Code Examples
+                </h3>
+                <p style={{ color: "#64748b", fontSize: "15px", maxWidth: "460px", marginBottom: "28px", lineHeight: "1.6" }}>
+                  Unlock an exhaustive, personalized study guide tailored to your goal of <strong>"{userReason}"</strong>. Includes comparisons, bad vs. good code blocks, and mock interview questions.
+                </p>
+                <button
+                  onClick={handleGenerate}
+                  style={{
+                    padding: "16px 36px",
+                    borderRadius: "14px",
+                    border: "none",
+                    background: `linear-gradient(135deg, ${levelColor}, #ea580c)`,
+                    color: "#ffffff",
+                    fontWeight: "800",
+                    fontSize: "15px",
+                    cursor: "pointer",
+                    boxShadow: `0 8px 24px ${levelColor}35`,
+                    transition: "all 0.2s"
+                  }}
+                  onMouseOver={e => e.currentTarget.style.transform = "translateY(-1px)"}
+                  onMouseOut={e => e.currentTarget.style.transform = "none"}
+                >
+                  🧠 Generate Study Guide
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MilestoneDetailPanel({ milestone, levelColor, onClose, onSearchDuel, onMarkComplete, onOpenNotes }) {
+  const cfg = STATUS_CONFIG[milestone.status] || STATUS_CONFIG.locked;
+  const hasNotes = !!milestone.studyNotes;
 
   return (
     <div style={{
@@ -185,7 +834,7 @@ function MilestoneDetailPanel({ milestone, roadmapTopic, levelColor, onClose, on
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          width: "100%", maxWidth: "680px", maxHeight: "90vh",
+          width: "100%", maxWidth: "560px",
           background: "#ffffff", borderRadius: "24px",
           boxShadow: "0 30px 80px rgba(0,0,0,0.25)",
           display: "flex", flexDirection: "column",
@@ -198,61 +847,58 @@ function MilestoneDetailPanel({ milestone, roadmapTopic, levelColor, onClose, on
           padding: "24px 28px",
           borderBottom: "1px solid #f1f5f9",
           background: milestone.status === "completed" ? "#f0fdf4" : "#fff7ed",
-          flexShrink: 0
+          position: "relative"
         }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}>
-                <span style={{
-                  fontSize: "10px", fontWeight: "800", color: "#fff",
-                  background: levelColor, padding: "3px 10px", borderRadius: "8px",
-                  textTransform: "uppercase", letterSpacing: "1px"
-                }}>
-                  {cfg.label}
-                </span>
-                {milestone.estimatedMinutes && (
-                  <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>⏱ {milestone.estimatedMinutes} min</span>
-                )}
-                <span style={{ fontSize: "12px", fontWeight: "700", color: levelColor }}>+{milestone.xpReward} XP</span>
-              </div>
-              <h2 style={{ fontSize: "22px", fontWeight: "900", color: "#0f172a", lineHeight: "1.3", marginBottom: "6px" }}>
-                {milestone.title}
-              </h2>
-              <p style={{ fontSize: "14px", color: "#64748b", lineHeight: "1.6" }}>
-                {milestone.description}
-              </p>
-            </div>
-            <button onClick={onClose} style={{
-              width: "32px", height: "32px", borderRadius: "50%",
-              border: "1px solid #e2e8f0", background: "#fff",
-              cursor: "pointer", fontSize: "16px", flexShrink: 0,
-              display: "flex", alignItems: "center", justifyContent: "center"
-            }}>✕</button>
+          <button onClick={onClose} style={{
+            position: "absolute", top: "20px", right: "20px",
+            width: "32px", height: "32px", borderRadius: "50%",
+            border: "1px solid #e2e8f0", background: "#fff",
+            cursor: "pointer", fontSize: "16px",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#64748b"
+          }}>✕</button>
+          
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+            <span style={{
+              fontSize: "10px", fontWeight: "800", color: "#fff",
+              background: levelColor, padding: "3px 10px", borderRadius: "8px",
+              textTransform: "uppercase", letterSpacing: "1px"
+            }}>
+              {cfg.label}
+            </span>
+            {milestone.estimatedMinutes && (
+              <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: "600" }}>⏱ {milestone.estimatedMinutes} min</span>
+            )}
+            <span style={{ fontSize: "12px", fontWeight: "800", color: levelColor }}>+{milestone.xpReward} XP</span>
           </div>
+          <h2 style={{ fontSize: "22px", fontWeight: "900", color: "#0f172a", lineHeight: "1.3", marginBottom: "6px" }}>
+            {milestone.title}
+          </h2>
+          <p style={{ fontSize: "14px", color: "#64748b", lineHeight: "1.5", margin: 0 }}>
+            {milestone.description}
+          </p>
         </div>
 
         {/* Scrollable body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
-          {/* Key Points */}
+        <div style={{ padding: "28px" }}>
+          {/* Key Points Checklist */}
           {milestone.keyPoints?.length > 0 && (
-            <div style={{ marginBottom: "24px" }}>
-              <h3 style={{ fontSize: "13px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>
-                📌 What You'll Cover
+            <div style={{ marginBottom: "28px" }}>
+              <h3 style={{ fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>
+                📌 Milestone Objectives
               </h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {milestone.keyPoints.map((pt, i) => (
                   <div key={i} style={{
-                    display: "flex", alignItems: "flex-start", gap: "10px",
-                    padding: "10px 14px", background: "#f8fafc",
-                    borderRadius: "10px", border: "1px solid #e2e8f0"
+                    display: "flex", alignItems: "flex-start", gap: "10px"
                   }}>
                     <div style={{
                       width: "20px", height: "20px", borderRadius: "50%",
-                      background: levelColor, color: "#fff",
+                      background: milestone.status === "completed" ? "#10b981" : levelColor, color: "#fff",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: "10px", fontWeight: "900", flexShrink: 0
                     }}>
-                      {i + 1}
+                      {milestone.status === "completed" ? "✓" : i + 1}
                     </div>
                     <span style={{ fontSize: "13px", color: "#475569", lineHeight: "1.5" }}>{pt}</span>
                   </div>
@@ -261,46 +907,39 @@ function MilestoneDetailPanel({ milestone, roadmapTopic, levelColor, onClose, on
             </div>
           )}
 
-          {/* Study Notes section */}
-          <div style={{ marginBottom: "24px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-              <h3 style={{ fontSize: "13px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
-                📚 AI Study Notes
-              </h3>
-              {!studyNotes && (
-                <button
-                  onClick={loadStudyNotes}
-                  disabled={loadingNotes}
-                  style={{
-                    padding: "6px 14px", borderRadius: "8px",
-                    border: `1px solid ${levelColor}`, background: "#fff",
-                    color: levelColor, fontSize: "12px", fontWeight: "700",
-                    cursor: loadingNotes ? "wait" : "pointer"
-                  }}
-                >
-                  {loadingNotes ? "Generating..." : "✨ Generate Notes"}
-                </button>
-              )}
-            </div>
-
-            {studyNotes ? (
-              <div
-                style={{
-                  background: "#f8fafc", borderRadius: "16px",
-                  padding: "20px 24px", border: "1px solid #e2e8f0",
-                  lineHeight: "1.7"
-                }}
-                dangerouslySetInnerHTML={{ __html: renderMd(studyNotes) }}
-              />
-            ) : (
-              <div style={{
-                background: "#f8fafc", borderRadius: "16px",
-                padding: "20px 24px", border: "2px dashed #e2e8f0",
-                textAlign: "center", color: "var(--text-muted)", fontSize: "14px"
-              }}>
-                Click "Generate Notes" for AI-powered study material for this milestone.
-              </div>
-            )}
+          {/* Study Guide CTA */}
+          <div style={{
+            background: "#f8fafc",
+            borderRadius: "16px",
+            padding: "20px",
+            border: "1px solid #e2e8f0",
+            textAlign: "center"
+          }}>
+            <h4 style={{ fontSize: "15px", fontWeight: "800", color: "#0f172a", marginBottom: "6px" }}>
+              {hasNotes ? "📖 Study Notes Ready" : "✨ AI Study Notes Guide"}
+            </h4>
+            <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px", lineHeight: "1.5" }}>
+              {hasNotes 
+                ? "Your comprehensive study notes are ready for reading. Expand to fullscreen to start learning."
+                : "Generate a detailed study guide containing theoretical breakdowns, code examples, and mock interview questions."}
+            </p>
+            <button
+              onClick={() => { sound.playClockTick(); onOpenNotes(); onClose(); }}
+              style={{
+                width: "100%",
+                padding: "12px 20px",
+                borderRadius: "10px",
+                border: "none",
+                background: `linear-gradient(135deg, ${levelColor}, ${levelColor}dd)`,
+                color: "#fff",
+                fontWeight: "800",
+                fontSize: "13.5px",
+                cursor: "pointer",
+                boxShadow: `0 4px 12px ${levelColor}22`
+              }}
+            >
+              {hasNotes ? "📖 Read Study Guide (Fullscreen)" : "✨ Generate Study Notes"}
+            </button>
           </div>
         </div>
 
@@ -308,25 +947,21 @@ function MilestoneDetailPanel({ milestone, roadmapTopic, levelColor, onClose, on
         <div style={{
           padding: "20px 28px",
           borderTop: "1px solid #f1f5f9",
-          display: "flex", gap: "12px", flexWrap: "wrap",
-          background: "#fafafa", flexShrink: 0
+          display: "flex", gap: "12px",
+          background: "#fafafa"
         }}>
           {milestone.status !== "locked" && (
             <button
               onClick={() => { sound.playClockTick(); onSearchDuel(milestone); onClose(); }}
               style={{
-                flex: 1, padding: "14px 20px", borderRadius: "12px",
-                border: "none", background: `linear-gradient(135deg, ${levelColor}, ${levelColor}cc)`,
-                color: "#fff", fontWeight: "800", fontSize: "14px",
+                flex: 1, padding: "12px 20px", borderRadius: "10px",
+                border: "none", background: "linear-gradient(135deg, #475569, #334155)",
+                color: "#fff", fontWeight: "800", fontSize: "13.5px",
                 cursor: "pointer", display: "flex", alignItems: "center",
-                justifyContent: "center", gap: "8px",
-                boxShadow: `0 6px 20px ${levelColor}44`,
-                transition: "all 0.2s"
+                justifyContent: "center", gap: "6px"
               }}
-              onMouseOver={e => e.currentTarget.style.transform = "translateY(-1px)"}
-              onMouseOut={e => e.currentTarget.style.transform = "none"}
             >
-              ⚔️ Search & Duel This Topic
+              ⚔️ Search & Duel Topic
             </button>
           )}
 
@@ -334,10 +969,10 @@ function MilestoneDetailPanel({ milestone, roadmapTopic, levelColor, onClose, on
             <button
               onClick={() => { sound.playClockTick(); onMarkComplete(milestone); onClose(); }}
               style={{
-                padding: "14px 20px", borderRadius: "12px",
+                padding: "12px 20px", borderRadius: "10px",
                 border: `1.5px solid ${levelColor}`, background: "#fff",
                 color: levelColor, fontWeight: "700", fontSize: "13px",
-                cursor: "pointer", transition: "all 0.2s"
+                cursor: "pointer"
               }}
             >
               ✓ Mark Complete
@@ -362,6 +997,24 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
 
   const [selectedMilestone, setSelectedMilestone] = useState(null);
   const [expandedLevel, setExpandedLevel] = useState(1);
+  const [viewingNotes, setViewingNotes] = useState(false);
+
+  const saveStudyNotes = (milestoneId, notesText) => {
+    setRoadmap(prev => {
+      const next = JSON.parse(JSON.stringify(prev));
+      const levelsList = ["level1", "level2", "level3"];
+      for (const lk of levelsList) {
+        const ms = next[lk]?.milestones || [];
+        for (let i = 0; i < ms.length; i++) {
+          if (ms[i].id === milestoneId) {
+            ms[i].studyNotes = notesText;
+            break;
+          }
+        }
+      }
+      return next;
+    });
+  };
 
   // Sync to localStorage whenever roadmap changes
   useEffect(() => {
@@ -674,8 +1327,23 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
       </div>
 
       {/* Milestone detail modal */}
-      {selectedMilestone && (
+      {selectedMilestone && !viewingNotes && (
         <MilestoneDetailPanel
+          milestone={selectedMilestone}
+          levelColor={
+            roadmap.level1?.milestones?.find(m => m.id === selectedMilestone.id) ? "#10b981" :
+            roadmap.level2?.milestones?.find(m => m.id === selectedMilestone.id) ? "#f59e0b" : "#8b5cf6"
+          }
+          onClose={() => setSelectedMilestone(null)}
+          onSearchDuel={onSearchDuel}
+          onMarkComplete={(m) => { markComplete(m); setSelectedMilestone(null); }}
+          onOpenNotes={() => setViewingNotes(true)}
+        />
+      )}
+
+      {/* Fullscreen Notes Reader */}
+      {viewingNotes && selectedMilestone && (
+        <FullscreenNotesReader
           milestone={selectedMilestone}
           roadmapTopic={roadmap.topic}
           levelColor={
@@ -683,9 +1351,10 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
             roadmap.level2?.milestones?.find(m => m.id === selectedMilestone.id) ? "#f59e0b" : "#8b5cf6"
           }
           username={username}
-          onClose={() => setSelectedMilestone(null)}
+          onClose={() => setViewingNotes(false)}
           onSearchDuel={onSearchDuel}
-          onMarkComplete={(m) => { markComplete(m); setSelectedMilestone(null); }}
+          onMarkComplete={(m) => { markComplete(m); setViewingNotes(false); setSelectedMilestone(null); }}
+          onSaveNotes={saveStudyNotes}
         />
       )}
     </div>

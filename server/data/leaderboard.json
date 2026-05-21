@@ -1,28 +1,43 @@
 [
   {
-    "username": "CodeMaster",
-    "xp": 1250,
-    "level": 5,
-    "wins": 15,
-    "losses": 3
-  },
-  {
     "username": "blank",
-    "xp": 1100,
-    "level": 6,
-    "wins": 7,
+    "xp": 1550,
+    "level": 8,
+    "wins": 10,
     "losses": 1,
     "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Aneka&backgroundColor=transparent",
     "selectedClass": "speedrunner",
-    "totalVideosWatched": 1,
-    "totalWatchTime": 300,
+    "totalVideosWatched": 4,
+    "totalWatchTime": 1069,
     "watchHistory": [
+      {
+        "id": "zofMnllkVfI",
+        "title": "JavaScript - Introduction - W3Schools.com",
+        "timestamp": "2026-05-21T20:49:06.336Z"
+      },
+      {
+        "id": "zofMnllkVfI",
+        "title": "Custom Video: zofMnllkVfI",
+        "timestamp": "2026-05-21T20:37:04.606Z"
+      },
+      {
+        "id": "yQ1fz8LY354",
+        "title": "Custom Video: yQ1fz8LY354",
+        "timestamp": "2026-05-21T19:26:09.168Z"
+      },
       {
         "id": "do3a2tmlabw",
         "title": "Custom Video: do3a2tmlabw",
         "timestamp": "2026-05-21T15:06:06.865Z"
       }
     ]
+  },
+  {
+    "username": "CodeMaster",
+    "xp": 1250,
+    "level": 5,
+    "wins": 15,
+    "losses": 3
   },
   {
     "username": "NeonNinja",

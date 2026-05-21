@@ -14,6 +14,10 @@ app.use(cors());
 app.use(express.json());
 
 const httpServer = createServer(app);
+httpServer.timeout = 600000; // 10 minutes timeout for long-running AI requests
+httpServer.keepAliveTimeout = 600000;
+httpServer.headersTimeout = 605000;
+
 const io = new Server(httpServer, {
   cors: {
     origin: "*",
@@ -191,6 +195,8 @@ app.get("/api/search", async (req, res) => {
 
 // ── Pathfinder: Generate AI Roadmap from conversation answers ──────────────
 app.post("/api/pathfinder/generate", async (req, res) => {
+  req.setTimeout(600000);
+  res.setTimeout(600000);
   const { answers } = req.body; // array of { question, answer }
   if (!answers || !Array.isArray(answers)) {
     return res.status(400).json({ error: "answers array required" });
@@ -208,14 +214,16 @@ app.post("/api/pathfinder/generate", async (req, res) => {
 
 // ── Pathfinder: Generate AI Study Notes for a milestone ───────────────────
 app.post("/api/pathfinder/study-notes", async (req, res) => {
-  const { topic, milestone } = req.body;
+  req.setTimeout(600000);
+  res.setTimeout(600000);
+  const { topic, milestone, answers } = req.body;
   if (!topic || !milestone) {
     return res.status(400).json({ error: "topic and milestone required" });
   }
 
   const { generateStudyNotes } = await import("./geminiService.js");
   try {
-    const notes = await generateStudyNotes(topic, milestone);
+    const notes = await generateStudyNotes(topic, milestone, answers);
     res.json({ notes });
   } catch (err) {
     console.error("[Pathfinder] Study notes generation failed:", err.message);
@@ -260,7 +268,7 @@ io.on("connection", (socket) => {
   // Socket state
   let currentRoomId = null;
 
-  socket.on("join_queue", async ({ username, avatar, selectedClass, videoId, vsBot }) => {
+  socket.on("join_queue", async ({ username, avatar, selectedClass, videoId, videoTitle, videoChannel, videoDuration, videoThumbnail, vsBot }) => {
     console.log(`[Queue] Player "${username}" (${socket.id}) requested match. VideoId: ${videoId || "QuickMatch"}. vsBot: ${vsBot}`);
     
     // Store profile metadata on socket
@@ -268,9 +276,21 @@ io.on("connection", (socket) => {
     socket.avatar = avatar;
     socket.selectedClass = selectedClass || "doomscroller";
     
+    if (videoId) {
+      socket.queuedVideoTitle = videoTitle;
+      socket.queuedVideoChannel = videoChannel;
+      socket.queuedVideoDuration = videoDuration;
+      socket.queuedVideoThumbnail = videoThumbnail;
+    }
+    
     if (vsBot) {
       // Instantly start a Bot match
-      await createBotMatch(socket, videoId);
+      await createBotMatch(socket, videoId, {
+        title: videoTitle,
+        channel: videoChannel,
+        duration: videoDuration,
+        thumbnail: videoThumbnail
+      });
       return;
     }
 
@@ -302,7 +322,12 @@ io.on("connection", (socket) => {
             if (idx !== -1) {
               currentQueue.splice(idx, 1);
               console.log(`[Queue] Timeout reached, starting Bot Match for video "${videoId}"`);
-              await createBotMatch(socket, videoId);
+              await createBotMatch(socket, videoId, {
+                title: socket.queuedVideoTitle,
+                channel: socket.queuedVideoChannel,
+                duration: socket.queuedVideoDuration,
+                thumbnail: socket.queuedVideoThumbnail
+              });
             }
           }
         }, 5000);
@@ -542,15 +567,20 @@ io.on("connection", (socket) => {
     }
 
     if (!video) {
-      // Dynamic fetch or fallback
-      const generatedQuestions = await generateQuizForVideo(videoId);
+      // Construct from socket metadata or default
+      const title = p1Socket.queuedVideoTitle || p2Socket.queuedVideoTitle || `Custom Video: ${videoId}`;
+      const channel = p1Socket.queuedVideoChannel || p2Socket.queuedVideoChannel || "YouTube Creator";
+      const duration = p1Socket.queuedVideoDuration || p2Socket.queuedVideoDuration || 300;
+      const thumbnail = p1Socket.queuedVideoThumbnail || p2Socket.queuedVideoThumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+      
+      const generatedQuestions = await generateQuizForVideo(videoId, title);
       video = {
         id: videoId,
-        title: `Custom Video: ${videoId}`,
-        channel: "YouTube Creator",
+        title,
+        channel,
         category: "Custom Watch",
-        duration: 300, // 5 min default
-        thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+        duration,
+        thumbnail,
         questions: generatedQuestions
       };
     }
@@ -581,21 +611,26 @@ io.on("connection", (socket) => {
   }
 
   // Room Creation Helper (Bot Match)
-  async function createBotMatch(playerSocket, videoId) {
+  async function createBotMatch(playerSocket, videoId, customVideoDetails = null) {
     const roomId = `room_${Math.random().toString(36).substr(2, 9)}`;
     const botName = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
     
     let video = curatedVideos.find((v) => v.id === videoId);
     if (!video && videoId) {
-      // If it's a custom URL
-      const generatedQuestions = await generateQuizForVideo(videoId);
+      // If it's a custom URL/search
+      const title = customVideoDetails?.title || playerSocket.queuedVideoTitle || `Custom Video: ${videoId}`;
+      const channel = customVideoDetails?.channel || playerSocket.queuedVideoChannel || "YouTube Creator";
+      const duration = customVideoDetails?.duration || playerSocket.queuedVideoDuration || 300;
+      const thumbnail = customVideoDetails?.thumbnail || playerSocket.queuedVideoThumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+      
+      const generatedQuestions = await generateQuizForVideo(videoId, title);
       video = {
         id: videoId,
-        title: `Custom Video: ${videoId}`,
-        channel: "YouTube Creator",
+        title,
+        channel,
         category: "Custom Watch",
-        duration: 300,
-        thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+        duration,
+        thumbnail,
         questions: generatedQuestions
       };
     }
@@ -870,28 +905,79 @@ function evaluateGame(room) {
   let isDraw = false;
 
   // Evaluation criteria:
-  // 1. Higher score (more correct answers)
-  // 2. If score is tied, faster submission time wins!
-  if (p1.score > p2.score) {
-    winner = p1;
-    loser = p2;
-  } else if (p2.score > p1.score) {
-    winner = p2;
-    loser = p1;
-  } else {
-    // Tied score, check submission times
-    if (p1.submitTime < p2.submitTime) {
+  // 1. The player who submits first wins the game, provided they have at least 70% correct answers.
+  // 2. If the first submitter does not meet the 70% threshold, but the second submitter does, the second submitter wins.
+  // 3. Otherwise, fall back to standard rules: higher score wins, and if scores are tied, the faster submission wins.
+  const totalQuestions = room.video?.questions?.length || 5;
+  const p1Pct = p1.correctCount / totalQuestions;
+  const p2Pct = p2.correctCount / totalQuestions;
+
+  const p1Time = p1.submitTime || Infinity;
+  const p2Time = p2.submitTime || Infinity;
+
+  if (p1Time < p2Time) {
+    // p1 submitted first
+    if (p1Pct >= 0.7) {
       winner = p1;
       loser = p2;
-      // Add speed bonus to winner
-      winner.score += 50;
-    } else if (p2.submitTime < p1.submitTime) {
+    } else if (p2Pct >= 0.7) {
       winner = p2;
       loser = p1;
-      // Add speed bonus to winner
-      winner.score += 50;
     } else {
-      isDraw = true;
+      // Fallback
+      if (p1.score > p2.score) {
+        winner = p1;
+        loser = p2;
+      } else if (p2.score > p1.score) {
+        winner = p2;
+        loser = p1;
+      } else {
+        winner = p1; // p1 was faster
+        loser = p2;
+        winner.score += 50; // speed bonus
+      }
+    }
+  } else if (p2Time < p1Time) {
+    // p2 submitted first
+    if (p2Pct >= 0.7) {
+      winner = p2;
+      loser = p1;
+    } else if (p1Pct >= 0.7) {
+      winner = p1;
+      loser = p2;
+    } else {
+      // Fallback
+      if (p1.score > p2.score) {
+        winner = p1;
+        loser = p2;
+      } else if (p2.score > p1.score) {
+        winner = p2;
+        loser = p1;
+      } else {
+        winner = p2; // p2 was faster
+        loser = p1;
+        winner.score += 50; // speed bonus
+      }
+    }
+  } else {
+    // Both timed out or submitted at exact same time
+    if (p1Pct >= 0.7 && p2Pct < 0.7) {
+      winner = p1;
+      loser = p2;
+    } else if (p2Pct >= 0.7 && p1Pct < 0.7) {
+      winner = p2;
+      loser = p1;
+    } else {
+      // Fallback
+      if (p1.score > p2.score) {
+        winner = p1;
+        loser = p2;
+      } else if (p2.score > p1.score) {
+        winner = p2;
+        loser = p1;
+      } else {
+        isDraw = true;
+      }
     }
   }
 
@@ -903,7 +989,7 @@ function evaluateGame(room) {
       username: p.username,
       score: p.score,
       correctCount: p.correctCount,
-      submitTimeSec: ((p.submitTime - room.createdAt) / 1000).toFixed(1),
+      submitTimeSec: (((p.submitTime || Date.now()) - room.createdAt) / 1000).toFixed(1),
       answers: p.answers,
       multiplier: p.multiplier || 1.0,
       watchProgress: p.watchProgressAtSubmission || 100

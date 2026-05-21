@@ -339,6 +339,10 @@ export default function App() {
       avatar,
       selectedClass,
       videoId: selectedVideo.id,
+      videoTitle: selectedVideo.title,
+      videoChannel: selectedVideo.channel,
+      videoDuration: selectedVideo.duration,
+      videoThumbnail: selectedVideo.thumbnail,
       vsBot
     });
   };
