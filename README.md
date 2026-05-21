@@ -314,6 +314,8 @@ ytPlay aims to create:
 
 # The world's first competitive learning ecosystem.
 
+<img width="1536" height="1024" alt="Image" src="https://github.com/user-attachments/assets/0d9a6674-354e-4b81-91d7-8852ccff391a" />
+
 A place where:
 - knowledge becomes power,
 - skill becomes status,
