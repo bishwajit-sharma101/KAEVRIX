@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import YoutubePlayer from "./YoutubePlayer";
 import ChatBox from "./ChatBox";
 import * as sound from "../utils/audio";
@@ -28,6 +28,100 @@ export default function GameArena({
   const myUnlockedSkills = getUnlockedSkills(selectedClass || "doomscroller", level || 1);
   const [videoPlaybackRate, setVideoPlaybackRate] = useState(1);
   const isSpeedrunner = (selectedClass || "").toLowerCase() === "speedrunner";
+
+  // Pop Quiz States
+  const [activeInVideoQuestion, setActiveInVideoQuestion] = useState(null);
+  const [activeQuestionIdx, setActiveQuestionIdx] = useState(-1);
+  const [promptedQuestionIndices, setPromptedQuestionIndices] = useState([]);
+  const [timer, setTimer] = useState(6);
+  const [isLocalPaused, setIsLocalPaused] = useState(false);
+  const [resultMessage, setResultMessage] = useState("");
+  const [submittedAnswerIndex, setSubmittedAnswerIndex] = useState(null);
+  const [feedbackActive, setFeedbackActive] = useState(false);
+  const [correctAnswerIdx, setCorrectAnswerIdx] = useState(null);
+
+  const handleAnswerSubmit = (oIdx, remainingSecs = timer) => {
+    if (feedbackActive || submittedAnswerIndex !== null) return;
+    setSubmittedAnswerIndex(oIdx);
+    socket.emit("submit_in_video_answer", {
+      questionIdx: activeQuestionIdx,
+      answerIndex: oIdx,
+      remainingSeconds: remainingSecs
+    });
+  };
+
+  const handleLocalProgress = (currentTime) => {
+    if (!room || !room.video || !room.video.inVideoQuestions) return;
+
+    const inVideoQs = room.video.inVideoQuestions;
+    const nextQIdx = inVideoQs.findIndex((q, idx) => 
+      currentTime >= q.timestamp && !promptedQuestionIndices.includes(idx)
+    );
+
+    if (nextQIdx !== -1) {
+      const q = inVideoQs[nextQIdx];
+      setActiveInVideoQuestion(q);
+      setActiveQuestionIdx(nextQIdx);
+      setPromptedQuestionIndices((prev) => [...prev, nextQIdx]);
+      setIsLocalPaused(true);
+      setTimer(6);
+      setSubmittedAnswerIndex(null);
+      setFeedbackActive(false);
+      setResultMessage("");
+      setCorrectAnswerIdx(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleResult = ({ questionIdx, isCorrect, correctAnswerIdx: serverCorrectIdx, submittedAnswerIdx, xpGained, scoreGained }) => {
+      if (isCorrect) {
+        sound.playCorrect();
+        setResultMessage(`🎉 Correct! +${xpGained} XP`);
+      } else {
+        sound.playIncorrect();
+        setResultMessage(submittedAnswerIdx === -1 ? `⏰ Time's Up!` : `❌ Incorrect!`);
+      }
+
+      setCorrectAnswerIdx(serverCorrectIdx);
+      setFeedbackActive(true);
+
+      setTimeout(() => {
+        setIsLocalPaused(false);
+        setActiveInVideoQuestion(null);
+        setFeedbackActive(false);
+        setResultMessage("");
+        setCorrectAnswerIdx(null);
+        setSubmittedAnswerIndex(null);
+      }, 2000);
+    };
+
+    socket.on("in_video_answer_result", handleResult);
+    return () => {
+      socket.off("in_video_answer_result", handleResult);
+    };
+  }, [socket, activeQuestionIdx]);
+
+  useEffect(() => {
+    let interval = null;
+    if (activeInVideoQuestion && !feedbackActive && timer > 0) {
+      interval = setInterval(() => {
+        setTimer((t) => {
+          if (t <= 1) {
+            clearInterval(interval);
+            handleAnswerSubmit(-1, 0);
+            return 0;
+          }
+          sound.playClockTick();
+          return t - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeInVideoQuestion, feedbackActive, timer, activeQuestionIdx]);
 
   const getSkillCost = (skillLevel) => {
     if (skillLevel === 1) return 25;
@@ -67,12 +161,195 @@ export default function GameArena({
           <div className={isBlurred ? "arena-viewport-blurred" : "arena-viewport-normal"}>
             <YoutubePlayer
               videoId={room?.video.id}
-              onProgress={onVideoProgress}
+              onProgress={(progress, currentTime) => {
+                onVideoProgress(progress);
+                handleLocalProgress(currentTime);
+              }}
               onFinished={() => onVideoFinished(false)}
-              isFrozen={isFrozen}
+              isFrozen={isFrozen || isLocalPaused}
               playbackRate={videoPlaybackRate}
             />
           </div>
+
+          {/* Pop Quiz Overlay */}
+          {activeInVideoQuestion && (
+            <div className="in-video-quiz-overlay" style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              background: "rgba(10, 10, 18, 0.9)",
+              backdropFilter: "blur(12px)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 200,
+              color: "#fff",
+              padding: "20px",
+              boxSizing: "border-box"
+            }}>
+              <div style={{
+                width: "100%",
+                maxWidth: "480px",
+                background: "rgba(20, 20, 35, 0.8)",
+                border: "2px solid var(--glass-border)",
+                borderRadius: "16px",
+                padding: "24px",
+                boxShadow: "0 20px 50px rgba(0,0,0,0.6)",
+                position: "relative",
+                boxSizing: "border-box",
+                display: "flex",
+                flexDirection: "column",
+                gap: "16px"
+              }}>
+                {/* Header with Countdown */}
+                <div style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  borderBottom: "1px solid rgba(255,255,255,0.08)",
+                  paddingBottom: "12px"
+                }}>
+                  <span style={{
+                    fontFamily: "var(--font-gamer)",
+                    fontSize: "13px",
+                    color: "var(--neon-orange)",
+                    letterSpacing: "1px",
+                    fontWeight: "900"
+                  }}>
+                    ⚠️ POP QUIZ DETECTED
+                  </span>
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px"
+                  }}>
+                    <span style={{ fontSize: "10px", color: "var(--text-muted)", fontFamily: "var(--font-gamer)" }}>TIMER:</span>
+                    <span style={{
+                      fontFamily: "var(--font-gamer)",
+                      fontSize: "18px",
+                      color: timer <= 2 ? "var(--neon-pink)" : "var(--neon-gold)",
+                      textShadow: timer <= 2 ? "0 0 10px var(--neon-pink)" : "0 0 10px var(--neon-gold)",
+                      fontWeight: "900"
+                    }}>
+                      {timer}s
+                    </span>
+                  </div>
+                </div>
+
+                {/* Feedback Message */}
+                {feedbackActive && resultMessage && (
+                  <div style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    zIndex: 10,
+                    background: "rgba(10, 10, 18, 0.95)",
+                    border: "2px solid var(--glass-border)",
+                    borderRadius: "12px",
+                    padding: "16px 24px",
+                    textAlign: "center",
+                    boxShadow: "0 10px 30px rgba(0,0,0,0.8)",
+                    fontFamily: "var(--font-gamer)",
+                    fontSize: "20px",
+                    color: resultMessage.includes("Correct") ? "var(--neon-green)" : "var(--neon-pink)",
+                    textShadow: resultMessage.includes("Correct") ? "0 0 10px var(--neon-green)" : "0 0 10px var(--neon-pink)",
+                    width: "80%"
+                  }}>
+                    {resultMessage}
+                  </div>
+                )}
+
+                {/* Question Text */}
+                <div style={{
+                  fontFamily: "var(--font-outfit)",
+                  fontSize: "16px",
+                  fontWeight: "700",
+                  lineHeight: "1.4"
+                }}>
+                  {activeInVideoQuestion.question}
+                </div>
+
+                {/* Options */}
+                <div style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px"
+                }}>
+                  {activeInVideoQuestion.options.map((opt, oIdx) => {
+                    let btnBg = "var(--bg-dark-surface)";
+                    let btnBorder = "1px solid var(--glass-border)";
+                    let letterBg = "rgba(255,255,255,0.05)";
+                    let letterColor = "var(--text-muted)";
+
+                    if (feedbackActive) {
+                      if (oIdx === correctAnswerIdx) {
+                        btnBg = "rgba(0, 230, 118, 0.15)";
+                        btnBorder = "1px solid var(--neon-green)";
+                        letterBg = "var(--neon-green)";
+                        letterColor = "#fff";
+                      } else if (oIdx === submittedAnswerIndex) {
+                        btnBg = "rgba(255, 0, 127, 0.15)";
+                        btnBorder = "1px solid var(--neon-pink)";
+                        letterBg = "var(--neon-pink)";
+                        letterColor = "#fff";
+                      }
+                    } else if (oIdx === submittedAnswerIndex) {
+                      btnBorder = "1px solid var(--neon-orange)";
+                      btnBg = "rgba(255, 106, 0, 0.1)";
+                      letterBg = "var(--neon-orange)";
+                      letterColor = "#fff";
+                    }
+
+                    return (
+                      <button
+                        key={oIdx}
+                        disabled={feedbackActive || submittedAnswerIndex !== null}
+                        onClick={() => handleAnswerSubmit(oIdx)}
+                        style={{
+                          background: btnBg,
+                          border: btnBorder,
+                          borderRadius: "10px",
+                          padding: "10px 14px",
+                          textAlign: "left",
+                          color: "#fff",
+                          fontSize: "13px",
+                          cursor: feedbackActive ? "not-allowed" : "pointer",
+                          transition: "all 0.2s ease",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          width: "100%",
+                          outline: "none"
+                        }}
+                      >
+                        <div style={{
+                          width: "20px",
+                          height: "20px",
+                          borderRadius: "4px",
+                          background: letterBg,
+                          color: letterColor,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontFamily: "var(--font-gamer)",
+                          fontWeight: "800",
+                          fontSize: "10px",
+                          flexShrink: 0
+                        }}>
+                          {String.fromCharCode(65 + oIdx)}
+                        </div>
+                        <div style={{ flex: 1 }}>{opt}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 2x speed active badge */}
           {videoPlaybackRate === 2 && (
@@ -168,6 +445,9 @@ export default function GameArena({
           <div className="progress-track-row">
             <div className="progress-track-info">
               <span className="track-label player-indicator">👤 {username} (You)</span>
+              <span style={{ color: "var(--neon-gold)", fontFamily: "var(--font-gamer)", fontWeight: "bold" }}>
+                {room?.players.find(p => p.username === username)?.score || 0} pts
+              </span>
               <span>{myProgress}%</span>
             </div>
             <div className="progress-bar-base">
@@ -179,6 +459,9 @@ export default function GameArena({
             <div className="progress-track-info">
               <span className="track-label opponent-indicator">
                 {opponent?.isBot ? "🤖" : "👤"} {opponent?.username}
+              </span>
+              <span style={{ color: "var(--neon-gold)", fontFamily: "var(--font-gamer)", fontWeight: "bold" }}>
+                {room?.players.find(p => p.username !== username)?.score || 0} pts
               </span>
               <span>{opponentProgress}%</span>
             </div>

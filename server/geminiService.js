@@ -316,12 +316,14 @@ Your word count and depth must dynamically adapt to the complexity of the milest
 /**
  * Generates a mock quiz based on the video title as a fallback.
  */
-function generateFallbackQuiz(title) {
+function generateFallbackQuiz(title, duration = 300) {
+  const parsedDuration = Number(duration) || 300;
   const normalizedTitle = title.toLowerCase();
+  let postVideoQuestions = [];
   
   // Topic: JavaScript/Web Development
   if (normalizedTitle.includes("javascript") || normalizedTitle.includes("js") || normalizedTitle.includes("react") || normalizedTitle.includes("html") || normalizedTitle.includes("web dev") || normalizedTitle.includes("coding")) {
-    return [
+    postVideoQuestions = [
       {
         question: "What is the primary purpose of JavaScript in web development?",
         options: ["To style the layout and colors", "To add interactivity and dynamic behavior", "To store physical database files", "To configure server operating systems"],
@@ -354,10 +356,9 @@ function generateFallbackQuiz(title) {
       }
     ];
   }
-
   // Topic: Python / General Programming
-  if (normalizedTitle.includes("python") || normalizedTitle.includes("java") || normalizedTitle.includes("c++") || normalizedTitle.includes("programming") || normalizedTitle.includes("tutorial")) {
-    return [
+  else if (normalizedTitle.includes("python") || normalizedTitle.includes("java") || normalizedTitle.includes("c++") || normalizedTitle.includes("programming") || normalizedTitle.includes("tutorial")) {
+    postVideoQuestions = [
       {
         question: "What is the correct file extension for Python source files?",
         options: [".pt", ".py", ".pyt", ".python"],
@@ -390,10 +391,9 @@ function generateFallbackQuiz(title) {
       }
     ];
   }
-
   // Topic: Science / Physics / Space / Nature
-  if (normalizedTitle.includes("science") || normalizedTitle.includes("space") || normalizedTitle.includes("quantum") || normalizedTitle.includes("physics") || normalizedTitle.includes("earth") || normalizedTitle.includes("nature")) {
-    return [
+  else if (normalizedTitle.includes("science") || normalizedTitle.includes("space") || normalizedTitle.includes("quantum") || normalizedTitle.includes("physics") || normalizedTitle.includes("earth") || normalizedTitle.includes("nature")) {
+    postVideoQuestions = [
       {
         question: "What is the approximate speed of light in a vacuum?",
         options: ["300,000 km/s", "150,000 km/s", "1,000,000 km/s", "10,000 km/s"],
@@ -426,10 +426,9 @@ function generateFallbackQuiz(title) {
       }
     ];
   }
-
   // Topic: Gaming / Video Games
-  if (normalizedTitle.includes("game") || normalizedTitle.includes("gaming") || normalizedTitle.includes("minecraft") || normalizedTitle.includes("fortnite") || normalizedTitle.includes("zelda") || normalizedTitle.includes("gta")) {
-    return [
+  else if (normalizedTitle.includes("game") || normalizedTitle.includes("gaming") || normalizedTitle.includes("minecraft") || normalizedTitle.includes("fortnite") || normalizedTitle.includes("zelda") || normalizedTitle.includes("gta")) {
+    postVideoQuestions = [
       {
         question: "Which of the following is considered the best-selling video game of all time?",
         options: ["Tetris", "Grand Theft Auto V", "Minecraft", "Super Mario Bros."],
@@ -462,79 +461,156 @@ function generateFallbackQuiz(title) {
       }
     ];
   }
-
   // Generic Fallback (suitable for any video)
-  return [
-    {
-      question: `What is the primary topic of the video: "${title}"?`,
-      options: [
-        "A scientific overview of historical events",
-        "A detailed review, explanation, or presentation of the subject matter",
-        "A fictional short story depicting space travel",
-        "An advertisement promoting an energy drink brand"
-      ],
-      answerIndex: 1,
-      points: 100
-    },
-    {
-      question: "Which of the following is a good strategy to retain information from this video?",
-      options: [
-        "Playing it in the background at 4x speed while sleeping",
-        "Active listening, taking notes, and answering follow-up questions",
-        "Immediately closing the browser tab after 10 seconds",
-        "Muting the volume and staring at the wall"
-      ],
-      answerIndex: 1,
-      points: 100
-    },
-    {
-      question: "If a viewer has doubts about a claim made in the video, what is the best next step?",
-      options: [
-        "Accept it blindly without any further questioning",
-        "Cross-reference the information with peer-reviewed sources or trusted documentation",
-        "Write an angry comment in all capital letters",
-        "Never watch videos on the internet again"
-      ],
-      answerIndex: 1,
-      points: 100
-    },
-    {
-      question: "What makes digital video formats (like YouTube) effective for modern learning?",
-      options: [
-        "They completely replace teachers and books forever",
-        "They allow visual demonstration, self-paced pausing, and easy repeating",
-        "They consume high bandwidth and deplete device batteries",
-        "They guarantee a 100% grade in all college exams"
-      ],
-      answerIndex: 1,
-      points: 100
-    },
-    {
-      question: "In an online educational duel, what is the most honorable way to win?",
-      options: [
-        "Guessing randomly as fast as possible",
-        "Watching the video carefully, understanding it, and answering accurately",
-        "Hacking the website database to inject score points",
-        "Distracting the opponent by spamming the chat panel"
-      ],
-      answerIndex: 1,
-      points: 100
+  else {
+    postVideoQuestions = [
+      {
+        question: `What is the primary topic of the video: "${title}"?`,
+        options: [
+          "A scientific overview of historical events",
+          "A detailed review, explanation, or presentation of the subject matter",
+          "A fictional short story depicting space travel",
+          "An advertisement promoting an energy drink brand"
+        ],
+        answerIndex: 1,
+        points: 100
+      },
+      {
+        question: "Which of the following is a good strategy to retain information from this video?",
+        options: [
+          "Playing it in the background at 4x speed while sleeping",
+          "Active listening, taking notes, and answering follow-up questions",
+          "Immediately closing the browser tab after 10 seconds",
+          "Muting the volume and staring at the wall"
+        ],
+        answerIndex: 1,
+        points: 100
+      },
+      {
+        question: "If a viewer has doubts about a claim made in the video, what is the best next step?",
+        options: [
+          "Accept it blindly without any further questioning",
+          "Cross-reference the information with peer-reviewed sources or trusted documentation",
+          "Write an angry comment in all capital letters",
+          "Never watch videos on the internet again"
+        ],
+        answerIndex: 1,
+        points: 100
+      },
+      {
+        question: "What makes digital video formats (like YouTube) effective for modern learning?",
+        options: [
+          "They completely replace teachers and books forever",
+          "They allow visual demonstration, self-paced pausing, and easy repeating",
+          "They consume high bandwidth and deplete device batteries",
+          "They guarantee a 100% grade in all college exams"
+        ],
+        answerIndex: 1,
+        points: 100
+      },
+      {
+        question: "In an online educational duel, what is the most honorable way to win?",
+        options: [
+          "Guessing randomly as fast as possible",
+          "Watching the video carefully, understanding it, and answering accurately",
+          "Hacking the website database to inject score points",
+          "Distracting the opponent by spamming the chat panel"
+        ],
+        answerIndex: 1,
+        points: 100
+      }
+    ];
+  }
+
+  // Generate in-video questions dynamically based on duration (minimum 1)
+  const numInVideoQuestions = Math.min(20, Math.max(1, Math.round(parsedDuration / 200)));
+  const halfDuration = parsedDuration / 2;
+  const endLimit = parsedDuration - Math.min(30, parsedDuration * 0.15); // Leave at least 15% or 30s at the end
+  
+  const inVideoQuestions = [];
+  for (let i = 0; i < numInVideoQuestions; i++) {
+    let timestamp;
+    if (numInVideoQuestions === 1) {
+      timestamp = Math.round((halfDuration + endLimit) / 2);
+    } else {
+      timestamp = Math.round(halfDuration + i * ((endLimit - halfDuration) / (numInVideoQuestions - 1)));
     }
-  ];
+    timestamp = Math.max(1, Math.min(parsedDuration - 2, timestamp));
+
+    inVideoQuestions.push({
+      question: `Segment Pop Quiz ${i + 1}: Based on the information presented leading up to the ${Math.floor(timestamp / 60)}m ${timestamp % 60}s mark, what is the correct takeaway?`,
+      options: [
+        "Pay active attention to the key points and explanation details",
+        "Assume the narrator is incorrect and skip to the end",
+        "Answer as fast as possible without reading the question text",
+        "Rely solely on luck and select the last option"
+      ],
+      answerIndex: 0,
+      points: 50,
+      timestamp
+    });
+  }
+
+  return {
+    postVideoQuestions,
+    inVideoQuestions,
+    captions: []
+  };
 }
 
 /**
- * Generates quiz questions for a video.
+ * Helper to segment the transcript to get context for pop quizzes
+ */
+function getTranscriptSegments(transcriptList, duration, numQuestions, title) {
+  const parsedDuration = Number(duration) || 300;
+  if (!transcriptList || transcriptList.length === 0) return [];
+  
+  const halfDuration = parsedDuration / 2;
+  const endLimit = parsedDuration - Math.min(30, parsedDuration * 0.15);
+  const segments = [];
+  
+  for (let i = 0; i < numQuestions; i++) {
+    let timestamp;
+    if (numQuestions === 1) {
+      timestamp = Math.round((halfDuration + endLimit) / 2);
+    } else {
+      timestamp = Math.round(halfDuration + i * ((endLimit - halfDuration) / (numQuestions - 1)));
+    }
+    timestamp = Math.max(1, Math.min(parsedDuration - 2, timestamp));
+    
+    const windowStart = Math.max(0, timestamp - 90);
+    const windowEnd = timestamp;
+    
+    // Filter transcript items in this window (YoutubeTranscript offset is in ms)
+    const itemsInWindow = transcriptList.filter(item => {
+      const offsetSec = item.offset > 1000 ? item.offset / 1000 : item.offset;
+      return offsetSec >= windowStart && offsetSec <= windowEnd;
+    });
+    
+    const segmentText = itemsInWindow.map(item => item.text).join(" ");
+    segments.push({
+      timestamp,
+      text: segmentText || `Discussing details related to "${title}" leading up to this segment.`
+    });
+  }
+  
+  return segments;
+}
+
+/**
+ * Generates quiz questions for a video (both post-video and in-video pop quizzes).
  * It first tries to fetch the transcript, then calls Ollama (gemma4:e4b) to create the quiz.
  * Falls back to Gemini API or smart default questions if necessary.
  */
-export async function generateQuizForVideo(videoId, title) {
+export async function generateQuizForVideo(videoId, title, duration = 300) {
+  const parsedDuration = Number(duration) || 300;
   // 1. Try to fetch video transcript
   let transcriptText = "";
+  let transcriptList = [];
   if (videoId) {
     try {
       console.log(`[Transcript] Fetching transcript for video: "${title}" (${videoId})`);
-      const transcriptList = await YoutubeTranscript.fetchTranscript(videoId);
+      transcriptList = await YoutubeTranscript.fetchTranscript(videoId);
       transcriptText = transcriptList.map(t => t.text).join(" ");
       console.log(`[Transcript] Successfully fetched transcript of length ${transcriptText.length} characters.`);
     } catch (err) {
@@ -542,50 +618,98 @@ export async function generateQuizForVideo(videoId, title) {
     }
   }
 
+  // Calculate dynamic count of in-video questions (minimum 1)
+  const numInVideoQuestions = Math.min(20, Math.max(1, Math.round(parsedDuration / 200)));
+  const segments = getTranscriptSegments(transcriptList, parsedDuration, numInVideoQuestions, title);
+  
+  const segmentsText = segments.map((seg, idx) => 
+    `Segment ${idx + 1} (target timestamp: ${seg.timestamp}s, transcript context range ${seg.timestamp - 90}s to ${seg.timestamp}s):\n"${seg.text}"`
+  ).join("\n\n");
+
   // 2. Formulate the quiz prompt
   const prompt = `You are an expert quiz generator for the ytPlay educational platform.
-Your task is to generate a quiz consisting of exactly 5 multiple choice questions based on the content of a YouTube video.
+Your task is to generate a comprehensive quiz consisting of two parts based on the content of a YouTube video:
+1. exactly 5 general multiple choice questions for the END of the video (postVideoQuestions).
+2. exactly ${numInVideoQuestions} in-video pop quiz questions (inVideoQuestions), each testing details presented in the corresponding segment transcript below.
 
 VIDEO DETAILS:
 Title: "${title}"
-${transcriptText ? `Transcript:\n"""\n${transcriptText.substring(0, 15000)}\n"""` : "(No transcript available)"}
+${transcriptText ? `Transcript Summary:\n"""\n${transcriptText.substring(0, 5000)}\n"""` : "(No transcript available)"}
+
+IN-VIDEO TRANSCRIPT SEGMENTS:
+${segmentsText || "(No transcript segments available)"}
 
 Instructions:
-1. Generate exactly 5 multiple choice questions.
-2. The questions must test key facts, concepts, or information mentioned in the video (use the transcript if available, otherwise base it on the title).
-3. The questions should be engaging and have one clear correct answer.
+1. Generate exactly 5 post-video questions.
+2. Generate exactly ${numInVideoQuestions} in-video questions.
+3. For each in-video question, it MUST test the viewer's memory or understanding of the events/concepts discussed in its corresponding Segment.
 4. Each question must have exactly 4 options.
-5. Respond ONLY with a valid JSON array of objects. Do not include markdown code blocks, backticks, or any conversational text.
+5. Respond ONLY with a valid JSON object matching the format below. Do not include markdown code blocks, backticks, or any conversational text.
 
 Format specification:
-[
-  {
-    "question": "The question text here?",
-    "options": ["Option 0 text", "Option 1 text", "Option 2 text", "Option 3 text"],
-    "answerIndex": 0, // integer index (0, 1, 2, or 3) of the correct option
-    "points": 100
-  }
-]
+{
+  "postVideoQuestions": [
+    {
+      "question": "The post-video question text here?",
+      "options": ["Option 0 text", "Option 1 text", "Option 2 text", "Option 3 text"],
+      "answerIndex": 0, // integer index (0, 1, 2, or 3) of the correct option
+      "points": 100
+    }
+  ],
+  "inVideoQuestions": [
+    {
+      "question": "The segment-specific in-video question text here?",
+      "options": ["Option 0 text", "Option 1 text", "Option 2 text", "Option 3 text"],
+      "answerIndex": 1, // integer index of correct option
+      "points": 50
+    }
+  ]
+}
 `;
 
-  const validateQuestions = (questions) => {
-    if (!Array.isArray(questions) || questions.length !== 5) {
-      throw new Error("Returned content is not a 5-question array");
+  const validateQuizData = (data) => {
+    if (!data || typeof data !== "object") {
+      throw new Error("Returned content is not a valid quiz object");
     }
-    return questions.map((q) => ({
+    const postVideo = Array.isArray(data.postVideoQuestions) ? data.postVideoQuestions : [];
+    const inVideo = Array.isArray(data.inVideoQuestions) ? data.inVideoQuestions : [];
+    
+    if (postVideo.length !== 5) {
+      throw new Error(`Expected exactly 5 post-video questions, got ${postVideo.length}`);
+    }
+    if (inVideo.length !== numInVideoQuestions) {
+      throw new Error(`Expected exactly ${numInVideoQuestions} in-video questions, got ${inVideo.length}`);
+    }
+    
+    const validatedPostVideo = postVideo.map((q) => ({
       question: q.question || "Trivia Question",
       options: Array.isArray(q.options) && q.options.length === 4 ? q.options : ["Option A", "Option B", "Option C", "Option D"],
       answerIndex: typeof q.answerIndex === "number" && q.answerIndex >= 0 && q.answerIndex <= 3 ? q.answerIndex : 0,
       points: q.points || 100
     }));
+    
+    // Inject programmatic timestamps to guarantee alignment
+    const validatedInVideo = inVideo.map((q, idx) => ({
+      question: q.question || `Pop Quiz from Video Segment`,
+      options: Array.isArray(q.options) && q.options.length === 4 ? q.options : ["Option A", "Option B", "Option C", "Option D"],
+      answerIndex: typeof q.answerIndex === "number" && q.answerIndex >= 0 && q.answerIndex <= 3 ? q.answerIndex : 0,
+      points: q.points || 50,
+      timestamp: segments[idx] ? segments[idx].timestamp : Math.round((parsedDuration / 2) + idx * (parsedDuration / 2 / numInVideoQuestions))
+    }));
+    
+    return {
+      postVideoQuestions: validatedPostVideo,
+      inVideoQuestions: validatedInVideo
+    };
   };
 
   // 3. Try Ollama (gemma4:e4b) primary generator
   try {
     console.log(`[Ollama Quiz Generator] Generating quiz via Ollama ${OLLAMA_MODEL} for video: "${title}"`);
     const responseText = await ollamaGenerate(prompt, "json");
-    const questions = JSON.parse(responseText.trim());
-    return validateQuestions(questions);
+    const quizData = JSON.parse(responseText.trim());
+    const validated = validateQuizData(quizData);
+    return { ...validated, captions: transcriptList };
   } catch (ollamaErr) {
     console.warn(`[Ollama Quiz Generator] Ollama failed: ${ollamaErr.message}. Trying Gemini API as fallback...`);
   }
@@ -596,8 +720,9 @@ Format specification:
     try {
       console.log(`[Gemini Quiz Generator] Generating quiz via Gemini API for video: "${title}"`);
       const responseText = await callGeminiAPI(prompt, "application/json");
-      const questions = JSON.parse(responseText.trim());
-      return validateQuestions(questions);
+      const quizData = JSON.parse(responseText.trim());
+      const validated = validateQuizData(quizData);
+      return { ...validated, captions: transcriptList };
     } catch (geminiErr) {
       console.warn(`[Gemini Quiz Generator] Gemini API failed: ${geminiErr.message}. Using default template fallback...`);
     }
@@ -605,5 +730,9 @@ Format specification:
 
   // 5. Ultimate Fallback to smart pre-defined / template questions
   console.log(`[Quiz Generator Fallback] Using smart fallback quiz for: "${title}"`);
-  return generateFallbackQuiz(title);
+  const fallback = generateFallbackQuiz(title, parsedDuration);
+  return {
+    ...fallback,
+    captions: transcriptList
+  };
 }

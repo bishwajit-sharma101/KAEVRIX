@@ -57,7 +57,7 @@ export default function YoutubePlayer({ videoId, onProgress, onFinished, isFroze
               const percentage = Math.min(100, (currentTime / duration) * 100);
               // Trigger the latest callback ref
               if (onProgressRef.current) {
-                onProgressRef.current(Math.round(percentage));
+                onProgressRef.current(Math.round(percentage), currentTime);
               }
             }
           } catch (e) {

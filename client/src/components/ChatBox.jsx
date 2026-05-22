@@ -1,15 +1,17 @@
 import { useEffect, useRef } from "react";
 
 export default function ChatBox({ messages, chatInput, setChatInput, onSendChat, username, placeholder = "Talk strategy or trash..." }) {
-  const chatEndRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   return (
     <div className="glass-panel chat-panel" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div className="chat-messages" style={{ flex: 1, overflowY: "auto" }}>
+      <div ref={containerRef} className="chat-messages" style={{ flex: 1, overflowY: "auto" }}>
         {messages.map((msg) => (
           <div key={msg.id} className="chat-message">
             <div className="chat-msg-header">
@@ -23,7 +25,6 @@ export default function ChatBox({ messages, chatInput, setChatInput, onSendChat,
             </div>
           </div>
         ))}
-        <div ref={chatEndRef}></div>
       </div>
       <form onSubmit={onSendChat} className="chat-input-box">
         <input

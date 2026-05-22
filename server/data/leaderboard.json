@@ -1,15 +1,20 @@
 [
   {
     "username": "blank",
-    "xp": 1550,
-    "level": 8,
+    "xp": 1660,
+    "level": 9,
     "wins": 10,
-    "losses": 1,
-    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Aneka&backgroundColor=transparent",
-    "selectedClass": "speedrunner",
-    "totalVideosWatched": 4,
-    "totalWatchTime": 1069,
+    "losses": 2,
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Gizmo&backgroundColor=transparent",
+    "selectedClass": "glitchmancer",
+    "totalVideosWatched": 5,
+    "totalWatchTime": 1813,
     "watchHistory": [
+      {
+        "id": "lkIFF4maKMU",
+        "title": "100+ JavaScript Concepts you Need to Know",
+        "timestamp": "2026-05-22T07:08:28.900Z"
+      },
       {
         "id": "zofMnllkVfI",
         "title": "JavaScript - Introduction - W3Schools.com",
