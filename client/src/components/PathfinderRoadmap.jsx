@@ -3,14 +3,26 @@ import * as sound from "../utils/audio";
 
 const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
 
-// Status visual config
-const STATUS_CONFIG = {
-  completed:  { bg: "#dcfce7", border: "#16a34a", text: "#16a34a", icon: "✓", label: "Completed" },
-  active:     { bg: "#fff7ed", border: "#ff6a00", text: "#ff6a00", icon: "▶", label: "In Progress" },
-  unlocked:   { bg: "#ffffff", border: "#e2e8f0", text: "#64748b", icon: "○", label: "Available" },
-  locked:     { bg: "#f8fafc", border: "#e2e8f0", text: "#cbd5e1", icon: "🔒", label: "Locked" },
-  revision:   { bg: "#fef9c3", border: "#ca8a04", text: "#ca8a04", icon: "↺", label: "Revision" },
-};
+// Status visual config helper
+function getStatusConfig(isDarkMode) {
+  if (isDarkMode) {
+    return {
+      completed:  { bg: "rgba(212, 175, 55, 0.12)", border: "#d4af37", text: "#e5c158", icon: "✦", label: "Mastered" },
+      active:     { bg: "rgba(245, 158, 11, 0.15)", border: "#f59e0b", text: "#f59e0b", icon: "✵", label: "Active Quest" },
+      unlocked:   { bg: "rgba(138, 115, 67, 0.08)", border: "#8a7343", text: "#c5a85c", icon: "○", label: "Available" },
+      locked:     { bg: "rgba(100, 90, 80, 0.04)", border: "rgba(138, 115, 67, 0.15)", text: "#7c7267", icon: "🔒", label: "Locked" },
+      revision:   { bg: "rgba(234, 179, 8, 0.12)", border: "#eab308", text: "#eab308", icon: "↺", label: "Revision" },
+    };
+  } else {
+    return {
+      completed:  { bg: "#dcfce7", border: "#16a34a", text: "#16a34a", icon: "✓", label: "Completed" },
+      active:     { bg: "#fff7ed", border: "#ff6a00", text: "#ff6a00", icon: "▶", label: "In Progress" },
+      unlocked:   { bg: "#ffffff", border: "#e2e8f0", text: "#64748b", icon: "○", label: "Available" },
+      locked:     { bg: "#f8fafc", border: "#e2e8f0", text: "#cbd5e1", icon: "🔒", label: "Locked" },
+      revision:   { bg: "#fef9c3", border: "#ca8a04", text: "#ca8a04", icon: "↺", label: "Revision" },
+    };
+  }
+}
 
 const LEVEL_META = {
   1: { emoji: "🌱", label: "Foundations", range: "Basic → Intermediate" },
@@ -18,123 +30,281 @@ const LEVEL_META = {
   3: { emoji: "🔥", label: "Mastery",     range: "Advanced → God Tier" },
 };
 
-function MilestoneNode({ milestone, levelColor, isLastInLevel, onSelect, isSelected, levelNum }) {
-  const cfg = STATUS_CONFIG[milestone.status] || STATUS_CONFIG.locked;
+function MilestoneNode({ milestone, levelColor, isLastInLevel, onSelect, isSelected, levelNum, index, isDarkMode }) {
+  const statusConfig = getStatusConfig(isDarkMode);
+  const cfg = statusConfig[milestone.status] || statusConfig.locked;
   const isClickable = milestone.status !== "locked";
+  const isEven = index % 2 === 0;
+  const isLocked = milestone.status === "locked";
+  const isActive = milestone.status === "active";
+  const isCompleted = milestone.status === "completed";
+
+  let medallionBg;
+  if (isCompleted) {
+    medallionBg = isDarkMode
+      ? "radial-gradient(circle at 38% 35%, rgba(255,225,100,0.58) 0%, rgba(180,135,30,0.96) 42%, rgba(88,65,14,1) 100%)"
+      : "radial-gradient(circle at 38% 35%, #fffde7 0%, #fef3c7 42%, #fde68a 100%)";
+  } else if (isActive) {
+    medallionBg = isDarkMode
+      ? "radial-gradient(circle at 38% 35%, rgba(255,178,52,0.62) 0%, rgba(205,122,18,0.96) 42%, rgba(98,63,10,1) 100%)"
+      : "radial-gradient(circle at 38% 35%, #fff7ed 0%, #ffedd5 42%, #fed7aa 100%)";
+  } else if (isLocked) {
+    medallionBg = isDarkMode
+      ? "radial-gradient(circle at 38% 35%, rgba(60,58,54,0.72) 0%, rgba(38,36,32,0.96) 100%)"
+      : "radial-gradient(circle at 38% 35%, #f8fafc 0%, #e2e8f0 100%)";
+  } else {
+    medallionBg = isDarkMode
+      ? "radial-gradient(circle at 38% 35%, rgba(120,95,48,0.72) 0%, rgba(68,53,24,0.96) 100%)"
+      : "radial-gradient(circle at 38% 35%, #fef9ee 0%, #fef3c7 100%)";
+  }
+  if (isSelected) {
+    medallionBg = isDarkMode
+      ? "radial-gradient(circle at 38% 35%, rgba(255,240,132,0.68) 0%, rgba(212,175,55,0.93) 42%, rgba(128,98,18,1) 100%)"
+      : "radial-gradient(circle at 38% 35%, #fffbeb 0%, #fef3c7 42%, #fde68a 100%)";
+  }
+
+  const cornerColor = isLocked
+    ? (isDarkMode ? "rgba(100,90,80,0.32)" : "rgba(185,175,160,0.5)")
+    : isSelected ? (isDarkMode ? "#ffd700" : levelColor)
+    : (isCompleted || isActive) ? levelColor
+    : (isDarkMode ? "#8a7343" : "#c5a85c");
+
+  const medallionBorder = isLocked
+    ? `2px solid ${isDarkMode ? "rgba(100,90,80,0.25)" : "#e2e8f0"}`
+    : isSelected ? `2.5px solid ${isDarkMode ? "#ffd700" : levelColor}`
+    : `2px solid ${cornerColor}`;
+
+  const medallionGlow = isLocked ? "none"
+    : isSelected ? `0 0 28px ${levelColor}, 0 0 56px ${levelColor}55, inset 0 0 16px ${levelColor}33`
+    : isActive ? `0 0 20px ${levelColor}bb, 0 0 40px ${levelColor}44`
+    : isCompleted ? `0 0 14px ${levelColor}88, 0 0 28px ${levelColor}33`
+    : "none";
+
+  const labelBg = isSelected
+    ? (isDarkMode ? "rgba(212,175,55,0.11)" : "rgba(254,243,199,0.55)")
+    : (isDarkMode ? "rgba(22,16,8,0.75)" : "#ffffff");
+
+  const titleColor = isLocked
+    ? (isDarkMode ? "#7c7267" : "#94a3b8")
+    : isSelected ? (isDarkMode ? "#ffd700" : levelColor)
+    : (isDarkMode ? "#f3e2b4" : "#78350f");
+
+  const sideAccentActive = (isCompleted || isActive) ? levelColor + "cc" : (isDarkMode ? "rgba(138,115,67,0.22)" : "rgba(0,0,0,0.07)");
+  const sideAccentSelected = isDarkMode ? "#ffd700" : levelColor;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
-      {/* Connector line above (except first) */}
+    <div className="node-row">
       {!isLastInLevel && (
-        <div style={{
-          position: "absolute", top: "52px", left: "50%",
-          transform: "translateX(-50%)",
-          width: "2px", height: "40px",
-          background: milestone.status === "completed"
-            ? levelColor
-            : "repeating-linear-gradient(to bottom, #e2e8f0 0, #e2e8f0 5px, transparent 5px, transparent 10px)",
-          zIndex: 0
+        <div className="node-connector" style={{
+          width: "3px",
+          background: isCompleted
+            ? `linear-gradient(to bottom, ${levelColor}ee, ${levelColor}77)`
+            : (isDarkMode
+                ? "repeating-linear-gradient(to bottom, rgba(212,175,55,0.48) 0, rgba(212,175,55,0.48) 4px, transparent 4px, transparent 10px)"
+                : "repeating-linear-gradient(to bottom, rgba(180,140,60,0.48) 0, rgba(180,140,60,0.48) 4px, transparent 4px, transparent 10px)"),
+          boxShadow: isCompleted ? `0 0 9px ${levelColor}bb` : "none",
         }} />
       )}
 
-      {/* The node card */}
-      <div
-        onClick={() => isClickable && onSelect(milestone)}
-        style={{
-          width: "260px",
-          background: isSelected ? `${cfg.bg}` : cfg.bg,
-          border: `2px solid ${isSelected ? levelColor : cfg.border}`,
-          borderRadius: "16px",
-          padding: "16px 18px",
-          cursor: isClickable ? "pointer" : "default",
-          transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
-          boxShadow: isSelected
-            ? `0 8px 30px ${levelColor}33, 0 0 0 4px ${levelColor}22`
-            : "0 2px 8px rgba(0,0,0,0.05)",
-          position: "relative",
-          zIndex: 1,
-          transform: isSelected ? "scale(1.03)" : milestone.status === "locked" ? "none" : "none",
-          opacity: milestone.status === "locked" ? 0.6 : 1,
-        }}
-        onMouseOver={e => {
-          if (isClickable && !isSelected) {
-            e.currentTarget.style.boxShadow = `0 6px 20px ${levelColor}33`;
-            e.currentTarget.style.borderColor = levelColor;
-            e.currentTarget.style.transform = "translateY(-2px)";
-          }
-        }}
-        onMouseOut={e => {
-          if (!isSelected) {
-            e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.05)";
-            e.currentTarget.style.borderColor = cfg.border;
-            e.currentTarget.style.transform = "none";
-          }
-        }}
-      >
-        {/* Revision badge */}
-        {milestone.isRevision && (
-          <div style={{
-            position: "absolute", top: "-8px", right: "12px",
-            background: "#fef9c3", border: "1px solid #ca8a04",
-            color: "#ca8a04", fontSize: "10px", fontWeight: "800",
-            padding: "2px 8px", borderRadius: "10px", letterSpacing: "0.5px"
-          }}>
-            REVISION
+      {isEven ? (
+        <div
+          className="node-label-card align-left"
+          onClick={() => isClickable && onSelect(milestone)}
+          style={{
+            cursor: isClickable ? "pointer" : "default",
+            opacity: isLocked ? 0.38 : 1,
+            background: labelBg,
+            border: `1.5px solid ${isDarkMode ? "rgba(138,115,67,0.18)" : "rgba(0,0,0,0.06)"}`,
+            borderRight: `3px solid ${isSelected ? sideAccentSelected : sideAccentActive}`,
+            boxShadow: isSelected ? `0 4px 22px ${levelColor}20, -4px 0 18px ${levelColor}15` : "none",
+            backdropFilter: isDarkMode ? "blur(10px)" : "none",
+          }}
+          onMouseOver={e => {
+            if (isClickable && !isSelected) {
+              e.currentTarget.style.background = isDarkMode ? "rgba(212,175,55,0.09)" : "rgba(254,243,199,0.5)";
+              e.currentTarget.style.borderRightColor = levelColor;
+            }
+          }}
+          onMouseOut={e => {
+            if (!isSelected) {
+              e.currentTarget.style.background = labelBg;
+              e.currentTarget.style.borderRightColor = sideAccentActive;
+            }
+          }}
+        >
+          {milestone.isRevision && (
+            <div style={{
+              background: "rgba(234,179,8,0.18)", border: "1px solid rgba(234,179,8,0.5)",
+              color: "#eab308", fontSize: "8px", fontWeight: "900",
+              padding: "1px 7px", borderRadius: "8px", letterSpacing: "0.5px",
+              marginBottom: "5px", display: "inline-block"
+            }}>REVISION</div>
+          )}
+          <div style={{ fontSize: "13px", fontWeight: "800", color: titleColor, fontFamily: "'Cinzel', serif", marginBottom: "4px", lineHeight: "1.3" }}>
+            {milestone.title}
           </div>
-        )}
-
-        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-          {/* Status icon circle */}
-          <div style={{
-            width: "32px", height: "32px", borderRadius: "50%",
-            background: milestone.status === "completed" ? levelColor
-              : milestone.status === "active" ? "#fff7ed"
-              : milestone.status === "unlocked" ? "#f1f5f9"
-              : "#f8fafc",
-            border: `2px solid ${milestone.status === "locked" ? "#e2e8f0" : levelColor}`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: milestone.status === "completed" ? "14px" : "12px",
-            color: milestone.status === "completed" ? "#fff" : cfg.text,
-            fontWeight: "900",
-            flexShrink: 0,
-          }}>
-            {cfg.icon}
+          <div style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.45", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+            {milestone.description}
           </div>
-
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: "13px", fontWeight: "800", color: "var(--text-light)", lineHeight: "1.3", marginBottom: "4px" }}>
-              {milestone.title}
-            </div>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.4", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-              {milestone.description}
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px", flexWrap: "wrap" }}>
-              {milestone.estimatedMinutes && (
-                <span style={{ fontSize: "10px", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "3px" }}>
-                  ⏱ {milestone.estimatedMinutes}min
-                </span>
-              )}
-              {milestone.xpReward && (
-                <span style={{
-                  fontSize: "10px", fontWeight: "800",
-                  color: milestone.status === "completed" ? "#16a34a" : cfg.text,
-                  background: milestone.status === "completed" ? "#dcfce7" : "#f1f5f9",
-                  padding: "2px 6px", borderRadius: "6px"
-                }}>
-                  +{milestone.xpReward} XP
-                </span>
-              )}
-              <span style={{
-                fontSize: "10px", fontWeight: "700",
-                color: cfg.text, marginLeft: "auto"
-              }}>
-                {cfg.label}
-              </span>
-            </div>
+          <div style={{ display: "flex", gap: "8px", marginTop: "7px", alignItems: "center", justifyContent: "flex-end" }}>
+            {milestone.estimatedMinutes && (
+              <span style={{ fontSize: "10px", color: "var(--text-muted)", fontFamily: "monospace" }}>⏱ {milestone.estimatedMinutes}m</span>
+            )}
+            {milestone.xpReward && (
+              <span style={{ fontSize: "10px", fontWeight: "800", color: isDarkMode ? "#d4af37" : "#b45309" }}>+{milestone.xpReward} XP</span>
+            )}
           </div>
         </div>
+      ) : (
+        <div className="node-spacer" />
+      )}
+
+      {/* Center: Elden Ring Grace Node */}
+      <div className="node-medallion-container">
+        {/* Rotating arc ring — active only */}
+        {isActive && (
+          <div style={{
+            position: "absolute",
+            top: "-15px", left: "-15px", right: "-15px", bottom: "-15px",
+            borderRadius: "50%",
+            border: `1.5px solid ${levelColor}`,
+            borderTopColor: "transparent",
+            borderLeftColor: "transparent",
+            animation: "graceRotate 3.5s linear infinite",
+            pointerEvents: "none",
+            zIndex: 4,
+          }} />
+        )}
+        {/* Halo pulse ring */}
+        {(isActive || isCompleted) && (
+          <div style={{
+            position: "absolute",
+            top: "-8px", left: "-8px", right: "-8px", bottom: "-8px",
+            borderRadius: "50%",
+            border: `1px solid ${levelColor}55`,
+            animation: isActive ? "gracePulse 1.8s ease-in-out infinite" : "none",
+            pointerEvents: "none",
+          }} />
+        )}
+        {/* Main clickable orb */}
+        <div
+          onClick={() => isClickable && onSelect(milestone)}
+          style={{
+            position: "relative",
+            width: "76px", height: "76px",
+            borderRadius: "50%",
+            background: medallionBg,
+            border: medallionBorder,
+            boxShadow: medallionGlow,
+            cursor: isClickable ? "pointer" : "default",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "transform 0.22s cubic-bezier(0.4,0,0.2,1), box-shadow 0.22s",
+            zIndex: 2,
+          }}
+          onMouseOver={e => {
+            if (isClickable) {
+              e.currentTarget.style.transform = "scale(1.12)";
+              e.currentTarget.style.boxShadow = `0 0 26px ${levelColor}, 0 0 52px ${levelColor}55`;
+            }
+          }}
+          onMouseOut={e => {
+            e.currentTarget.style.transform = "none";
+            e.currentTarget.style.boxShadow = medallionGlow;
+          }}
+        >
+          {/* Inner dashed decorative ring */}
+          <div style={{
+            position: "absolute", top: "7px", left: "7px", right: "7px", bottom: "7px",
+            borderRadius: "50%",
+            border: `1px dashed ${isDarkMode ? "rgba(212,175,55,0.3)" : "rgba(180,140,60,0.45)"}`,
+            pointerEvents: "none",
+          }} />
+          {/* Status icon */}
+          <span style={{
+            fontSize: isLocked ? "15px" : "20px",
+            color: isLocked
+              ? (isDarkMode ? "rgba(180,168,155,0.28)" : "rgba(150,150,150,0.35)")
+              : isSelected ? (isDarkMode ? "#ffd700" : levelColor)
+              : cfg.text,
+            fontWeight: "900",
+            fontFamily: "'Cinzel', serif",
+            textShadow: (!isLocked && (isActive || isCompleted || isSelected)) ? `0 0 10px ${levelColor}` : "none",
+            position: "relative", zIndex: 1,
+          }}>
+            {cfg.icon}
+          </span>
+          {/* 4 corner diamond points: N / S / W / E */}
+          {!isLocked && [
+            { top: "-8px", left: "50%", transform: "translateX(-50%) rotate(45deg)" },
+            { bottom: "-8px", left: "50%", transform: "translateX(-50%) rotate(45deg)" },
+            { left: "-8px", top: "50%", transform: "translateY(-50%) rotate(45deg)" },
+            { right: "-8px", top: "50%", transform: "translateY(-50%) rotate(45deg)" },
+          ].map((pos, i) => (
+            <div key={i} style={{
+              position: "absolute",
+              width: "12px", height: "12px",
+              background: cornerColor,
+              boxShadow: `0 0 7px ${cornerColor}${(isSelected || isActive || isCompleted) ? "dd" : "77"}`,
+              pointerEvents: "none",
+              ...pos,
+            }} />
+          ))}
+        </div>
       </div>
+
+      {/* Right label */}
+      {!isEven ? (
+        <div
+          className="node-label-card align-right"
+          onClick={() => isClickable && onSelect(milestone)}
+          style={{
+            cursor: isClickable ? "pointer" : "default",
+            opacity: isLocked ? 0.38 : 1,
+            background: labelBg,
+            border: `1.5px solid ${isDarkMode ? "rgba(138,115,67,0.18)" : "rgba(0,0,0,0.06)"}`,
+            borderLeft: `3px solid ${isSelected ? sideAccentSelected : sideAccentActive}`,
+            boxShadow: isSelected ? `0 4px 22px ${levelColor}20, 4px 0 18px ${levelColor}15` : "none",
+            backdropFilter: isDarkMode ? "blur(10px)" : "none",
+          }}
+          onMouseOver={e => {
+            if (isClickable && !isSelected) {
+              e.currentTarget.style.background = isDarkMode ? "rgba(212,175,55,0.09)" : "rgba(254,243,199,0.5)";
+              e.currentTarget.style.borderLeftColor = levelColor;
+            }
+          }}
+          onMouseOut={e => {
+            if (!isSelected) {
+              e.currentTarget.style.background = labelBg;
+              e.currentTarget.style.borderLeftColor = sideAccentActive;
+            }
+          }}
+        >
+          {milestone.isRevision && (
+            <div style={{
+              background: "rgba(234,179,8,0.18)", border: "1px solid rgba(234,179,8,0.5)",
+              color: "#eab308", fontSize: "8px", fontWeight: "900",
+              padding: "1px 7px", borderRadius: "8px", letterSpacing: "0.5px",
+              marginBottom: "5px", display: "inline-block"
+            }}>REVISION</div>
+          )}
+          <div style={{ fontSize: "13px", fontWeight: "800", color: titleColor, fontFamily: "'Cinzel', serif", marginBottom: "4px", lineHeight: "1.3" }}>
+            {milestone.title}
+          </div>
+          <div style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.45", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+            {milestone.description}
+          </div>
+          <div style={{ display: "flex", gap: "8px", marginTop: "7px", alignItems: "center" }}>
+            {milestone.estimatedMinutes && (
+              <span style={{ fontSize: "10px", color: "var(--text-muted)", fontFamily: "monospace" }}>⏱ {milestone.estimatedMinutes}m</span>
+            )}
+            {milestone.xpReward && (
+              <span style={{ fontSize: "10px", fontWeight: "800", color: isDarkMode ? "#d4af37" : "#b45309" }}>+{milestone.xpReward} XP</span>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="node-spacer" />
+      )}
     </div>
   );
 }
@@ -373,7 +543,7 @@ const STUDY_GEN_LOGS = [
   "✨ Finalizing formatting and rendering guide..."
 ];
 
-function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, onSearchDuel, onMarkComplete, username, onSaveNotes }) {
+function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, onSearchDuel, onMarkComplete, username, onSaveNotes, isDarkMode }) {
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState(milestone.studyNotes || null);
   const [genStep, setGenStep] = useState(0);
@@ -427,7 +597,7 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
   };
 
   const isCompleted = milestone.status === "completed";
-  const cfg = STATUS_CONFIG[milestone.status] || STATUS_CONFIG.locked;
+  const cfg = getStatusConfig(isDarkMode)[milestone.status] || getStatusConfig(isDarkMode).locked;
 
   return (
     <div style={{
@@ -820,108 +990,183 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
   );
 }
 
-function MilestoneDetailPanel({ milestone, levelColor, onClose, onSearchDuel, onMarkComplete, onOpenNotes }) {
-  const cfg = STATUS_CONFIG[milestone.status] || STATUS_CONFIG.locked;
+function MilestoneDetailPanel({ milestone, levelColor, onClose, onSearchDuel, onMarkComplete, onOpenNotes, onSelectVideo, isDarkMode }) {
+  const cfg = getStatusConfig(isDarkMode)[milestone.status] || getStatusConfig(isDarkMode).locked;
   const hasNotes = !!milestone.studyNotes;
+
+  const [videos, setVideos] = useState([]);
+  const [loadingVideos, setLoadingVideos] = useState(false);
+
+  useEffect(() => {
+    if (milestone.searchQuery) {
+      setLoadingVideos(true);
+      fetch(`${BACKEND_URL}/api/search?q=${encodeURIComponent(milestone.searchQuery)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setVideos(data.slice(0, 3));
+          }
+        })
+        .catch(err => console.error("Error searching videos:", err))
+        .finally(() => setLoadingVideos(false));
+    }
+  }, [milestone.searchQuery]);
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 1000,
-      background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)",
+      background: "rgba(3, 5, 10, 0.8)", backdropFilter: "blur(6px)",
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: "20px"
     }} onClick={onClose}>
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          width: "100%", maxWidth: "560px",
-          background: "#ffffff", borderRadius: "24px",
-          boxShadow: "0 30px 80px rgba(0,0,0,0.25)",
+          width: "100%", maxWidth: "600px",
+          background: isDarkMode ? "rgba(10, 16, 32, 0.95)" : "#ffffff",
+          border: isDarkMode ? "1.5px solid rgba(0, 242, 254, 0.25)" : "1.5px solid #e2e8f0",
+          boxShadow: isDarkMode ? "0 30px 80px rgba(0,0,0,0.6)" : "0 30px 80px rgba(0,0,0,0.15)",
           display: "flex", flexDirection: "column",
+          borderRadius: "24px",
           overflow: "hidden",
-          animation: "scaleIn 0.2s ease-out"
+          maxHeight: "90vh"
         }}
       >
         {/* Header */}
         <div style={{
           padding: "24px 28px",
-          borderBottom: "1px solid #f1f5f9",
-          background: milestone.status === "completed" ? "#f0fdf4" : "#fff7ed",
+          borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid #f1f5f9",
+          background: isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc",
           position: "relative"
         }}>
           <button onClick={onClose} style={{
             position: "absolute", top: "20px", right: "20px",
             width: "32px", height: "32px", borderRadius: "50%",
-            border: "1px solid #e2e8f0", background: "#fff",
+            border: isDarkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid #e2e8f0", 
+            background: isDarkMode ? "rgba(0,0,0,0.3)" : "#ffffff",
             cursor: "pointer", fontSize: "16px",
             display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#64748b"
+            color: isDarkMode ? "rgba(255,255,255,0.6)" : "#64748b"
           }}>✕</button>
           
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
             <span style={{
-              fontSize: "10px", fontWeight: "800", color: "#fff",
+              fontSize: "10px", fontWeight: "800", color: isDarkMode ? "#000" : "#ffffff",
               background: levelColor, padding: "3px 10px", borderRadius: "8px",
-              textTransform: "uppercase", letterSpacing: "1px"
+              textTransform: "uppercase", letterSpacing: "1px",
+              boxShadow: isDarkMode ? `0 0 10px ${levelColor}` : "none"
             }}>
               {cfg.label}
             </span>
             {milestone.estimatedMinutes && (
-              <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: "600" }}>⏱ {milestone.estimatedMinutes} min</span>
+              <span style={{ fontSize: "12px", color: isDarkMode ? "rgba(255,255,255,0.6)" : "var(--text-muted)", fontWeight: "600" }}>⏱ {milestone.estimatedMinutes} min</span>
             )}
             <span style={{ fontSize: "12px", fontWeight: "800", color: levelColor }}>+{milestone.xpReward} XP</span>
           </div>
-          <h2 style={{ fontSize: "22px", fontWeight: "900", color: "#0f172a", lineHeight: "1.3", marginBottom: "6px" }}>
+          <h2 style={{ fontSize: "22px", fontWeight: "900", color: isDarkMode ? "#fff" : "var(--text-light)", lineHeight: "1.3", marginBottom: "6px" }}>
             {milestone.title}
           </h2>
-          <p style={{ fontSize: "14px", color: "#64748b", lineHeight: "1.5", margin: 0 }}>
+          <p style={{ fontSize: "14px", color: isDarkMode ? "rgba(255,255,255,0.6)" : "var(--text-muted)", lineHeight: "1.5", margin: 0 }}>
             {milestone.description}
           </p>
         </div>
 
         {/* Scrollable body */}
-        <div style={{ padding: "28px" }}>
-          {/* Key Points Checklist */}
+        <div style={{ padding: "24px 28px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "24px" }}>
+          
+          {/* Key Objectives */}
           {milestone.keyPoints?.length > 0 && (
-            <div style={{ marginBottom: "28px" }}>
-              <h3 style={{ fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>
+            <div>
+              <h3 style={{ fontSize: "11px", fontWeight: "900", color: "var(--neon-orange)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>
                 📌 Milestone Objectives
               </h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {milestone.keyPoints.map((pt, i) => (
-                  <div key={i} style={{
-                    display: "flex", alignItems: "flex-start", gap: "10px"
-                  }}>
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                     <div style={{
-                      width: "20px", height: "20px", borderRadius: "50%",
-                      background: milestone.status === "completed" ? "#10b981" : levelColor, color: "#fff",
+                      width: "18px", height: "18px", borderRadius: "50%",
+                      background: milestone.status === "completed" ? "#10b981" : (isDarkMode ? "rgba(255,255,255,0.1)" : "#f1f5f9"),
+                      color: milestone.status === "completed" ? "#fff" : (isDarkMode ? "#fff" : "#475569"),
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: "10px", fontWeight: "900", flexShrink: 0
+                      fontSize: "9px", fontWeight: "900", flexShrink: 0, marginTop: "2px"
                     }}>
                       {milestone.status === "completed" ? "✓" : i + 1}
                     </div>
-                    <span style={{ fontSize: "13px", color: "#475569", lineHeight: "1.5" }}>{pt}</span>
+                    <span style={{ fontSize: "13px", color: isDarkMode ? "rgba(255,255,255,0.8)" : "var(--text-light)", lineHeight: "1.4" }}>{pt}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
+          {/* YouTube recommended videos */}
+          {milestone.status !== "locked" && (
+            <div>
+              <h3 style={{ fontSize: "11px", fontWeight: "900", color: "var(--neon-blue)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>
+                📺 Recommended Training Videos
+              </h3>
+              {loadingVideos ? (
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", color: isDarkMode ? "rgba(255,255,255,0.4)" : "var(--text-muted)", fontSize: "13px" }}>
+                  <div className="spinner" style={{ width: "16px", height: "16px", border: `2px solid ${isDarkMode ? "#00f2fe" : "var(--neon-blue)"}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                  Scanning YouTube library for "{milestone.title}"...
+                </div>
+              ) : videos.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {videos.map((vid) => (
+                    <div
+                      key={vid.id}
+                      onClick={() => onSelectVideo && onSelectVideo(vid)}
+                      style={{
+                        display: "flex", gap: "12px", padding: "10px",
+                        background: isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc",
+                        border: isDarkMode ? "1.5px solid rgba(255,255,255,0.06)" : "1.5px solid #e2e8f0",
+                        borderRadius: "12px", cursor: "pointer",
+                        transition: "all 0.2s", alignItems: "center"
+                      }}
+                      onMouseOver={e => { e.currentTarget.style.borderColor = "var(--neon-blue)"; e.currentTarget.style.background = isDarkMode ? "rgba(0,242,254,0.04)" : "rgba(255,106,0,0.04)"; }}
+                      onMouseOut={e => { e.currentTarget.style.borderColor = isDarkMode ? "rgba(255,255,255,0.06)" : "#e2e8f0"; e.currentTarget.style.background = isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc"; }}
+                    >
+                      <div style={{ width: "90px", height: "50px", borderRadius: "6px", overflow: "hidden", flexShrink: 0, position: "relative", background: "#000" }}>
+                        <img src={vid.thumbnail} alt="thumbnail" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <span style={{ position: "absolute", bottom: "2px", right: "4px", background: "rgba(0,0,0,0.8)", fontSize: "9px", color: "#fff", padding: "1px 3px", borderRadius: "3px" }}>
+                          {Math.floor(vid.duration / 60)}:{String(vid.duration % 60).padStart(2, '0')}
+                        </span>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ color: isDarkMode ? "#fff" : "var(--text-light)", fontSize: "13px", fontWeight: "bold", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: "3px" }}>
+                          {vid.title}
+                        </div>
+                        <div style={{ color: isDarkMode ? "rgba(255,255,255,0.4)" : "var(--text-muted)", fontSize: "11px" }}>
+                          🎬 {vid.channel}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: "12px", color: "var(--neon-blue)", fontWeight: "bold", paddingRight: "6px" }}>▶ WATCH</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ color: isDarkMode ? "rgba(255,255,255,0.4)" : "var(--text-muted)", fontSize: "13px" }}>
+                  No training videos found. Use search or mark complete manually.
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Study Guide CTA */}
           <div style={{
-            background: "#f8fafc",
+            background: isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc",
             borderRadius: "16px",
             padding: "20px",
-            border: "1px solid #e2e8f0",
+            border: isDarkMode ? "1.5px solid rgba(255,255,255,0.06)" : "1.5px solid #e2e8f0",
             textAlign: "center"
           }}>
-            <h4 style={{ fontSize: "15px", fontWeight: "800", color: "#0f172a", marginBottom: "6px" }}>
+            <h4 style={{ fontSize: "15px", fontWeight: "800", color: isDarkMode ? "#fff" : "var(--text-light)", marginBottom: "6px" }}>
               {hasNotes ? "📖 Study Notes Ready" : "✨ AI Study Notes Guide"}
             </h4>
-            <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px", lineHeight: "1.5" }}>
+            <p style={{ fontSize: "13px", color: isDarkMode ? "rgba(255,255,255,0.5)" : "var(--text-muted)", marginBottom: "16px", lineHeight: "1.5" }}>
               {hasNotes 
                 ? "Your comprehensive study notes are ready for reading. Expand to fullscreen to start learning."
-                : "Generate a detailed study guide containing theoretical breakdowns, code examples, and mock interview questions."}
+                : "Generate a detailed study guide containing theoretical breakdowns, comparisons, and mock interview questions."}
             </p>
             <button
               onClick={() => { sound.playClockTick(); onOpenNotes(); onClose(); }}
@@ -931,8 +1176,8 @@ function MilestoneDetailPanel({ milestone, levelColor, onClose, onSearchDuel, on
                 borderRadius: "10px",
                 border: "none",
                 background: `linear-gradient(135deg, ${levelColor}, ${levelColor}dd)`,
-                color: "#fff",
-                fontWeight: "800",
+                color: "#ffffff",
+                fontWeight: "900",
                 fontSize: "13.5px",
                 cursor: "pointer",
                 boxShadow: `0 4px 12px ${levelColor}22`
@@ -946,22 +1191,24 @@ function MilestoneDetailPanel({ milestone, levelColor, onClose, onSearchDuel, on
         {/* Footer actions */}
         <div style={{
           padding: "20px 28px",
-          borderTop: "1px solid #f1f5f9",
+          borderTop: isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid #f1f5f9",
           display: "flex", gap: "12px",
-          background: "#fafafa"
+          background: isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc"
         }}>
           {milestone.status !== "locked" && (
             <button
               onClick={() => { sound.playClockTick(); onSearchDuel(milestone); onClose(); }}
               style={{
                 flex: 1, padding: "12px 20px", borderRadius: "10px",
-                border: "none", background: "linear-gradient(135deg, #475569, #334155)",
-                color: "#fff", fontWeight: "800", fontSize: "13.5px",
+                border: isDarkMode ? "none" : "1.5px solid #e2e8f0", 
+                background: isDarkMode ? "rgba(255,255,255,0.06)" : "#ffffff",
+                color: isDarkMode ? "#fff" : "var(--text-light)", 
+                fontWeight: "800", fontSize: "13.5px",
                 cursor: "pointer", display: "flex", alignItems: "center",
                 justifyContent: "center", gap: "6px"
               }}
             >
-              ⚔️ Search & Duel Topic
+              ⚔️ Duel Topic
             </button>
           )}
 
@@ -970,7 +1217,7 @@ function MilestoneDetailPanel({ milestone, levelColor, onClose, onSearchDuel, on
               onClick={() => { sound.playClockTick(); onMarkComplete(milestone); onClose(); }}
               style={{
                 padding: "12px 20px", borderRadius: "10px",
-                border: `1.5px solid ${levelColor}`, background: "#fff",
+                border: `1.5px solid ${levelColor}`, background: "transparent",
                 color: levelColor, fontWeight: "700", fontSize: "13px",
                 cursor: "pointer"
               }}
@@ -984,7 +1231,465 @@ function MilestoneDetailPanel({ milestone, levelColor, onClose, onSearchDuel, on
   );
 }
 
-export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, onSearchDuel, onReset }) {
+function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete, isDarkMode }) {
+  const [step, setStep] = useState("watch"); // watch, generating, quiz, results
+  const [quizData, setQuizData] = useState(null);
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [selectedAns, setSelectedAns] = useState(null);
+  const [answers, setAnswers] = useState([]);
+  const [score, setScore] = useState(0);
+  const [loadingLog, setLoadingLog] = useState("Accessing YouTube database...");
+
+  const handleStartQuiz = async () => {
+    setStep("generating");
+    setLoadingLog("Transcribing video stream...");
+    
+    const logs = [
+      "Transcribing video stream...",
+      "Analyzing technical concepts...",
+      "Generating quiz questions...",
+      "Injecting options and verifying answers...",
+      "Synthesizing solo match..."
+    ];
+    let logIdx = 0;
+    const logInterval = setInterval(() => {
+      if (logIdx < logs.length - 1) {
+        logIdx++;
+        setLoadingLog(logs[logIdx]);
+      }
+    }, 1200);
+
+    try {
+      sound.playClockTick();
+      const res = await fetch(`${BACKEND_URL}/api/quiz/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoId: video.id,
+          title: video.title,
+          duration: video.duration
+        })
+      });
+      if (!res.ok) throw new Error("Quiz API failed");
+      const quiz = await res.json();
+      clearInterval(logInterval);
+      setQuizData(quiz);
+      setAnswers(Array(quiz.postVideoQuestions.length).fill(null));
+      setStep("quiz");
+      sound.playMatchFound();
+    } catch (err) {
+      console.error("Failed to generate quiz:", err);
+      clearInterval(logInterval);
+      
+      const fallbackQuiz = {
+        postVideoQuestions: [
+          {
+            question: `What is the core theme of the training video: "${video.title}"?`,
+            options: [
+              "An overview of introductory rules and practical examples",
+              "A history of unrelated operating systems",
+              "A guide to offline board games",
+              "An advertisement for retail products"
+            ],
+            answerIndex: 0,
+            points: 100
+          },
+          {
+            question: "Why is active note-taking and watching recommended?",
+            options: [
+              "It has no measurable benefit",
+              "It enhances memory retention and concept mastery",
+              "It accelerates device battery drainage",
+              "It guarantees a college degree instantly"
+            ],
+            answerIndex: 1,
+            points: 100
+          },
+          {
+            question: "What is the passing criteria for this milestone quiz?",
+            options: [
+              "Scoring at least 1/5",
+              "Scoring at least 3/5",
+              "Answering all questions incorrectly",
+              "Completing the quiz in 3 seconds"
+            ],
+            answerIndex: 1,
+            points: 100
+          },
+          {
+            question: "What should you do if you fail the quiz?",
+            options: [
+              "Give up and close the application",
+              "Watch the video again, study the notes, and retry",
+              "Inject false scores into the database",
+              "Write a complaint letter"
+            ],
+            answerIndex: 1,
+            points: 100
+          },
+          {
+            question: "What does clearing a milestone reward you with?",
+            options: [
+              "Real money transfers",
+              "XP points and progress on your path",
+              "Unrelated shopping discount codes",
+              "Nothing"
+            ],
+            answerIndex: 1,
+            points: 100
+          }
+        ]
+      };
+      setQuizData(fallbackQuiz);
+      setAnswers(Array(5).fill(null));
+      setStep("quiz");
+    }
+  };
+
+  const handleAnswerSelect = (optionIdx) => {
+    setSelectedAns(optionIdx);
+  };
+
+  const handleNext = () => {
+    if (selectedAns === null) return;
+    
+    const currentQ = quizData.postVideoQuestions[currentIdx];
+    const isCorrect = selectedAns === currentQ.answerIndex;
+    
+    if (isCorrect) {
+      setScore(s => s + 1);
+      sound.playCorrect();
+    } else {
+      sound.playIncorrect();
+    }
+
+    setAnswers(prev => {
+      const next = [...prev];
+      next[currentIdx] = selectedAns;
+      return next;
+    });
+
+    setSelectedAns(null);
+
+    if (currentIdx < quizData.postVideoQuestions.length - 1) {
+      setCurrentIdx(idx => idx + 1);
+    } else {
+      const finalScore = score + (isCorrect ? 1 : 0);
+      setStep("results");
+      
+      if (finalScore >= 3) {
+        sound.playVictory();
+        
+        fetch(`${BACKEND_URL}/api/solo-xp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            xpEarned: milestone.xpReward || 50,
+            videoTitle: video.title
+          })
+        }).catch(err => console.error("XP Award Error:", err));
+        
+        onMarkComplete(milestone);
+      } else {
+        sound.playDefeat();
+      }
+    }
+  };
+
+  const handleRetry = () => {
+    sound.playClockTick();
+    setStep("watch");
+    setCurrentIdx(0);
+    setSelectedAns(null);
+    setScore(0);
+    setQuizData(null);
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 3000,
+      background: isDarkMode ? "rgba(3, 5, 10, 0.95)" : "rgba(0, 0, 0, 0.5)",
+      backdropFilter: "blur(8px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: "20px"
+    }}>
+      <div style={{
+        width: "100%", maxWidth: "700px",
+        background: isDarkMode ? "rgba(10, 16, 32, 0.95)" : "#ffffff",
+        border: isDarkMode ? "1.5px solid rgba(0, 242, 254, 0.3)" : "1.5px solid #e2e8f0",
+        boxShadow: isDarkMode ? "0 0 40px rgba(0, 242, 254, 0.15)" : "0 30px 80px rgba(0,0,0,0.15)",
+        borderRadius: "24px",
+        overflow: "hidden",
+        display: "flex", flexDirection: "column"
+      }}>
+        {/* Modal Header */}
+        <div style={{
+          padding: "20px 28px",
+          borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid #f1f5f9",
+          background: isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc",
+          display: "flex", justifyContent: "space-between", alignItems: "center"
+        }}>
+          <div>
+            <span style={{ fontSize: "10px", fontWeight: "900", color: "var(--neon-orange)", letterSpacing: "1px", textTransform: "uppercase" }}>
+              SOLO TRAINING CHALLENGE
+            </span>
+            <div style={{ color: isDarkMode ? "#fff" : "var(--text-light)", fontSize: "16px", fontWeight: "bold", marginTop: "2px" }}>
+              {milestone.title}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", color: isDarkMode ? "rgba(255,255,255,0.4)" : "#94a3b8",
+            cursor: "pointer", fontSize: "20px"
+          }}>✕</button>
+        </div>
+
+        {/* Watch Step */}
+        {step === "watch" && (
+          <div style={{ padding: "28px", display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div style={{ position: "relative", width: "100%", paddingTop: "56.25%", background: "#000", borderRadius: "12px", overflow: "hidden" }}>
+              <iframe
+                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                src={`https://www.youtube.com/embed/${video.id}`}
+                title={video.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+            <div>
+              <h3 style={{ color: "#fff", fontSize: "18px", fontWeight: "bold", marginBottom: "6px" }}>{video.title}</h3>
+              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px" }}>Channel: {video.channel}</p>
+            </div>
+            
+            <button
+              onClick={handleStartQuiz}
+              style={{
+                width: "100%",
+                padding: "16px",
+                background: "linear-gradient(135deg, var(--neon-blue), var(--neon-pink))",
+                border: "none",
+                borderRadius: "12px",
+                color: "#fff",
+                fontWeight: "900",
+                fontSize: "15px",
+                cursor: "pointer",
+                boxShadow: "0 0 20px rgba(0, 242, 254, 0.3)",
+                letterSpacing: "1px",
+                transition: "transform 0.2s"
+              }}
+              onMouseOver={e => e.currentTarget.style.transform = "scale(1.01)"}
+              onMouseOut={e => e.currentTarget.style.transform = "none"}
+            >
+              ⚔️ TAKE QUIZ CHALLENGE ⚔️
+            </button>
+          </div>
+        )}
+
+        {/* AI Generating Quiz Step */}
+        {step === "generating" && (
+          <div style={{ padding: "48px 28px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "350px" }}>
+            <div style={{
+              width: "80px", height: "80px", borderRadius: "50%",
+              background: "rgba(0, 242, 254, 0.1)",
+              border: "2px solid var(--neon-blue)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "36px",
+              boxShadow: "0 0 20px rgba(0, 242, 254, 0.3)",
+              marginBottom: "32px",
+              animation: "pulse 1.5s infinite"
+            }}>
+              🧠
+            </div>
+            <h3 style={{ color: isDarkMode ? "#fff" : "var(--text-light)", fontSize: "20px", fontWeight: "bold", marginBottom: "8px" }}>AI Generating Solo Quiz</h3>
+            <p style={{ color: isDarkMode ? "rgba(255,255,255,0.5)" : "var(--text-muted)", fontSize: "14px", marginBottom: "24px", textAlign: "center", maxWidth: "380px" }}>
+              Analyzing video content to synthesize dynamic multiple choice questions...
+            </p>
+            <div style={{
+              background: isDarkMode ? "#050811" : "#f1f5f9",
+              border: isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0",
+              borderRadius: "12px", padding: "12px 24px", fontFamily: "monospace",
+              color: "var(--neon-orange)", fontSize: "12.5px"
+            }}>
+              {loadingLog}
+            </div>
+          </div>
+        )}
+
+        {/* Quiz Taking Step */}
+        {step === "quiz" && quizData && (
+          <div style={{ padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ color: "var(--neon-orange)", fontWeight: "bold", fontSize: "13px" }}>
+                QUESTION {currentIdx + 1} OF {quizData.postVideoQuestions.length}
+              </span>
+              <span style={{ color: isDarkMode ? "rgba(255,255,255,0.4)" : "var(--text-muted)", fontSize: "13px" }}>
+                Score: {score}
+              </span>
+            </div>
+
+            <div style={{ color: isDarkMode ? "#fff" : "var(--text-light)", fontSize: "18px", fontWeight: "800", lineHeight: "1.4" }}>
+              {quizData.postVideoQuestions[currentIdx].question}
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {quizData.postVideoQuestions[currentIdx].options.map((opt, oIdx) => {
+                const isSelected = selectedAns === oIdx;
+                return (
+                  <button
+                    key={oIdx}
+                    onClick={() => handleAnswerSelect(oIdx)}
+                    style={{
+                      width: "100%",
+                      padding: "16px 20px",
+                      background: isSelected 
+                        ? (isDarkMode ? "rgba(0, 242, 254, 0.1)" : "rgba(255, 106, 0, 0.08)")
+                        : (isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc"),
+                      border: isSelected
+                        ? `1.5px solid ${isDarkMode ? "var(--neon-blue)" : "var(--neon-orange)"}`
+                        : `1.5px solid ${isDarkMode ? "rgba(255,255,255,0.08)" : "#e2e8f0"}`,
+                      borderRadius: "12px",
+                      color: isSelected 
+                        ? (isDarkMode ? "#fff" : "var(--text-light)")
+                        : (isDarkMode ? "rgba(255,255,255,0.8)" : "var(--text-light)"),
+                      fontWeight: "600",
+                      fontSize: "14px",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      boxShadow: isSelected 
+                        ? (isDarkMode ? "0 0 15px rgba(0, 242, 254, 0.15)" : "0 0 15px rgba(255,106,0,0.12)")
+                        : "none"
+                    }}
+                    onMouseOver={e => { if(!isSelected) e.currentTarget.style.borderColor = isDarkMode ? "rgba(255,255,255,0.2)" : "#cbd5e1"; }}
+                    onMouseOut={e => { if(!isSelected) e.currentTarget.style.borderColor = isDarkMode ? "rgba(255,255,255,0.08)" : "#e2e8f0"; }}
+                  >
+                    <span style={{ color: isSelected ? (isDarkMode ? "var(--neon-blue)" : "var(--neon-orange)") : (isDarkMode ? "rgba(255,255,255,0.4)" : "#94a3b8"), marginRight: "12px", fontWeight: "900" }}>
+                      {String.fromCharCode(65 + oIdx)}.
+                    </span>
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={handleNext}
+              disabled={selectedAns === null}
+              style={{
+                width: "100%",
+                padding: "16px",
+                background: selectedAns === null 
+                  ? (isDarkMode ? "rgba(255,255,255,0.05)" : "#f1f5f9")
+                  : "linear-gradient(135deg, var(--neon-orange), #ffb300)",
+                border: "none",
+                borderRadius: "12px",
+                color: selectedAns === null 
+                  ? (isDarkMode ? "rgba(255,255,255,0.2)" : "#cbd5e1")
+                  : "#fff",
+                fontWeight: "900",
+                fontSize: "15px",
+                cursor: selectedAns === null ? "default" : "pointer",
+                letterSpacing: "1px",
+                transition: "all 0.2s"
+              }}
+            >
+              {currentIdx < quizData.postVideoQuestions.length - 1 ? "NEXT QUESTION" : "SUBMIT QUIZ"}
+            </button>
+          </div>
+        )}
+
+        {/* Results Step */}
+        {step === "results" && (
+          <div style={{ padding: "40px 28px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+            {score >= 3 ? (
+              <>
+                <div style={{ fontSize: "64px", marginBottom: "24px" }}>🏆</div>
+                <h3 style={{ color: "#10b981", fontSize: "28px", fontWeight: "900", marginBottom: "8px", textShadow: "0 0 15px rgba(16,185,129,0.3)" }}>
+                  VICTORY!
+                </h3>
+                <p style={{ color: isDarkMode ? "#fff" : "var(--text-light)", fontSize: "16px", fontWeight: "bold", marginBottom: "16px" }}>
+                  You scored {score} / 5 correct answers!
+                </p>
+                <p style={{ color: isDarkMode ? "rgba(255,255,255,0.6)" : "var(--text-muted)", fontSize: "14px", marginBottom: "32px", maxWidth: "420px" }}>
+                  Milestone cleared successfully. You've earned <strong>+{milestone.xpReward} XP</strong> and unlocked the next nodes on your roadmap!
+                </p>
+                <button
+                  onClick={onClose}
+                  style={{
+                    width: "100%",
+                    padding: "16px",
+                    background: "linear-gradient(135deg, var(--neon-blue), var(--neon-pink))",
+                    border: "none",
+                    borderRadius: "12px",
+                    color: "#fff",
+                    fontWeight: "900",
+                    fontSize: "15px",
+                    cursor: "pointer",
+                    boxShadow: "0 0 20px rgba(0, 242, 254, 0.3)"
+                  }}
+                >
+                  CLOSE &amp; CONTINUE
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: "64px", marginBottom: "24px" }}>💀</div>
+                <h3 style={{ color: "#ef4444", fontSize: "28px", fontWeight: "900", marginBottom: "8px", textShadow: "0 0 15px rgba(239,68,68,0.3)" }}>
+                  DEFEAT
+                </h3>
+                <p style={{ color: isDarkMode ? "#fff" : "var(--text-light)", fontSize: "16px", fontWeight: "bold", marginBottom: "16px" }}>
+                  You scored {score} / 5 correct answers.
+                </p>
+                <p style={{ color: isDarkMode ? "rgba(255,255,255,0.6)" : "var(--text-muted)", fontSize: "14px", marginBottom: "32px", maxWidth: "420px" }}>
+                  You need at least <strong>3 / 5</strong> correct answers to clear this milestone. Watch the recommended training video again and retry the challenge!
+                </p>
+                
+                <div style={{ display: "flex", gap: "16px", width: "100%" }}>
+                  <button
+                    onClick={handleRetry}
+                    style={{
+                      flex: 1,
+                      padding: "16px",
+                      background: isDarkMode ? "rgba(255,255,255,0.05)" : "#f8fafc",
+                      border: isDarkMode ? "1.5px solid rgba(255,255,255,0.1)" : "1.5px solid #e2e8f0",
+                      borderRadius: "12px",
+                      color: isDarkMode ? "#fff" : "var(--text-light)",
+                      fontWeight: "900",
+                      fontSize: "14px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    RETRY CHALLENGE
+                  </button>
+                  <button
+                    onClick={onClose}
+                    style={{
+                      flex: 1,
+                      padding: "16px",
+                      background: "#ef4444",
+                      border: "none",
+                      borderRadius: "12px",
+                      color: "#fff",
+                      fontWeight: "900",
+                      fontSize: "14px",
+                      cursor: "pointer",
+                      boxShadow: "0 0 20px rgba(239,68,68,0.25)"
+                    }}
+                  >
+                    CLOSE
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, onSearchDuel, onReset, isDarkMode }) {
   const storageKey = `kaevrix_roadmap_progress_${username}`;
 
   const [roadmap, setRoadmap] = useState(() => {
@@ -998,6 +1703,7 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
   const [selectedMilestone, setSelectedMilestone] = useState(null);
   const [expandedLevel, setExpandedLevel] = useState(1);
   const [viewingNotes, setViewingNotes] = useState(false);
+  const [activeVideo, setActiveVideo] = useState(null);
 
   const saveStudyNotes = (milestoneId, notesText) => {
     setRoadmap(prev => {
@@ -1055,7 +1761,6 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
           if (ms[i].id === milestone.id) {
             ms[i].status = "completed";
             found = true;
-            // Unlock next milestone in same level
             if (i + 1 < ms.length && ms[i + 1].status === "locked") {
               ms[i + 1].status = "unlocked";
               nextUnlocked = true;
@@ -1063,7 +1768,6 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
           }
         }
 
-        // If last in level completed, unlock first of next level
         if (found && !nextUnlocked) {
           const allDone = ms.every(m => m.status === "completed");
           if (allDone) {
@@ -1103,16 +1807,137 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
 
   return (
     <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "32px 20px" }}>
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.03); opacity: 1; }
+          100% { transform: scale(1); opacity: 0.8; }
+        }
+        .spinner {
+          display: inline-block;
+          border: 2px solid #00f2fe;
+          border-top-color: transparent;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        /* Elden Ring Constellation Path Styles */
+
+        @keyframes graceRotate {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+
+        @keyframes gracePulse {
+          0%, 100% { opacity: 0.4; transform: scale(1); }
+          50%       { opacity: 1;   transform: scale(1.07); }
+        }
+
+        .node-row {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 92px;
+          width: 100%;
+        }
+
+        .node-connector {
+          position: absolute;
+          top: 92px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 3px;
+          height: 50px;
+          z-index: 0;
+        }
+
+        .node-medallion-container {
+          position: relative;
+          z-index: 2;
+        }
+
+        .node-label-card {
+          position: absolute;
+          width: 240px;
+          padding: 10px 14px;
+          border-radius: 12px;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          z-index: 3;
+        }
+
+        /* Left-aligned label */
+        .node-label-card.align-left {
+          right: calc(50% + 52px);
+          text-align: right;
+          align-items: flex-end;
+        }
+
+        /* Right-aligned label */
+        .node-label-card.align-right {
+          left: calc(50% + 52px);
+          text-align: left;
+          align-items: flex-start;
+        }
+
+        .node-spacer {
+          width: 240px;
+        }
+
+        /* Responsive styling for mobile */
+        @media (max-width: 640px) {
+          .node-row {
+            justify-content: flex-start;
+            height: auto;
+            min-height: 92px;
+            padding-left: 24px;
+            gap: 16px;
+          }
+          
+          .node-connector {
+            left: 62px; /* Center of 76px medallion at 24px left padding */
+            top: 92px;
+            height: calc(100% - 24px);
+          }
+
+          .node-label-card {
+            position: static !important; /* Back to normal flow */
+            width: auto !important;
+            flex: 1;
+            text-align: left !important;
+            align-items: flex-start !important;
+            border-left-width: 2.5px !important;
+            border-right-width: 0px !important;
+            margin: 0 !important;
+          }
+        }
+      `}</style>
+
       {/* Top Header */}
       <div style={{ marginBottom: "32px" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-              <span style={{ fontSize: "11px", fontWeight: "800", color: "#ea580c", background: "#fff7ed", padding: "4px 12px", borderRadius: "20px", border: "1px solid #fed7aa", textTransform: "uppercase", letterSpacing: "1px" }}>
-                🗺️ Your Roadmap
+              <span style={{ 
+                fontSize: "11px", 
+                fontWeight: "900", 
+                color: isDarkMode ? "#00f2fe" : "#ea580c", 
+                background: isDarkMode ? "rgba(0,242,254,0.06)" : "#fff7ed", 
+                padding: "4px 12px", 
+                borderRadius: "20px", 
+                border: isDarkMode ? "1px solid rgba(0,242,254,0.3)" : "1px solid #fed7aa", 
+                textTransform: "uppercase", 
+                letterSpacing: "1px", 
+                boxShadow: isDarkMode ? "0 0 10px rgba(0,242,254,0.15)" : "none" 
+              }}>
+                🗺️ COGNITIVE PATHFINDER
               </span>
             </div>
-            <h1 style={{ fontSize: "32px", fontWeight: "900", color: "var(--text-light)", marginBottom: "4px" }}>
+            <h1 style={{ fontSize: "32px", fontWeight: "900", color: "var(--text-light)", marginBottom: "4px", textShadow: isDarkMode ? "0 0 15px rgba(255,255,255,0.15)" : "none" }}>
               {roadmap.topic}
             </h1>
             <p style={{ color: "var(--text-muted)", fontSize: "15px", maxWidth: "600px", lineHeight: "1.5" }}>
@@ -1124,50 +1949,120 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
               onClick={() => { sound.playClockTick(); onReset(); }}
               style={{
                 padding: "10px 18px", borderRadius: "12px",
-                border: "1.5px solid #e2e8f0", background: "#fff",
+                border: isDarkMode ? "1.5px solid var(--glass-border)" : "1.5px solid #e2e8f0", 
+                background: isDarkMode ? "var(--bg-dark-surface)" : "#ffffff",
                 color: "var(--text-muted)", fontSize: "13px", fontWeight: "700",
-                cursor: "pointer"
+                cursor: "pointer", transition: "all 0.2s"
               }}
+              onMouseOver={e => { e.currentTarget.style.borderColor = "var(--neon-orange)"; e.currentTarget.style.color = "var(--text-light)"; }}
+              onMouseOut={e => { e.currentTarget.style.borderColor = isDarkMode ? "var(--glass-border)" : "#e2e8f0"; e.currentTarget.style.color = "var(--text-muted)"; }}
             >
               🔄 New Roadmap
             </button>
           </div>
         </div>
 
-        {/* Stats row */}
+        {/* Quest Board Stats (Glass panel glowing border) */}
         <div style={{
-          display: "flex", gap: "16px", marginTop: "24px", flexWrap: "wrap"
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: "16px",
+          marginTop: "24px",
+          marginBottom: "18px"
         }}>
           {[
-            { label: "Progress", value: `${completedCount} / ${totalCount}`, sub: "milestones done", color: "#ff6a00" },
-            { label: "XP Earned", value: `+${totalXpEarned}`, sub: "from roadmap", color: "#f59e0b" },
-            { label: "Goal", value: roadmap.goal?.split(" ").slice(0, 5).join(" ") + (roadmap.goal?.split(" ").length > 5 ? "..." : ""), sub: roadmap.goal, color: "#8b5cf6" },
+            { label: "Campaign Progress", value: `${completedCount} / ${totalCount}`, sub: "Milestones Cleared", color: "#ff6a00", icon: "🗺️", progress: true },
+            { label: "Bounty Reward", value: `+${totalXpEarned} XP`, sub: "Earned from milestones", color: "#eab308", icon: "🏆" },
+            { label: "Intel Required", value: `${roadmap.totalVideosEstimated || (totalCount * 2)} Videos`, sub: "Training files to watch", color: "#3b82f6", icon: "🎬" },
+            { label: "Campaign Duration", value: `${roadmap.totalEstimatedHours || Math.round((totalCount * 45) / 60)} Hours`, sub: "Total estimated study time", color: "#8b5cf6", icon: "⏱️" },
           ].map((s, i) => (
             <div key={i} style={{
-              background: "#ffffff", borderRadius: "16px",
-              padding: "16px 20px", border: "1px solid #e2e8f0",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.04)", flex: "1", minWidth: "160px"
-            }}>
-              <div style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>{s.label}</div>
-              <div style={{ fontSize: "20px", fontWeight: "900", color: s.color }}>{s.value}</div>
-              {i === 0 && (
-                <div style={{ marginTop: "6px", height: "4px", background: "#e2e8f0", borderRadius: "2px", overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${(completedCount / totalCount) * 100}%`, background: "linear-gradient(90deg, #ff6a00, #ffb300)", borderRadius: "2px", transition: "width 0.5s" }} />
-                </div>
-              )}
+              background: isDarkMode ? "var(--bg-dark-surface)" : "#ffffff", 
+              borderRadius: "18px",
+              padding: "20px", 
+              border: isDarkMode ? "1.5px solid var(--glass-border)" : "1.5px solid #e2e8f0",
+              boxShadow: isDarkMode ? "none" : "0 2px 8px rgba(0,0,0,0.04)",
+              display: "flex", gap: "16px", alignItems: "center",
+              transition: "all 0.2s"
+            }}
+            onMouseOver={e => { 
+              e.currentTarget.style.transform = "translateY(-2px)"; 
+              e.currentTarget.style.borderColor = s.color; 
+              e.currentTarget.style.boxShadow = isDarkMode ? `0 0 20px ${s.color}22` : `0 8px 16px rgba(0,0,0,0.08)`; 
+            }}
+            onMouseOut={e => { 
+              e.currentTarget.style.transform = "none"; 
+              e.currentTarget.style.borderColor = isDarkMode ? "var(--glass-border)" : "#e2e8f0"; 
+              e.currentTarget.style.boxShadow = isDarkMode ? "none" : "0 2px 8px rgba(0,0,0,0.04)"; 
+            }}
+            >
+              <div style={{
+                width: "48px", height: "48px", borderRadius: "12px",
+                background: `${s.color}15`, display: "flex", alignItems: "center",
+                justifyContent: "center", fontSize: "22px", color: s.color, flexShrink: 0,
+                border: `1px solid ${s.color}33`, boxShadow: `0 0 10px ${s.color}11`
+              }}>
+                {s.icon}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>{s.label}</div>
+                <div style={{ fontSize: "18px", fontWeight: "900", color: s.color, lineHeight: "1.2" }}>{s.value}</div>
+                <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px", fontWeight: "600" }}>{s.sub}</div>
+                {s.progress && (
+                  <div style={{ marginTop: "8px", height: "4px", background: "rgba(100, 100, 100, 0.15)", borderRadius: "2px", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${(completedCount / totalCount) * 100}%`, background: `linear-gradient(90deg, ${s.color}, #ffb300)`, borderRadius: "2px", transition: "width 0.5s" }} />
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Legend */}
-      <div style={{ display: "flex", gap: "12px", marginBottom: "28px", flexWrap: "wrap" }}>
-        {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-          <div key={key} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: cfg.bg, border: `1.5px solid ${cfg.border}` }} />
-            <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: "600" }}>{cfg.label}</span>
+        {/* Daily Quest Questcard (Spans full width) */}
+        <div style={{
+          background: isDarkMode 
+            ? "linear-gradient(135deg, rgba(234, 88, 12, 0.15) 0%, rgba(20, 10, 5, 0.5) 100%)" 
+            : "linear-gradient(135deg, rgba(234, 88, 12, 0.05) 0%, rgba(254, 243, 199, 0.2) 100%)",
+          borderRadius: "18px",
+          padding: "20px 24px",
+          border: isDarkMode ? "1.5px solid rgba(234, 88, 12, 0.4)" : "1.5px solid #fed7aa",
+          boxShadow: isDarkMode ? "0 0 25px rgba(234, 88, 12, 0.1)" : "0 4px 15px rgba(255, 106, 0, 0.05)",
+          display: "flex",
+          alignItems: "center",
+          gap: "18px",
+          marginBottom: "32px",
+          transition: "all 0.2s"
+        }}
+        onMouseOver={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = isDarkMode ? "0 0 35px rgba(234, 88, 12, 0.25)" : "0 6px 20px rgba(255, 106, 0, 0.1)"; }}
+        onMouseOut={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = isDarkMode ? "0 0 25px rgba(234, 88, 12, 0.1)" : "0 4px 15px rgba(255, 106, 0, 0.05)"; }}
+        >
+          <div style={{
+            width: "52px", height: "52px", borderRadius: "50%",
+            background: "#ea580c", display: "flex", alignItems: "center",
+            justifyContent: "center", fontSize: "24px", color: "#ffffff",
+            boxShadow: "0 0 15px rgba(234, 88, 12, 0.5)", flexShrink: 0,
+            border: isDarkMode ? "2px solid rgba(255,255,255,0.1)" : "2px solid rgba(0,0,0,0.05)"
+          }}>
+            ⚔️
           </div>
-        ))}
+          <div>
+            <div style={{ fontSize: "10px", fontWeight: "900", color: "#f97316", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "4px" }}>ACTIVE DAILY QUEST</div>
+            <div style={{ fontSize: "16px", fontWeight: "900", color: "var(--text-light)" }}>"{roadmap.dailyGoal || "Complete 1 node and watch 1 video daily"}"</div>
+            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
+              Complete this objective to maintain your learning streak and gain bonus XP!
+            </div>
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div style={{ display: "flex", gap: "12px", marginBottom: "28px", flexWrap: "wrap" }}>
+          {Object.entries(getStatusConfig(isDarkMode)).map(([key, cfg]) => (
+            <div key={key} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: cfg.bg, border: `1.5px solid ${cfg.border}`, boxShadow: `0 0 6px ${cfg.border}` }} />
+              <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: "600" }}>{cfg.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Levels */}
@@ -1180,11 +2075,16 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
 
           return (
             <div key={key} style={{
-              background: "#ffffff", borderRadius: "24px",
-              border: `1.5px solid ${data.isLevelUnlocked ? color + "44" : "#e2e8f0"}`,
+              background: isDarkMode ? "var(--bg-dark-surface)" : "#ffffff", 
+              borderRadius: "24px",
+              border: isDarkMode 
+                ? `1.5px solid ${data.isLevelUnlocked ? color + "66" : "var(--glass-border)"}`
+                : `1.5px solid ${data.isLevelUnlocked ? color + "44" : "#e2e8f0"}`,
               overflow: "hidden",
-              boxShadow: data.isLevelUnlocked ? `0 4px 20px ${color}11` : "0 2px 8px rgba(0,0,0,0.04)",
-              opacity: data.isLevelUnlocked ? 1 : 0.7,
+              boxShadow: isDarkMode 
+                ? (data.isLevelUnlocked ? `0 0 25px ${color}11` : "none")
+                : (data.isLevelUnlocked ? `0 4px 20px ${color}11` : "0 2px 8px rgba(0,0,0,0.04)"),
+              opacity: data.isLevelUnlocked ? 1 : 0.45,
               transition: "all 0.3s"
             }}>
               {/* Level header — clickable to expand */}
@@ -1193,33 +2093,44 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
                 style={{
                   padding: "20px 28px",
                   background: data.isLevelUnlocked
-                    ? `linear-gradient(135deg, ${color}11 0%, ${color}08 100%)`
-                    : "#f8fafc",
+                    ? (isDarkMode 
+                        ? `linear-gradient(135deg, ${color}15 0%, transparent 100%)` 
+                        : `linear-gradient(135deg, ${color}08 0%, transparent 100%)`)
+                    : (isDarkMode ? "rgba(0,0,0,0.2)" : "#f8fafc"),
                   cursor: "pointer",
                   display: "flex", alignItems: "center", gap: "16px",
-                  borderBottom: isOpen ? `1px solid ${color}22` : "none"
+                  borderBottom: isOpen ? (isDarkMode ? "1px solid var(--glass-border)" : "1px solid #e2e8f0") : "none"
                 }}
               >
                 <div style={{
                   width: "48px", height: "48px", borderRadius: "14px",
                   background: data.isLevelUnlocked
                     ? `linear-gradient(135deg, ${color}, ${color}bb)`
-                    : "#e2e8f0",
+                    : "rgba(100, 100, 100, 0.15)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: "22px", flexShrink: 0,
-                  boxShadow: data.isLevelUnlocked ? `0 4px 14px ${color}44` : "none"
+                  boxShadow: data.isLevelUnlocked ? `0 0 15px ${color}44` : "none",
+                  border: `1.5px solid ${data.isLevelUnlocked ? "rgba(255,255,255,0.2)" : "var(--glass-border)"}`
                 }}>
                   {data.isLevelUnlocked ? meta.emoji : "🔒"}
                 </div>
 
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "2px" }}>
-                    <h2 style={{ fontSize: "18px", fontWeight: "900", color: "var(--text-light)" }}>
+                    <h2 style={{ fontSize: "18px", fontWeight: "900", color: "var(--text-light)", textShadow: isDarkMode ? "0 0 8px rgba(255,255,255,0.1)" : "none" }}>
                       {data.title}
                     </h2>
                     {!data.isLevelUnlocked && (
-                      <span style={{ fontSize: "10px", fontWeight: "800", color: "#94a3b8", background: "#f1f5f9", padding: "2px 8px", borderRadius: "8px" }}>
-                        LOCKED
+                      <span style={{ 
+                        fontSize: "10px", 
+                        fontWeight: "900", 
+                        color: isDarkMode ? "var(--text-muted)" : "#94a3b8", 
+                        background: isDarkMode ? "rgba(255,255,255,0.05)" : "#f1f5f9", 
+                        padding: "2px 8px", 
+                        borderRadius: "8px", 
+                        border: isDarkMode ? "1px solid var(--glass-border)" : "1px solid #e2e8f0" 
+                      }}>
+                        🔒 LOCKED
                       </span>
                     )}
                   </div>
@@ -1232,11 +2143,12 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
                     {data.completedInLevel} / {data.milestones.length}
                   </div>
                   <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>completed</div>
-                  <div style={{ marginTop: "6px", width: "80px", height: "4px", background: "#e2e8f0", borderRadius: "2px", overflow: "hidden" }}>
+                  <div style={{ marginTop: "6px", width: "80px", height: "4px", background: isDarkMode ? "rgba(100, 100, 100, 0.15)" : "#e2e8f0", borderRadius: "2px", overflow: "hidden" }}>
                     <div style={{
                       height: "100%",
                       width: `${(data.completedInLevel / data.milestones.length) * 100}%`,
-                      background: color, borderRadius: "2px", transition: "width 0.5s"
+                      background: color, borderRadius: "2px", transition: "width 0.5s",
+                      boxShadow: `0 0 6px ${color}`
                     }} />
                   </div>
                 </div>
@@ -1248,55 +2160,31 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
 
               {/* Milestones — shown when expanded */}
               {isOpen && (
-                <div style={{ padding: "28px" }}>
-                  {/* roadmap.sh-style node layout */}
+                <div style={{ padding: "28px", background: isDarkMode ? "var(--bg-dark-base)" : "#ffffff" }}>
+                  {/* gamified vertical skill path */}
                   <div style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-                    gap: "0",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "50px",
+                    padding: "20px 0",
                     position: "relative"
                   }}>
-                    {/* Central spine line */}
-                    <div style={{
-                      position: "absolute",
-                      top: "26px", left: "50%",
-                      transform: "translateX(-50%)",
-                      width: "2px",
-                      height: `calc(100% - 52px)`,
-                      background: `repeating-linear-gradient(to bottom, ${color} 0, ${color} 6px, transparent 6px, transparent 12px)`,
-                      opacity: 0.3,
-                      display: data.milestones.length > 2 ? "block" : "none"
-                    }} />
-
                     {data.milestones.map((milestone, idx) => (
-                      <div key={milestone.id} style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: idx % 2 === 0 ? "flex-end" : "flex-start",
-                        padding: "12px 16px",
-                        position: "relative"
-                      }}>
-                        {/* Horizontal connector to center */}
-                        <div style={{
-                          position: "absolute",
-                          top: "38px",
-                          [idx % 2 === 0 ? "right" : "left"]: "0",
-                          width: "16px", height: "2px",
-                          background: milestone.status === "completed" ? color : "#e2e8f0"
-                        }} />
-
-                        <MilestoneNode
-                          milestone={milestone}
-                          levelColor={color}
-                          isLastInLevel={idx === data.milestones.length - 1}
-                          isSelected={selectedMilestone?.id === milestone.id}
-                          onSelect={(m) => {
-                            sound.playClockTick();
-                            setSelectedMilestone(m);
-                          }}
-                          levelNum={num}
-                        />
-                      </div>
+                      <MilestoneNode
+                        key={milestone.id}
+                        milestone={milestone}
+                        levelColor={color}
+                        isLastInLevel={idx === data.milestones.length - 1}
+                        isSelected={selectedMilestone?.id === milestone.id}
+                        onSelect={(m) => {
+                          sound.playClockTick();
+                          setSelectedMilestone(m);
+                        }}
+                        levelNum={num}
+                        index={idx}
+                        isDarkMode={isDarkMode}
+                      />
                     ))}
                   </div>
 
@@ -1305,10 +2193,11 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
                     <div style={{
                       marginTop: "20px",
                       padding: "16px 20px",
-                      background: `${color}11`,
+                      background: `${color}15`,
                       border: `1.5px solid ${color}44`,
                       borderRadius: "14px",
-                      display: "flex", alignItems: "center", gap: "12px"
+                      display: "flex", alignItems: "center", gap: "12px",
+                      boxShadow: `0 0 15px ${color}11`
                     }}>
                       <span style={{ fontSize: "24px" }}>🎉</span>
                       <div>
@@ -1338,6 +2227,24 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
           onSearchDuel={onSearchDuel}
           onMarkComplete={(m) => { markComplete(m); setSelectedMilestone(null); }}
           onOpenNotes={() => setViewingNotes(true)}
+          onSelectVideo={(video) => setActiveVideo(video)}
+          isDarkMode={isDarkMode}
+        />
+      )}
+
+      {/* Solo Learning Video / Quiz Modal Embed */}
+      {activeVideo && selectedMilestone && (
+        <SoloLearningModal
+          video={activeVideo}
+          milestone={selectedMilestone}
+          username={username}
+          isDarkMode={isDarkMode}
+          onClose={() => setActiveVideo(null)}
+          onMarkComplete={(m) => {
+            markComplete(m);
+            setSelectedMilestone(null);
+            setActiveVideo(null);
+          }}
         />
       )}
 
@@ -1355,6 +2262,7 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
           onSearchDuel={onSearchDuel}
           onMarkComplete={(m) => { markComplete(m); setViewingNotes(false); setSelectedMilestone(null); }}
           onSaveNotes={saveStudyNotes}
+          isDarkMode={isDarkMode}
         />
       )}
     </div>

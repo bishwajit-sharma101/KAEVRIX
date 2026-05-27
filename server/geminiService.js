@@ -73,66 +73,126 @@ function buildFallbackRoadmap(topic, goal) {
   const milestoneBase = (level, idx, titles, descs) => ({
     id: `${level}-${idx}`,
     title: titles[idx] || `${t} Step ${idx + 1}`,
-    description: descs[idx] || `Learn the essential sub-topic under ${titles[idx]}.`,
-    searchQuery: `${t} ${titles[idx]} tutorial`,
+    description: descs[idx] || `Learn the essential sub-topic under ${titles[idx] || "this milestone"}.`,
+    searchQuery: `${t} ${titles[idx] || "tutorial"}`,
     keyPoints: ["Understand core concepts", "Practice with examples", "Review common pitfalls", "Check interview questions"],
-    estimatedMinutes: 50,
+    estimatedMinutes: 45,
     status: level === 1 && idx === 0 ? "unlocked" : "locked",
-    xpReward: 40 + idx * 10,
+    xpReward: 40 + idx * 5,
     isRevision: false
   });
 
-  const level1Titles = [`${t} Introduction`, `${t} Core Syntax`, `${t} Essential Concepts`, `${t} Basic Setup & Tools`, `${t} First Exercises`, `${t} Core Foundations Review`];
+  const level1Titles = [
+    `${t} Orientation`,
+    `${t} Basic Terminology`,
+    `${t} Environment Setup`,
+    `First Hello World Script`,
+    `Data Types & Variables`,
+    `Basic Assignments`,
+    `Arithmetic Operators`,
+    `Logical Operators`,
+    `Conditionals (If/Else)`,
+    `Loops (While)`,
+    `Loops (For)`,
+    `Foundations Review Challenge`
+  ];
   const level1Descs = [
     `Get started with ${t}, understanding its history, purpose, and installation.`,
-    `Learn the basic syntax, keywords, and structural rules of ${t}.`,
-    `Deep dive into the primary building blocks and concepts.`,
-    `Configure your local environment and code editor for optimal ${t} development.`,
-    `Write your first scripts/programs and solve basic exercises.`,
-    `Review all Level 1 foundational elements to solidify your base before proceeding.`
+    `Learn the basic terminology and core keywords used in ${t}.`,
+    `Configure your local environment and code editor for optimal development.`,
+    `Write and execute your first basic script or program.`,
+    `Learn about primitive types, variables, and memory references.`,
+    `Understand assignment operators and naming conventions.`,
+    `Learn mathematical computations and operator precedence.`,
+    `Master Boolean logic, comparison, and short-circuit operators.`,
+    `Write branching statements to control program flow based on criteria.`,
+    `Learn how to repeat actions using basic conditional iteration.`,
+    `Master standard collection loops and index-based traversal.`,
+    `Review and test your complete foundational understanding of Level 1.`
   ];
 
-  const level2Titles = [`Intermediate ${t} Syntax`, `${t} Best Practices`, `Testing & Debugging ${t}`, `${t} Data Operations`, `Practical ${t} Applications`, `Level 2 Review & Exercises`];
+  const level2Titles = [
+    `Arrays / Lists Introduction`,
+    `Modifying Collections`,
+    `Key-Value Maps / Objects`,
+    `Function Syntax Basics`,
+    `Function Parameters`,
+    `Function Return Values`,
+    `Scope & Variable Lifetime`,
+    `String Manipulation`,
+    `File Input/Output`,
+    `Debugging Tools Introduction`,
+    `Common Code Conventions`,
+    `Intermediate Foundations Review`
+  ];
   const level2Descs = [
-    `Advance your knowledge with intermediate structures and keywords.`,
-    `Learn standard conventions, clean code guidelines, and design principles.`,
-    `Find, diagnose, and resolve bugs using tools and writing tests.`,
-    `Manage, filter, and structure data in ${t} programs.`,
-    `Build functional small-scale projects applying intermediate logic.`,
-    `Consolidate intermediate methods and complete interactive test challenges.`
+    `Learn to store ordered data structures in memory.`,
+    `Add, remove, and update elements within arrays or lists.`,
+    `Understand associative dictionaries or object mappings.`,
+    `Define reusable blocks of execution logic.`,
+    `Pass arguments and default parameters to functions.`,
+    `Retrieve outputs from functions and handle return types.`,
+    `Learn local vs global scopes and block-scoped variables.`,
+    `Concatenate, slice, and format strings/text inputs.`,
+    `Read from and write data to text files on disk.`,
+    `Inspect variables, use step-through execution, and locate bugs.`,
+    `Learn naming styling, comment conventions, and linting tools.`,
+    `Integrate intermediate structures and complete challenges.`
   ];
 
-  const level3Titles = [`Advanced ${t} Concepts`, `${t} Interview Questions`, `${t} Under the Hood`, `${t} Practical Case Study`, `Asynchronous & Advanced Foundations`, `${t} Final Review`];
+  const level3Titles = [
+    `Exception Handling`,
+    `Try/Catch Blocks`,
+    `Module Imports`,
+    `Creating Simple Modules`,
+    `Asynchronous Concept Overview`,
+    `Callbacks Introduction`,
+    `Promises / Async Syntax`,
+    `Parsing JSON Data`,
+    `Basic Networking Concepts`,
+    `HTTP GET Requests`,
+    `Entry-Level Test Questions`,
+    `Final Basic Capstone Project`
+  ];
   const level3Descs = [
-    `Understand advanced features and complex topics.`,
-    `Prepare for common tests and job interview questions related to ${t}.`,
-    `Discover how ${t} runs behind the scenes and manages memory.`,
-    `Deconstruct real-world implementations and solve a complex problem.`,
-    `Explore standard asynchronous patterns and basic external integrations.`,
-    `Reflect on key takeaways and test your complete knowledge.`
+    `Learn why programs crash and how to anticipate runtime exceptions.`,
+    `Gracefully capture errors and implement fallback flows.`,
+    `Import external files and standard library packages.`,
+    `Export functions and structures to organize code components.`,
+    `Understand non-blocking execution flow and thread loops.`,
+    `Execute functions after asynchronous actions complete.`,
+    `Write clean asynchronous flows with modern return signatures.`,
+    `Deserialize web responses and text data into memory objects.`,
+    `Understand IP, ports, clients, servers, and standard request loops.`,
+    `Send API requests to fetch JSON data from external resources.`,
+    `Practice common junior-level interview questions and coding tests.`,
+    `Build a complete, CLI-based project combining all basics.`
   ];
 
   return {
     topic: t,
     goal: goal || "Master the subject",
     summary: `A highly detailed, personalized 3-level roadmap to build a rock-solid basic understanding in ${t} tailored to your goals.`,
+    totalVideosEstimated: 36,
+    totalEstimatedHours: 27,
+    dailyGoal: "Complete 1 node and watch 1 video daily",
     level1: {
       title: "Level 1 — Foundations",
       subtitle: "Basic Syntax & Setups",
       color: "#10b981",
-      milestones: Array.from({ length: 6 }, (_, i) => milestoneBase(1, i, level1Titles, level1Descs))
+      milestones: Array.from({ length: 12 }, (_, i) => milestoneBase(1, i, level1Titles, level1Descs))
     },
     level2: {
       title: "Level 2 — Intermediate Basics",
       subtitle: "Data, Tools & Practical Logic",
       color: "#f59e0b",
-      milestones: Array.from({ length: 6 }, (_, i) => milestoneBase(2, i, level2Titles, level2Descs))
+      milestones: Array.from({ length: 12 }, (_, i) => milestoneBase(2, i, level2Titles, level2Descs))
     },
     level3: {
       title: "Level 3 — Interview Prep & Mastery",
       subtitle: "Advanced Foundations & Mock Tests",
       color: "#8b5cf6",
-      milestones: Array.from({ length: 6 }, (_, i) => milestoneBase(3, i, level3Titles, level3Descs))
+      milestones: Array.from({ length: 12 }, (_, i) => milestoneBase(3, i, level3Titles, level3Descs))
     }
   };
 }
@@ -163,6 +223,9 @@ Generate a JSON roadmap with this EXACT structure:
   "topic": "short specific topic name (2-4 words)",
   "goal": "one sentence summarizing what they want to achieve",
   "summary": "2-3 sentences describing why this roadmap is tailored for them, focusing on mastering the basics for their goal",
+  "totalVideosEstimated": 36, // estimated total YouTube videos to watch for this entire roadmap (integer, e.g. 30-45)
+  "totalEstimatedHours": 25, // estimated total hours of studying and watching to complete the whole roadmap (integer)
+  "dailyGoal": "e.g. Complete 1 node daily", // clear daily action quest
   "level1": {
     "title": "Level 1 — Foundations",
     "subtitle": "Essential Basics & Core Concepts",
@@ -196,8 +259,9 @@ Generate a JSON roadmap with this EXACT structure:
 }
 
 Rules:
-- Each of the three levels MUST contain EXACTLY 6 to 8 milestones (do not generate fewer than 6 milestones per level under any circumstances). A detailed and granular roadmap is required.
+- Each of the three levels MUST contain EXACTLY 10 to 15 milestones (do not generate fewer than 10 milestones per level under any circumstances). A detailed, granular roadmap of 30-45 milestones/nodes total is required.
 - Do not limit the roadmap to a high-level overview. Provide granular, distinct milestones for specific sub-topics. Split different foundational building blocks into separate, dedicated milestones to teach them really well.
+- Ensure each milestone/node represents a very small, focused, singular sub-topic (e.g. "let vs const variable scopes" instead of "Variables and Data Types") so that it is easily digestible.
 - Level 1 milestone 0 must have status "unlocked", all others "locked"
 - Milestones must be highly specific to the actual topic basics and goal — NOT generic templates
 - searchQuery should return real, relevant YouTube search queries (e.g., "[topic] [milestone title] tutorial")

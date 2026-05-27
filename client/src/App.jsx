@@ -42,8 +42,71 @@ export default function App() {
   const [keepMusicInGame, setKeepMusicInGame] = useState(() => localStorage.getItem("kaevrix_music_in_game") === "true");
   const [showMusicSettings, setShowMusicSettings] = useState(false);
   const [showSurpassLimits, setShowSurpassLimits] = useState(false);
+  const [isExitIntercept, setIsExitIntercept] = useState(false);
+  const [interceptTrackIdx, setInterceptTrackIdx] = useState(1);
   const [showDailyModal, setShowDailyModal] = useState(false);
   const [journeyDay, setJourneyDay] = useState(1);
+
+  const exitAttemptsRef = useRef(0);
+
+  const isDailyQuestComplete = () => {
+    if (!username) return true;
+    const saved = localStorage.getItem(`kaevrix_roadmap_progress_${username}`);
+    if (!saved) return true;
+    try {
+      const roadmap = JSON.parse(saved);
+      let activeLevel = null;
+      let milestones = [];
+      if (roadmap.level1?.milestones?.some(m => m.status !== "completed")) {
+        activeLevel = "level1";
+        milestones = roadmap.level1.milestones;
+      } else if (roadmap.level2?.milestones?.some(m => m.status !== "completed")) {
+        activeLevel = "level2";
+        milestones = roadmap.level2.milestones;
+      } else if (roadmap.level3?.milestones?.some(m => m.status !== "completed")) {
+        activeLevel = "level3";
+        milestones = roadmap.level3.milestones;
+      } else {
+        return true;
+      }
+
+      const targetIndex = Math.min(milestones.length - 1, Math.max(0, journeyDay - 1));
+      const targetMilestone = milestones[targetIndex];
+      return targetMilestone && targetMilestone.status === "completed";
+    } catch (e) {
+      console.error("Failed to parse roadmap logic:", e);
+      return true;
+    }
+  };
+
+  useEffect(() => {
+    exitAttemptsRef.current = 0;
+  }, [username, journeyDay]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (!isRegistered || !username || isDailyQuestComplete()) return;
+
+      if (exitAttemptsRef.current === 0) {
+        exitAttemptsRef.current = 1;
+        setInterceptTrackIdx(Math.random() < 0.5 ? 1 : 3);
+        setIsExitIntercept(true);
+        setTimeout(() => {
+          setShowSurpassLimits(true);
+        }, 150);
+
+        e.preventDefault();
+        e.returnValue = "You have not completed your daily quest! Surpass your limits!";
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isRegistered, username, journeyDay, showSurpassLimits]);
 
   useEffect(() => {
     const savedToken = localStorage.getItem("kaevrix_token");
@@ -822,7 +885,10 @@ export default function App() {
           searchQuery={searchQuery}
           searchResults={searchResults}
           onSearch={(query) => { setSearchQuery(query); triggerSearch(query); }}
-          onSurpassLimits={() => setShowSurpassLimits(true)}
+          onSurpassLimits={() => {
+            setIsExitIntercept(false);
+            setShowSurpassLimits(true);
+          }}
           onTestJourneyDay={(dayNum) => {
             setJourneyDay(dayNum);
             setShowDailyModal(true);
@@ -921,7 +987,20 @@ export default function App() {
       )}
 
       {showSurpassLimits && (
-        <SurpassLimits onClose={() => setShowSurpassLimits(false)} />
+        <SurpassLimits 
+          onClose={() => {
+            setShowSurpassLimits(false);
+            setIsExitIntercept(false);
+            exitAttemptsRef.current = 0;
+          }}
+          trackIndex={isExitIntercept ? interceptTrackIdx : undefined}
+          isExitIntercept={isExitIntercept}
+          onForceExit={() => {
+            setShowSurpassLimits(false);
+            setIsExitIntercept(false);
+            exitAttemptsRef.current = 1;
+          }}
+        />
       )}
 
       {showDailyModal && (

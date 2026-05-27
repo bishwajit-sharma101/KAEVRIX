@@ -83,5 +83,37 @@
     "loginStreak": 1,
     "dailyRewardXp": 50,
     "lastSeenDay": 4
+  },
+  {
+    "username": "black",
+    "salt": "3cbf998fe0e9be0ad285a03e04a5f645",
+    "passwordHash": "cbd8f3c80dc9234f99ff1d770d7aaebe7f86445c9c70f9910f7713488099a6a2804b0df44f649b37db482b7fe7decf93d42045db2c951d4dbd4a61500e3b576f",
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Bandit&backgroundColor=transparent",
+    "selectedClass": "edgelord",
+    "xp": 0,
+    "level": 1,
+    "wins": 0,
+    "losses": 1,
+    "totalVideosWatched": 0,
+    "totalWatchTime": 0,
+    "watchHistory": [],
+    "createdAt": "2026-05-27T10:02:45.402Z",
+    "lastSeenDay": 1
+  },
+  {
+    "username": "white",
+    "salt": "59c0c43cc2349c1fdd9a60932d9da95f",
+    "passwordHash": "2e19c5449d48ce91bd6de851854c4b8fe96eb7ae0f02e7c4c5f4bfee994cbd845e01837210af11440938a8490d525cbe2f08e7781b503bd3df0ae39bcb8fcfae",
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Bandit&backgroundColor=transparent",
+    "selectedClass": "edgelord",
+    "xp": 0,
+    "level": 1,
+    "wins": 0,
+    "losses": 1,
+    "totalVideosWatched": 0,
+    "totalWatchTime": 0,
+    "watchHistory": [],
+    "createdAt": "2026-05-27T11:52:41.099Z",
+    "lastSeenDay": 1
   }
 ]

@@ -100,8 +100,8 @@ const MOOD_BG = {
 
 /* ─── COMPONENT ───────────────────────────────────────────────── */
 
-export default function SurpassLimits({ onClose }) {
-  const [trackIdx] = useState(() => Math.floor(Math.random() * TRACKS.length));
+export default function SurpassLimits({ onClose, trackIndex, isExitIntercept, onForceExit }) {
+  const [trackIdx] = useState(() => (trackIndex !== undefined ? trackIndex : Math.floor(Math.random() * TRACKS.length)));
   const [currentTime, setCurrentTime] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
@@ -129,9 +129,37 @@ export default function SurpassLimits({ onClose }) {
       audio.volume = 1.0;
       audio.play().catch(() => {});
     }
+
+    const enterFullscreen = () => {
+      const docEl = document.documentElement;
+      if (docEl.requestFullscreen && !document.fullscreenElement) {
+        docEl.requestFullscreen().catch((err) => {
+          console.warn("Fullscreen request failed:", err);
+        });
+      }
+      if (audioRef.current && audioRef.current.paused) {
+        audioRef.current.play().catch(() => {});
+      }
+    };
+
+    // Request F11 Fullscreen on mount
+    enterFullscreen();
+
+    window.addEventListener("click", enterFullscreen);
+    window.addEventListener("keydown", enterFullscreen);
+
     return () => {
       clearTimeout(t);
       if (audio) { audio.pause(); audio.currentTime = 0; }
+      window.removeEventListener("click", enterFullscreen);
+      window.removeEventListener("keydown", enterFullscreen);
+
+      // Exit Fullscreen on unmount
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch((err) => {
+          console.warn("Exit fullscreen failed:", err);
+        });
+      }
     };
   }, []);
 
@@ -550,8 +578,54 @@ export default function SurpassLimits({ onClose }) {
         {/* Per-segment transition flash */}
         {flashKey > 0 && <div key={flashKey} className="sl-seg-flash" style={{ background: segment?.style === "rage" ? "rgba(255,20,0,0.35)" : segment?.style === "command" ? "rgba(255,40,0,0.3)" : "rgba(255,255,255,0.3)" }} />}
 
+
+
         {/* Exit */}
-        <button className="sl-exit" onClick={onClose}>✕ &nbsp; EXIT</button>
+        {isExitIntercept ? (
+          <div style={{ position: "absolute", bottom: "10%", display: "flex", gap: "20px", zIndex: 50, flexWrap: "wrap", justifyContent: "center" }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: "14px 28px",
+                background: "linear-gradient(135deg, #ea580c, #ffb300)",
+                border: "none",
+                borderRadius: "8px",
+                color: "#fff",
+                fontWeight: "900",
+                fontSize: "14px",
+                letterSpacing: "1px",
+                cursor: "pointer",
+                boxShadow: "0 0 25px rgba(234, 88, 12, 0.4)",
+                transition: "transform 0.2s, box-shadow 0.2s"
+              }}
+              onMouseOver={e => { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.boxShadow = "0 0 35px rgba(255, 106, 0, 0.6)"; }}
+              onMouseOut={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 0 25px rgba(234, 88, 12, 0.4)"; }}
+            >
+              ⚡ RESUME STUDY ⚡
+            </button>
+            <button
+              onClick={onForceExit}
+              style={{
+                padding: "14px 28px",
+                background: "transparent",
+                border: "1.5px solid rgba(239, 68, 68, 0.4)",
+                borderRadius: "8px",
+                color: "#ef4444",
+                fontWeight: "900",
+                fontSize: "14px",
+                letterSpacing: "1px",
+                cursor: "pointer",
+                transition: "all 0.2s"
+              }}
+              onMouseOver={e => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)"; e.currentTarget.style.borderColor = "#ef4444"; }}
+              onMouseOut={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.4)"; }}
+            >
+              FORCE EXIT
+            </button>
+          </div>
+        ) : (
+          <button className="sl-exit" onClick={onClose}>✕ &nbsp; EXIT</button>
+        )}
 
         {/* Audio */}
         <audio

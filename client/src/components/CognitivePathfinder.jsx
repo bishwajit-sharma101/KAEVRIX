@@ -5,7 +5,7 @@ import PathfinderRoadmap from "./PathfinderRoadmap";
 
 const BACKEND_URL = window.location.hostname === "localhost" ? "http://localhost:5000" : "";
 
-export default function CognitivePathfinder({ username, onTriggerSearch }) {
+export default function CognitivePathfinder({ username, onTriggerSearch, isDarkMode }) {
   const roadmapKey = `kaevrix_roadmap_progress_${username}`;
   const answersKey = `kaevrix_roadmap_answers_${username}`;
 
@@ -48,10 +48,12 @@ export default function CognitivePathfinder({ username, onTriggerSearch }) {
       <div style={{ maxWidth: "720px", margin: "0 auto", padding: "40px 20px" }}>
         {/* Hero */}
         <div style={{
-          background: "linear-gradient(135deg, #0f172a 0%, #1e0a00 100%)",
+          background: isDarkMode ? "linear-gradient(135deg, #0f172a 0%, #1e0a00 100%)" : "linear-gradient(135deg, #f8fafc 0%, #fff7ed 100%)",
           borderRadius: "28px", padding: "48px 40px",
           textAlign: "center", position: "relative", overflow: "hidden",
-          marginBottom: "32px"
+          marginBottom: "32px",
+          border: isDarkMode ? "none" : "1px solid rgba(255, 106, 0, 0.25)",
+          boxShadow: isDarkMode ? "none" : "0 10px 30px rgba(255, 106, 0, 0.05)"
         }}>
           <div style={{
             position: "absolute", top: "-30px", right: "-30px",
@@ -61,10 +63,10 @@ export default function CognitivePathfinder({ username, onTriggerSearch }) {
           }} />
 
           <div style={{ fontSize: "64px", marginBottom: "20px" }}>🗺️</div>
-          <h1 style={{ fontSize: "36px", fontWeight: "900", color: "#ffffff", marginBottom: "12px", lineHeight: "1.2" }}>
+          <h1 style={{ fontSize: "36px", fontWeight: "900", color: isDarkMode ? "#ffffff" : "var(--text-light)", marginBottom: "12px", lineHeight: "1.2" }}>
             Cognitive Pathfinder
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "16px", lineHeight: "1.6", marginBottom: "32px", maxWidth: "500px", margin: "0 auto 32px" }}>
+          <p style={{ color: isDarkMode ? "rgba(255,255,255,0.6)" : "var(--text-muted)", fontSize: "16px", lineHeight: "1.6", marginBottom: "32px", maxWidth: "500px", margin: "0 auto 32px" }}>
             Tell the AI what you want to learn. It builds you a personalized 3-level roadmap with YouTube videos, study notes, and XP rewards — unique to your goals.
           </p>
 
@@ -76,12 +78,12 @@ export default function CognitivePathfinder({ username, onTriggerSearch }) {
             ].map((f, i) => (
               <div key={i} style={{
                 display: "flex", alignItems: "center", gap: "8px",
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.12)",
+                background: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(255, 106, 0, 0.05)",
+                border: isDarkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(255, 106, 0, 0.15)",
                 padding: "10px 18px", borderRadius: "20px"
               }}>
                 <span>{f.icon}</span>
-                <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)", fontWeight: "600" }}>{f.text}</span>
+                <span style={{ fontSize: "13px", color: isDarkMode ? "rgba(255,255,255,0.8)" : "var(--text-light)", fontWeight: "600" }}>{f.text}</span>
               </div>
             ))}
           </div>
@@ -111,9 +113,9 @@ export default function CognitivePathfinder({ username, onTriggerSearch }) {
             { num: 3, emoji: "🔥", title: "Level 3", sub: "Advanced → God Tier", color: "#8b5cf6", desc: "Architecture, internals, and production-grade mastery." },
           ].map(l => (
             <div key={l.num} style={{
-              background: "#ffffff", borderRadius: "20px",
-              padding: "20px", border: "1px solid #e2e8f0",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+              background: "var(--bg-dark-surface)", borderRadius: "20px",
+              padding: "20px", border: "1px solid var(--glass-border)",
+              boxShadow: "var(--shadow-purple)"
             }}>
               <div style={{
                 width: "44px", height: "44px", borderRadius: "12px",
@@ -149,6 +151,7 @@ export default function CognitivePathfinder({ username, onTriggerSearch }) {
         username={username}
         onSearchDuel={handleSearchDuel}
         onReset={handleReset}
+        isDarkMode={isDarkMode}
       />
     );
   }

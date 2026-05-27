@@ -124,5 +124,29 @@
     "totalVideosWatched": 0,
     "totalWatchTime": 0,
     "watchHistory": []
+  },
+  {
+    "username": "black",
+    "xp": 0,
+    "level": 1,
+    "wins": 0,
+    "losses": 1,
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Bandit&backgroundColor=transparent",
+    "selectedClass": "edgelord",
+    "totalVideosWatched": 0,
+    "totalWatchTime": 0,
+    "watchHistory": []
+  },
+  {
+    "username": "white",
+    "xp": 0,
+    "level": 1,
+    "wins": 0,
+    "losses": 1,
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Bandit&backgroundColor=transparent",
+    "selectedClass": "edgelord",
+    "totalVideosWatched": 0,
+    "totalWatchTime": 0,
+    "watchHistory": []
   }
 ]

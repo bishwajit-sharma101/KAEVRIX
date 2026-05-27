@@ -8,7 +8,8 @@ import {
 } from "../services/leaderboardService.js";
 import { 
   generateRoadmapFromAnswers, 
-  generateStudyNotes 
+  generateStudyNotes,
+  generateQuizForVideo
 } from "../geminiService.js";
 import {
   registerUser,
@@ -97,6 +98,24 @@ router.post("/pathfinder/study-notes", async (req, res) => {
   } catch (err) {
     console.error("[Pathfinder] Study notes generation failed:", err.message);
     res.status(500).json({ error: "Study notes generation failed" });
+  }
+});
+
+// POST Generate Quiz for Video
+router.post("/quiz/generate", async (req, res) => {
+  req.setTimeout(600000);
+  res.setTimeout(600000);
+  const { videoId, title, duration } = req.body;
+  if (!title) {
+    return res.status(400).json({ error: "video title required" });
+  }
+
+  try {
+    const quiz = await generateQuizForVideo(videoId, title, duration);
+    res.json(quiz);
+  } catch (err) {
+    console.error("[Quiz] Quiz generation failed:", err.message);
+    res.status(500).json({ error: "Quiz generation failed", details: err.message });
   }
 });
 

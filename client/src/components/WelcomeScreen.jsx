@@ -33,6 +33,39 @@ const CLASS_STATS = {
   gachaaddict: { focus: 35, speed: 55, disruption: 60, defense: 40, chaos: 99 }
 };
 
+const PATHFINDER_QUESTIONS = [
+  {
+    id: "topic",
+    question: "What do you want to learn?",
+    hint: "Be specific — e.g. 'React & Next.js', 'Python Data Science', 'Guitar basics'",
+    placeholder: "I want to learn..."
+  },
+  {
+    id: "why",
+    question: "Why do you want to learn this?",
+    hint: "Your reason shapes the path — job, hobby, building a startup?",
+    placeholder: "Because I want to..."
+  },
+  {
+    id: "time",
+    question: "How much time can you dedicate daily?",
+    hint: "Be realistic — 30 min? 1 hour? 3 hours?",
+    placeholder: "About... hours/day..."
+  },
+  {
+    id: "background",
+    question: "What is your current level with this?",
+    hint: "Beginner? Some basic familiarity? Stuck at intermediate?",
+    placeholder: "Right now I..."
+  },
+  {
+    id: "goal",
+    question: "What does success look like in 3 months?",
+    hint: "A working project? Passing an interview? Freelance client?",
+    placeholder: "In 3 months I want to..."
+  }
+];
+
 export default function WelcomeScreen({
   onAuthSuccess,
   isDarkMode,
@@ -96,10 +129,68 @@ export default function WelcomeScreen({
   const [recognizedAvatar, setRecognizedAvatar] = useState(null);
 
   // Sign Up States
-  const [signUpStep, setSignUpStep] = useState(1); // 1: Class Selection, 2: Credentials, 3: Loading
+  const [signUpStep, setSignUpStep] = useState(1); // 1: Class Selection, 2: Pathfinder Questions, 3: Credentials, 4: Loading
   const [selectedClassId, setSelectedClassId] = useState(
     () => localStorage.getItem("kaevrix_class") || "doomscroller"
   );
+  const [onboardingQ, setOnboardingQ] = useState(0);
+  const [onboardingAnswers, setOnboardingAnswers] = useState(Array(5).fill(""));
+  const [onboardingInputVal, setOnboardingInputVal] = useState("");
+  const [typedQuestion, setTypedQuestion] = useState("");
+  const [isTypingQuestion, setIsTypingQuestion] = useState(false);
+
+  useEffect(() => {
+    if (authMode !== "signup" || signUpStep !== 2) return;
+    const qText = PATHFINDER_QUESTIONS[onboardingQ]?.question || "";
+    setTypedQuestion("");
+    setIsTypingQuestion(true);
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < qText.length) {
+        setTypedQuestion(qText.slice(0, i + 1));
+        i++;
+      } else {
+        setIsTypingQuestion(false);
+        clearInterval(interval);
+      }
+    }, 25);
+    return () => clearInterval(interval);
+  }, [onboardingQ, signUpStep, authMode]);
+
+  const handleQuestionNext = () => {
+    if (!onboardingInputVal.trim()) return;
+    sound.playClockTick();
+
+    const newAnswers = [...onboardingAnswers];
+    newAnswers[onboardingQ] = onboardingInputVal.trim();
+    setOnboardingAnswers(newAnswers);
+
+    if (onboardingQ < 4) {
+      const nextQ = onboardingQ + 1;
+      setOnboardingQ(nextQ);
+      setOnboardingInputVal(newAnswers[nextQ] || "");
+    } else {
+      setSignUpStep(3);
+    }
+  };
+
+  const handleQuestionBack = () => {
+    sound.playClockTick();
+    if (onboardingQ > 0) {
+      const prevQ = onboardingQ - 1;
+      setOnboardingQ(prevQ);
+      setOnboardingInputVal(onboardingAnswers[prevQ] || "");
+    } else {
+      setSignUpStep(1);
+    }
+  };
+
+  const handleQuestionKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleQuestionNext();
+    }
+  };
   const [avatarSeed, setAvatarSeed] = useState(() => Math.random().toString(36).substring(7));
   const savedAvatarInit = localStorage.getItem("kaevrix_avatar");
   const [avatar, setAvatar] = useState(
@@ -262,7 +353,7 @@ export default function WelcomeScreen({
         throw new Error(data.error || "Registration failed");
       }
 
-      setSignUpStep(3);
+      setSignUpStep(4);
       startTerminalSequence(data);
     } catch (err) {
       setSignUpError(err.message);
@@ -271,34 +362,98 @@ export default function WelcomeScreen({
     }
   };
 
-  const startTerminalSequence = (authPayload) => {
+  const startTerminalSequence = async (authPayload) => {
     const activeCls = enhancedClasses.find(c => c.id === selectedClassId) || enhancedClasses[0];
-    const logs = [
+    const initialLogs = [
       `>>> INITIATING NEURAL CONNECT v2.5...`,
       `>>> SHIELD PROTOCOLS ACTIVE.`,
       `>>> SYNTHESIZING CLASS LINK: [${activeCls.name.toUpperCase()}]... SUCCESS.`,
-      `>>> ENCRYPTING PASSKEY INTERFACE... SECURE.`,
-      `>>> RESOLVING LOGICAL VIDEO METRICS... STANDBY.`,
-      `>>> CALIBRATING AVATAR MEMORY CORE... LOGGED.`,
-      `>>> SYSTEM READY. ENTERING KAEVRIX ARENA...`
+      `>>> REGISTERING GAMER TAG [${authPayload.user.username.toUpperCase()}]... SUCCESS.`,
+      `>>> CONNECTING TO PATHFINDER ENGINE...`,
+      `>>> ANALYZING PROFILE GOALS...`,
+      `>>> GENERATING CUSTOM SKILL ROADMAP...`
     ];
 
     setTerminalLogs([]);
-    let idx = 0;
     
-    const interval = setInterval(() => {
-      if (idx < logs.length) {
+    // Print initial logs
+    for (let i = 0; i < initialLogs.length; i++) {
+      sound.playClockTick(true);
+      setTerminalLogs(prev => [...prev, initialLogs[i]]);
+      await new Promise(r => setTimeout(r, 400));
+    }
+
+    try {
+      const payload = PATHFINDER_QUESTIONS.map((q, i) => ({
+        question: q.question,
+        answer: onboardingAnswers[i]
+      }));
+
+      const res = await fetch(`${BACKEND_URL}/api/pathfinder/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers: payload })
+      });
+
+      const roadmap = await res.json();
+      
+      // Save to localStorage under both keys to make it immediately active
+      localStorage.setItem(`kaevrix_roadmap_progress_${authPayload.user.username}`, JSON.stringify(roadmap));
+      localStorage.setItem(`kaevrix_roadmap_answers_${authPayload.user.username}`, JSON.stringify(payload));
+      localStorage.setItem(`kaevrix_roadmap_${authPayload.user.username}`, JSON.stringify(roadmap));
+
+      const successLogs = [
+        `>>> ROADMAP GENERATED SUCCESSFULLY. [${roadmap.totalVideosEstimated || 36} NODES, ${roadmap.totalEstimatedHours || 25} HOURS]`,
+        `>>> CALIBRATING AVATAR MEMORY CORE... LOGGED.`,
+        `>>> SYSTEM READY. ENTERING KAEVRIX ARENA...`
+      ];
+
+      for (let i = 0; i < successLogs.length; i++) {
         sound.playClockTick(true);
-        setTerminalLogs(prev => [...prev, logs[idx]]);
-        idx++;
-      } else {
-        clearInterval(interval);
-        setTimeout(() => {
-          sound.playMatchFound();
-          onAuthSuccess(authPayload.user, authPayload.token);
-        }, 800);
+        setTerminalLogs(prev => [...prev, successLogs[i]]);
+        await new Promise(r => setTimeout(r, 400));
       }
-    }, 450);
+
+      setTimeout(() => {
+        sound.playMatchFound();
+        onAuthSuccess(authPayload.user, authPayload.token);
+      }, 600);
+
+    } catch (err) {
+      console.error("Roadmap generation error:", err);
+      const errorLogs = [
+        `>>> PATHFINDER ERROR: GENERATION FAILED.`,
+        `>>> COMPILING COMPACT CORE ROADMAP AS FALLBACK... SUCCESS.`,
+        `>>> SYSTEM READY. ENTERING KAEVRIX ARENA...`
+      ];
+
+      for (let i = 0; i < errorLogs.length; i++) {
+        sound.playIncorrect();
+        setTerminalLogs(prev => [...prev, errorLogs[i]]);
+        await new Promise(r => setTimeout(r, 450));
+      }
+
+      // Build local fallback roadmap and save
+      const fallbackRoadmap = {
+        topic: onboardingAnswers[0] || "General Learning",
+        goal: onboardingAnswers[1] || "Master the topic",
+        summary: `Personalized basic learning path for ${onboardingAnswers[0] || "General Learning"}.`,
+        totalVideosEstimated: 36,
+        totalEstimatedHours: 27,
+        dailyGoal: "Complete 1 node and watch 1 video daily",
+        level1: { title: "Level 1 — Foundations", subtitle: "Basic Syntax & Setups", color: "#10b981", milestones: [] },
+        level2: { title: "Level 2 — Intermediate Basics", subtitle: "Data, Tools & Practical Logic", color: "#f59e0b", milestones: [] },
+        level3: { title: "Level 3 — Interview Prep & Mastery", subtitle: "Advanced Foundations & Mock Tests", color: "#8b5cf6", milestones: [] }
+      };
+      
+      localStorage.setItem(`kaevrix_roadmap_progress_${authPayload.user.username}`, JSON.stringify(fallbackRoadmap));
+      localStorage.setItem(`kaevrix_roadmap_answers_${authPayload.user.username}`, JSON.stringify([]));
+
+      setTimeout(() => {
+        sound.playMatchFound();
+        onAuthSuccess(authPayload.user, authPayload.token);
+      }, 600);
+    }
   };
 
   const handleScrollLeft = () => {
@@ -518,8 +673,8 @@ export default function WelcomeScreen({
       </button>
 
       {/* STYLE 1: WORKSPACE — TRUE GAME INTERFACE */}
-      {portalStyle === "workspace" && signUpStep === 3 && (
-        /* STEP 3 - NEURAL TERMINAL BOOTING (FULL SCREEN) */
+      {portalStyle === "workspace" && signUpStep === 4 && (
+        /* STEP 4 - NEURAL TERMINAL BOOTING (FULL SCREEN) */
         <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", position: "relative", zIndex: 10 }}>
           <div style={{
             width: "100%", maxWidth: "600px", borderRadius: "20px",
@@ -557,7 +712,7 @@ export default function WelcomeScreen({
         </div>
       )}
 
-      {portalStyle === "workspace" && signUpStep !== 3 && (
+      {portalStyle === "workspace" && signUpStep !== 4 && (
         /* GAME INTERFACE: FULL-SCREEN SPLIT */
         <div style={{
           flex: 1,
@@ -882,14 +1037,104 @@ export default function WelcomeScreen({
 
 
 
-            {/* ─── SIGN UP STEP 2 — CREDENTIALS ─── */}
+            {/* ─── SIGN UP STEP 2 — PATHFINDER QUESTIONS ─── */}
             {authMode === "signup" && signUpStep === 2 && (
               <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
                 <button
-                  onClick={() => { sound.playClockTick(); setSignUpStep(1); }}
+                  onClick={handleQuestionBack}
                   style={{ background: "transparent", border: "none", color: textMuted, cursor: "pointer", fontSize: "12px", fontWeight: "700", textAlign: "left", padding: "0 0 20px 0", letterSpacing: "1px" }}
                 >
-                  ← BACK TO CLASS SELECT
+                  ← BACK
+                </button>
+
+                <div style={{ marginBottom: "20px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: "800", color: labelColor, letterSpacing: "1px", textTransform: "uppercase" }}>
+                      QUESTION {onboardingQ + 1} OF 5
+                    </span>
+                    <span style={{ fontSize: "12px", fontWeight: "800", color: currentThemeColor }}>
+                      {Math.round(((onboardingQ) / 5) * 100)}% COMPLETE
+                    </span>
+                  </div>
+                  <div style={{ height: "4px", background: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)", borderRadius: "2px", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${((onboardingQ) / 5) * 100}%`, background: `linear-gradient(90deg, ${currentThemeColor} 0%, #ff8c00 100%)`, transition: "width 0.3s ease" }} />
+                  </div>
+                </div>
+
+                <div style={{
+                  background: isDarkMode ? `${currentThemeColor}05` : `${currentThemeColor}03`,
+                  border: `1.5px solid ${currentThemeColor}20`,
+                  borderRadius: "16px", padding: "24px",
+                  marginBottom: "20px"
+                }}>
+                  <h2 style={{ fontSize: "20px", fontWeight: "800", color: textColor, marginBottom: "8px", lineHeight: "1.4", minHeight: "56px" }}>
+                    {typedQuestion}
+                    {isTypingQuestion && (
+                      <span className="retro-arcade-blink" style={{ display: "inline-block", width: "2px", height: "20px", background: currentThemeColor, marginLeft: "2px", verticalAlign: "middle" }} />
+                    )}
+                  </h2>
+                  <p style={{ color: textMuted, fontSize: "12px", marginBottom: "18px", lineHeight: "1.5" }}>
+                    💡 {PATHFINDER_QUESTIONS[onboardingQ]?.hint}
+                  </p>
+
+                  <textarea
+                    value={onboardingInputVal}
+                    onChange={e => setOnboardingInputVal(e.target.value)}
+                    onKeyDown={handleQuestionKeyDown}
+                    placeholder={PATHFINDER_QUESTIONS[onboardingQ]?.placeholder}
+                    rows={3}
+                    style={{
+                      width: "100%", background: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+                      border: `1.5px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.12)"}`,
+                      color: textColor, padding: "14px 18px", borderRadius: "12px",
+                      fontSize: "14px", fontWeight: "700", outline: "none", resize: "none",
+                      fontFamily: "'Inter', sans-serif", lineHeight: "1.5", transition: "all 0.25s",
+                      boxSizing: "border-box"
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = currentThemeColor; e.currentTarget.style.boxShadow = `0 0 0 3px ${currentThemeColor}18`; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.12)"; e.currentTarget.style.boxShadow = "none"; }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
+                  <button
+                    onClick={handleQuestionBack}
+                    style={{
+                      flex: 0.35, background: "transparent", border: `1.5px solid ${isDarkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)"}`,
+                      borderRadius: "12px", color: textMuted, fontWeight: "800", fontSize: "13px",
+                      padding: "14px", cursor: "pointer", transition: "all 0.2s"
+                    }}
+                  >
+                    BACK
+                  </button>
+                  <button
+                    onClick={handleQuestionNext}
+                    disabled={!onboardingInputVal.trim()}
+                    style={{
+                      flex: 1,
+                      background: onboardingInputVal.trim() ? `linear-gradient(135deg, ${currentThemeColor} 0%, #ff8c00 100%)` : (isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"),
+                      border: "none", borderRadius: "12px",
+                      color: onboardingInputVal.trim() ? "#fff" : textMuted,
+                      fontSize: "14px", fontWeight: "900", letterSpacing: "1px",
+                      textTransform: "uppercase", cursor: onboardingInputVal.trim() ? "pointer" : "not-allowed",
+                      boxShadow: onboardingInputVal.trim() ? `0 6px 20px ${currentThemeColor}33` : "none",
+                      transition: "all 0.25s"
+                    }}
+                  >
+                    {onboardingQ === 4 ? "CONFIRM GOALS →" : "CONTINUE →"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ─── SIGN UP STEP 3 — CREDENTIALS ─── */}
+            {authMode === "signup" && signUpStep === 3 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
+                <button
+                  onClick={() => { sound.playClockTick(); setSignUpStep(2); }}
+                  style={{ background: "transparent", border: "none", color: textMuted, cursor: "pointer", fontSize: "12px", fontWeight: "700", textAlign: "left", padding: "0 0 20px 0", letterSpacing: "1px" }}
+                >
+                  ← BACK TO QUESTIONS
                 </button>
 
                 <div style={{ marginBottom: "22px" }}>
@@ -1319,7 +1564,7 @@ export default function WelcomeScreen({
           <div style={{ flex: 1, display: "flex", gap: "50px", alignItems: "center", flexDirection: window.innerWidth < 768 ? "column" : "row", overflow: "hidden", padding: "10px 0" }}>
             
             {/* Left projection pad (holographic character) */}
-            {signUpStep !== 3 && (
+            {signUpStep !== 4 && (
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative", minHeight: "360px" }}>
                 
                 {/* Glowing projector pad */}
@@ -1363,7 +1608,7 @@ export default function WelcomeScreen({
                   textAlign: "center",
                   transition: "background 0.4s ease-in-out, color 0.4s ease-in-out"
                 }}>
-                  {signUpStep === 2 ? "READY TO ENROLL..." : (retroShowForm && authMode === "signup" ? "SELECTING ARCHETYPE..." : (recognizedClass ? `${activeClass.name.toUpperCase()} LOADED` : "AWAITING USER KEY..."))}
+                  {signUpStep === 2 ? "DEFINING GOALS..." : signUpStep === 3 ? "READY TO ENROLL..." : (retroShowForm && authMode === "signup" ? "SELECTING ARCHETYPE..." : (recognizedClass ? `${activeClass.name.toUpperCase()} LOADED` : "AWAITING USER KEY..."))}
                 </div>
 
                 {/* Character Name Badge */}
@@ -1382,8 +1627,8 @@ export default function WelcomeScreen({
             {/* Right arcade menu panel */}
             <div style={{ flex: 1.1, display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
               
-              {signUpStep === 3 ? (
-                /* STEP 3 RETRO TERMINAL LOAD */
+              {signUpStep === 4 ? (
+                /* STEP 4 RETRO TERMINAL LOAD */
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontFamily: "'Courier New', monospace" }}>
                   {terminalLogs.map((log, lIdx) => {
                     if (!log || typeof log !== "string") return null;
@@ -1722,8 +1967,87 @@ export default function WelcomeScreen({
                   )}
 
 
-                  {/* SIGN UP STEP 2 - DEFINE IDENTIFIER */}
+                  {/* SIGN UP STEP 2 - PATHFINDER QUESTIONNAIRE */}
                   {retroShowForm && authMode === "signup" && signUpStep === 2 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "14px", justifyContent: "center" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: "11px", color: textMuted, fontWeight: "900", letterSpacing: "3px", textTransform: "uppercase" }}>
+                          ▶ PATHFINDER QUESTIONNAIRE [{onboardingQ + 1}/5]
+                        </span>
+                        <span style={{ fontSize: "11px", color: currentThemeColor, fontWeight: "900" }}>
+                          {Math.round(((onboardingQ) / 5) * 100)}% COMPLETE
+                        </span>
+                      </div>
+
+                      <div style={{
+                        background: isDarkMode ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.6)",
+                        border: `2px solid ${currentThemeColor}44`,
+                        borderRadius: "10px", padding: "20px",
+                        display: "flex", flexDirection: "column", gap: "12px"
+                      }}>
+                        <h2 style={{ fontSize: "18px", fontWeight: "900", color: textColor, minHeight: "48px", letterSpacing: "1px", margin: 0, lineHeight: "1.3" }}>
+                          {typedQuestion}
+                          {isTypingQuestion && (
+                            <span className="retro-arcade-blink" style={{ display: "inline-block", width: "2px", height: "18px", background: currentThemeColor, marginLeft: "2px" }} />
+                          )}
+                        </h2>
+                        <div style={{ fontSize: "11px", color: textMuted, letterSpacing: "1px" }}>
+                          HINT: {PATHFINDER_QUESTIONS[onboardingQ]?.hint.toUpperCase()}
+                        </div>
+
+                        <textarea
+                          value={onboardingInputVal}
+                          onChange={e => setOnboardingInputVal(e.target.value)}
+                          onKeyDown={handleQuestionKeyDown}
+                          placeholder={PATHFINDER_QUESTIONS[onboardingQ]?.placeholder.toUpperCase()}
+                          rows={3}
+                          style={{
+                            background: isDarkMode ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.9)",
+                            border: `2px solid ${currentThemeColor}44`,
+                            borderRadius: "8px",
+                            color: textColor, padding: "12px 16px", outline: "none", resize: "none",
+                            fontSize: "15px", fontFamily: "var(--font-gamer)", fontWeight: "bold",
+                            letterSpacing: "1px", boxSizing: "border-box"
+                          }}
+                          onFocus={e => e.currentTarget.style.borderColor = currentThemeColor}
+                          onBlur={e => e.currentTarget.style.borderColor = `${currentThemeColor}44`}
+                        />
+                      </div>
+
+                      <div style={{ display: "flex", gap: "12px" }}>
+                        <button
+                          type="button"
+                          onClick={handleQuestionBack}
+                          style={{
+                            flex: 0.35, border: `2px solid ${cardBorder}`, background: "transparent",
+                            borderRadius: "8px", color: textMuted, fontFamily: "var(--font-gamer)",
+                            fontSize: "12px", fontWeight: "900", padding: "14px", cursor: "pointer"
+                          }}
+                        >
+                          BACK
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleQuestionNext}
+                          disabled={!onboardingInputVal.trim()}
+                          style={{
+                            flex: 1, background: onboardingInputVal.trim() ? `linear-gradient(90deg, ${currentThemeColor} 0%, #ff8c00 100%)` : "transparent",
+                            border: `2px solid ${onboardingInputVal.trim() ? textColor : `${currentThemeColor}44`}`,
+                            borderRadius: "8px", color: onboardingInputVal.trim() ? "#fff" : textMuted,
+                            fontFamily: "var(--font-gamer)", fontSize: "13px", fontWeight: "900",
+                            padding: "14px 20px", cursor: onboardingInputVal.trim() ? "pointer" : "not-allowed",
+                            letterSpacing: "1.5px"
+                          }}
+                        >
+                          {onboardingQ === 4 ? "[ LOCK IN GOALS ]" : "[ CONTINUE ]"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+
+                  {/* SIGN UP STEP 3 - DEFINE IDENTIFIER */}
+                  {retroShowForm && authMode === "signup" && signUpStep === 3 && (
                     <form onSubmit={handleRegisterSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px", justifyContent: "center" }}>
                       
                       <div style={{ fontSize: "11px", color: textMuted, fontWeight: "900", letterSpacing: "3px", textTransform: "uppercase", marginBottom: "5px" }}>
@@ -1808,7 +2132,7 @@ export default function WelcomeScreen({
                       <div style={{ display: "flex", gap: "10px", marginTop: "15px" }}>
                         <button
                           type="button"
-                          onClick={() => { sound.playClockTick(); setSignUpStep(1); }}
+                          onClick={() => { sound.playClockTick(); setSignUpStep(2); }}
                           style={{
                             flex: 0.4, border: `2px solid ${cardBorder}`, background: "transparent",
                             borderRadius: "10px", color: textMuted, fontFamily: "var(--font-gamer)",
