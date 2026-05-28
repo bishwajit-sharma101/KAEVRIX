@@ -13,6 +13,7 @@ import QuizPanel from "./components/QuizPanel";
 import ResultsPanel from "./components/ResultsPanel";
 import SurpassLimits from "./components/SurpassLimits";
 import DailyLogin from "./components/DailyLogin";
+import SoloStudyRoom from "./components/SoloStudyRoom";
 
 const BACKEND_URL = window.location.hostname === "localhost" ? "http://localhost:5000" : "";
 const DEFAULT_AVATAR = "https://api.dicebear.com/7.x/bottts/svg?seed=Cypher&backgroundColor=transparent";
@@ -178,6 +179,7 @@ export default function App() {
 
   // Matchmaking choices
   const [selectedVideo, setSelectedVideo] = useState(null);
+  const [selectedSoloVideo, setSelectedSoloVideo] = useState(null);
   const [vsBot, setVsBot] = useState(true); // Default to bot mode for easy local demo
   
   // Search state
@@ -631,6 +633,37 @@ export default function App() {
     setEnergy((prev) => prev - 60);
   };
 
+  const handleStartSoloStudy = (video) => {
+    setSelectedSoloVideo(video);
+    setStatus("solo_study");
+  };
+
+  const handleAddSoloXp = async (xpEarned, videoTitle) => {
+    if (!username) return;
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/solo-xp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, xpEarned, videoTitle })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setXp(data.xp);
+        setLevel(data.level);
+        if (data.leveledUp) {
+          setLeveledUp(true);
+        }
+        // Force update leaderboard
+        fetch(`${BACKEND_URL}/api/leaderboard`)
+          .then((res) => res.json())
+          .then((data) => setLeaderboard(data))
+          .catch((err) => console.error("Error fetching leaderboard:", err));
+      }
+    } catch (err) {
+      console.error("Error adding solo XP:", err);
+    }
+  };
+
   const resetToDashboard = () => {
     setStatus("idle");
     setRoom(null);
@@ -904,6 +937,7 @@ export default function App() {
             setJourneyDay(dayNum);
             setShowDailyModal(true);
           }}
+          onStartSoloStudy={handleStartSoloStudy}
         />
       )}
 
@@ -994,6 +1028,17 @@ export default function App() {
           xpGained={xpGained}
           leveledUp={leveledUp}
           onPlayAgain={resetToDashboard}
+        />
+      )}
+
+      {status === "solo_study" && selectedSoloVideo && (
+        <SoloStudyRoom
+          video={selectedSoloVideo}
+          username={username}
+          isDarkMode={isDarkMode}
+          backendUrl={BACKEND_URL}
+          onBack={resetToDashboard}
+          onAddSoloXp={handleAddSoloXp}
         />
       )}
 

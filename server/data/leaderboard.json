@@ -160,5 +160,17 @@
     "totalVideosWatched": 0,
     "totalWatchTime": 0,
     "watchHistory": []
+  },
+  {
+    "username": "grey",
+    "xp": 0,
+    "level": 1,
+    "wins": 0,
+    "losses": 1,
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Fluffy&backgroundColor=transparent",
+    "selectedClass": "vibechecker",
+    "totalVideosWatched": 0,
+    "totalWatchTime": 0,
+    "watchHistory": []
   }
 ]

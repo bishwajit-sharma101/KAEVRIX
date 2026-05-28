@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as sound from "../utils/audio";
 import CognitivePathfinder from "./CognitivePathfinder";
 import ProfilePanel from "./ProfilePanel";
@@ -37,9 +37,52 @@ export default function Dashboard({
   selectedClass,
   onSurpassLimits,
   onTestJourneyDay,
-  isSearching
+  isSearching,
+  onStartSoloStudy
 }) {
   const [activeTab, setActiveTab] = useState("duels");
+  const [personalizedFeed, setPersonalizedFeed] = useState(null);
+  const [loadingFeed, setLoadingFeed] = useState(false);
+  const [feedTab, setFeedTab] = useState("core"); // core, interview, tips
+
+  // Load Pathfinder answers for query generation
+  const answersKey = `kaevrix_roadmap_answers_${username}`;
+  const savedAnswers = localStorage.getItem(answersKey);
+  const answers = savedAnswers ? JSON.parse(savedAnswers) : null;
+  const topic = answers && answers[0] ? answers[0].answer : "";
+  const why = answers && answers[1] ? answers[1].answer : "";
+
+  useEffect(() => {
+    if (!topic || searchQuery) return;
+    
+    let isMounted = true;
+    const fetchFeed = async () => {
+      setLoadingFeed(true);
+      try {
+        const res = await fetch(`${backendUrl}/api/personalized-feed`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topic, why })
+        });
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          setPersonalizedFeed(data);
+          if (data.core && data.core.length > 0) {
+            setSelectedVideo(data.core[0]);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading personalized feed:", err);
+      } finally {
+        if (isMounted) setLoadingFeed(false);
+      }
+    };
+    
+    fetchFeed();
+    return () => {
+      isMounted = false;
+    };
+  }, [topic, why, searchQuery, backendUrl, setSelectedVideo]);
 
   const handleTabChange = (tab) => {
     sound.playClockTick();
@@ -187,6 +230,122 @@ export default function Dashboard({
               </div>
             )}
 
+            {/* Pathfinder Cognitive Profile Offline Alert Banner */}
+            {!searchQuery && !topic && (
+              <div style={{
+                background: isDarkMode 
+                  ? "rgba(239, 68, 68, 0.08)"
+                  : "linear-gradient(135deg, #fff1f2, #fffbeb)",
+                border: isDarkMode ? "1.5px solid rgba(239, 68, 68, 0.25)" : "1.5px solid #fecdd3",
+                boxShadow: "0 10px 30px rgba(239,68,68,0.03)",
+                borderRadius: "20px",
+                padding: "32px",
+                marginBottom: "36px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "18px",
+                alignItems: "center",
+                textAlign: "center"
+              }}>
+                <div style={{ fontSize: "40px", animation: "pulse 2s infinite" }}>🧠</div>
+                <div>
+                  <h3 style={{ fontSize: "18px", fontWeight: "900", color: isDarkMode ? "#fca5a5" : "#be123c", margin: "0 0 6px 0", letterSpacing: "0.5px", textTransform: "uppercase" }}>
+                    Pathfinder Cognitive Profile Offline
+                  </h3>
+                  <p style={{ fontSize: "14px", color: isDarkMode ? "rgba(255,255,255,0.6)" : "#475569", margin: 0, lineHeight: "1.5", maxWidth: "580px" }}>
+                    To unlock your personalized training grounds, specialized playlist categories, and custom AI study notes, you must first construct your learning roadmap.
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleTabChange("pathfinder")}
+                  style={{
+                    padding: "12px 28px",
+                    borderRadius: "12px",
+                    border: "none",
+                    background: "linear-gradient(135deg, #ef4444, #f59e0b)",
+                    color: "#fff",
+                    fontWeight: "800",
+                    fontSize: "13.5px",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 15px rgba(239,68,68,0.25)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    transition: "all 0.2s"
+                  }}
+                  onMouseOver={e => e.currentTarget.style.transform = "translateY(-1px)"}
+                  onMouseOut={e => e.currentTarget.style.transform = "none"}
+                >
+                  ⚡ Initialize Pathfinder Onboarding
+                </button>
+              </div>
+            )}
+
+            {/* Personalized Feed Category Navigation Strip */}
+            {!searchQuery && topic && (
+              <div style={{
+                background: isDarkMode ? "rgba(30,30,40,0.3)" : "#f8fafc",
+                borderRadius: "20px",
+                border: isDarkMode ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0",
+                padding: "24px",
+                marginBottom: "32px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.01)"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px", flexWrap: "wrap", gap: "16px" }}>
+                  <div>
+                    <h3 style={{ fontSize: "16px", fontWeight: "900", color: isDarkMode ? "#ffb300" : "#ea580c", margin: 0, textTransform: "uppercase", letterSpacing: "1px" }}>
+                      🧠 personalized playlist: {topic}
+                    </h3>
+                    <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "4px 0 0 0" }}>
+                      Curated automatically from your cognitive goals and learning profile.
+                    </p>
+                  </div>
+                  
+                  {/* Category Tabs */}
+                  <div style={{ display: "flex", gap: "6px", background: isDarkMode ? "#0f172a" : "#e2e8f0", padding: "4px", borderRadius: "10px" }}>
+                    {[
+                      { id: "core", label: "🎓 Core Training", color: "#4f46e5" },
+                      { id: "interview", label: "💼 Career Prep", color: "#10b981" },
+                      { id: "tips", label: "⚡ Tips & Hacks", color: "#f59e0b" }
+                    ].map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => { sound.playClockTick(); setFeedTab(t.id); }}
+                        style={{
+                          padding: "8px 16px",
+                          borderRadius: "8px",
+                          border: "none",
+                          fontSize: "12.5px",
+                          fontWeight: "800",
+                          cursor: "pointer",
+                          transition: "all 0.2s",
+                          background: feedTab === t.id ? (isDarkMode ? "#1e293b" : "#ffffff") : "transparent",
+                          color: feedTab === t.id ? (isDarkMode ? "#ffb300" : t.color) : "var(--text-muted)",
+                          boxShadow: feedTab === t.id ? "0 2px 8px rgba(0,0,0,0.05)" : "none"
+                        }}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Subtext description detailing active category context */}
+                <div style={{
+                  fontSize: "13px",
+                  color: "var(--text-muted)",
+                  background: isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
+                  padding: "12px 18px",
+                  borderRadius: "12px",
+                  borderLeft: `4px solid ${feedTab === "core" ? "#4f46e5" : feedTab === "interview" ? "#10b981" : "#f59e0b"}`,
+                  lineHeight: "1.5"
+                }}>
+                  {feedTab === "core" && `📚 Core learning materials for mastering ${topic} fundamentals step-by-step.`}
+                  {feedTab === "interview" && `💼 Specialized problem solving, coding challenges, and key interview prep questions targeting "${why || "getting a job"}".`}
+                  {feedTab === "tips" && `⚡ Speed techniques, pro shortcuts, clean code tips, and architectural hacks to work smarter.`}
+                </div>
+              </div>
+            )}
+
             {/* Live Battles Spectate Strip */}
             {!searchQuery && (
               <div style={{ marginBottom: "32px" }}>
@@ -200,10 +359,10 @@ export default function Dashboard({
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px" }}>
                   {LIVE_BATTLES.map((b, i) => (
                     <div key={i} style={{
-                      background: "#ffffff",
+                      background: isDarkMode ? "#1e293b" : "#ffffff",
                       borderRadius: "16px",
                       padding: "20px",
-                      border: "1px solid #e2e8f0",
+                      border: isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0",
                       boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
                       display: "flex", flexDirection: "column", gap: "12px",
                       transition: "all 0.2s",
@@ -240,10 +399,10 @@ export default function Dashboard({
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
               <div>
                 <h2 style={{ fontSize: "22px", fontWeight: "800", color: "var(--text-light)", marginBottom: "4px" }}>
-                  {searchQuery ? `Results for "${searchQuery}"` : "🎯 Featured Training Videos"}
+                  {searchQuery ? `Results for "${searchQuery}"` : (topic ? `🎯 Personalized training: ${topic}` : "🎯 Featured Training Videos")}
                 </h2>
                 <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>
-                  {isSearching ? "Searching the arena database..." : (searchQuery ? `${searchResults?.length || 0} videos found` : "Hand-picked educational content — AI quizzes generated from each video")}
+                  {isSearching || loadingFeed ? "Scanning the learning grid..." : (searchQuery ? `${searchResults?.length || 0} videos found` : (topic ? `Categorized under ${feedTab.toUpperCase()} training mode` : "Hand-picked educational content — AI quizzes generated from each video"))}
                 </p>
               </div>
               {searchQuery && (
@@ -254,7 +413,7 @@ export default function Dashboard({
             </div>
 
             {/* Videos Grid — standard 16:9 cards OR game loading animation */}
-            {isSearching ? (
+            {isSearching || loadingFeed ? (
               <div style={{
                 display: "flex",
                 flexDirection: "column",
@@ -401,18 +560,32 @@ export default function Dashboard({
               </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "24px" }}>
-                {(searchResults?.length > 0 ? searchResults : curatedVideos).map((video) => (
+                {(() => {
+                  if (searchResults?.length > 0 || searchQuery) {
+                    return searchResults || [];
+                  }
+                  if (topic && personalizedFeed?.[feedTab]) {
+                    return personalizedFeed[feedTab];
+                  }
+                  return curatedVideos;
+                })().map((video) => (
                   <div
                     key={video.id}
                     onClick={() => handleSelectVideo(video)}
                     style={{
-                      background: selectedVideo?.id === video.id ? "#fff7ed" : "#ffffff",
-                      border: selectedVideo?.id === video.id ? "2px solid #ff6a00" : "1px solid #e2e8f0",
+                      background: selectedVideo?.id === video.id 
+                        ? (isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed") 
+                        : (isDarkMode ? "#1e293b" : "#ffffff"),
+                      border: selectedVideo?.id === video.id 
+                        ? "2px solid #ff6a00" 
+                        : (isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0"),
                       borderRadius: "18px",
                       overflow: "hidden",
                       cursor: "pointer",
                       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      boxShadow: selectedVideo?.id === video.id ? "0 10px 30px rgba(255,106,0,0.2)" : "0 2px 8px rgba(0,0,0,0.06)",
+                      boxShadow: selectedVideo?.id === video.id 
+                        ? "0 10px 30px rgba(255,106,0,0.2)" 
+                        : "0 2px 8px rgba(0,0,0,0.06)",
                       transform: selectedVideo?.id === video.id ? "translateY(-4px)" : "none",
                       display: "flex", flexDirection: "column",
                     }}
@@ -448,7 +621,7 @@ export default function Dashboard({
                     <div style={{ padding: "18px", flex: 1, display: "flex", flexDirection: "column" }}>
                       {/* Tags */}
                       <div style={{ display: "flex", gap: "6px", marginBottom: "10px", flexWrap: "wrap" }}>
-                        <span style={{ fontSize: "10px", fontWeight: "800", color: "#ea580c", background: "#ffedd5", padding: "3px 8px", borderRadius: "5px", textTransform: "uppercase" }}>{video.category}</span>
+                        <span style={{ fontSize: "10px", fontWeight: "800", color: "#ea580c", background: "#ffedd5", padding: "3px 8px", borderRadius: "5px", textTransform: "uppercase" }}>{video.category || "Training"}</span>
                         <span style={{ fontSize: "10px", fontWeight: "800", color: "#4338ca", background: "#e0e7ff", padding: "3px 8px", borderRadius: "5px", textTransform: "uppercase" }}>TRENDING</span>
                       </div>
 
@@ -477,6 +650,26 @@ export default function Dashboard({
                           >
                             ⚡ ENTER MATCHMAKING
                           </button>
+                          
+                          <button
+                            onClick={(e) => { e.stopPropagation(); sound.playClockTick(); onStartSoloStudy(video); }}
+                            style={{
+                              width: "100%", padding: "12px",
+                              borderRadius: "12px", fontSize: "14px", fontWeight: "900",
+                              background: isDarkMode
+                                ? "linear-gradient(135deg, #4f46e5, #6366f1)"
+                                : "linear-gradient(135deg, #6366f1, #818cf8)",
+                              border: "none", color: "#fff", cursor: "pointer",
+                              boxShadow: isDarkMode ? "0 6px 20px rgba(99,102,241,0.25)" : "0 6px 20px rgba(99,102,241,0.35)",
+                              textTransform: "uppercase", letterSpacing: "1px",
+                              transition: "transform 0.2s, box-shadow 0.2s",
+                            }}
+                            onMouseOver={e => { e.currentTarget.style.transform = "scale(1.02)"; e.currentTarget.style.boxShadow = "0 8px 28px rgba(99,102,241,0.5)"; }}
+                            onMouseOut={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = isDarkMode ? "0 6px 20px rgba(99,102,241,0.25)" : "0 6px 20px rgba(99,102,241,0.35)"; }}
+                          >
+                            🎓 ENTER SOLO STUDY Room
+                          </button>
+
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }} onClick={(e) => e.stopPropagation()}>
                             <input
                               type="checkbox"

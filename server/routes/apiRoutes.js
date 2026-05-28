@@ -65,6 +65,57 @@ router.get("/search", async (req, res) => {
   }
 });
 
+// POST Personalized Feed
+router.post("/personalized-feed", async (req, res) => {
+  const { topic, why } = req.body;
+  if (!topic) {
+    return res.status(400).json({ error: "Topic is required" });
+  }
+  try {
+    const cleanTopic = topic.trim();
+    const isJobSeeker = why ? /job|career|interview|work|resume/i.test(why) : false;
+    
+    // Customize search query depending on whether user is seeking a job
+    const interviewQuery = isJobSeeker 
+      ? `${cleanTopic} job coding interview questions preparation`
+      : `${cleanTopic} practice coding exercises interview questions`;
+
+    const queries = {
+      core: `${cleanTopic} full course tutorial playlist`,
+      interview: interviewQuery,
+      tips: `${cleanTopic} best practices tips and tricks hack`
+    };
+
+    // Run searches in parallel
+    const [coreRes, interviewRes, tipsRes] = await Promise.all([
+      ytSearch(queries.core).catch(() => ({ videos: [] })),
+      ytSearch(queries.interview).catch(() => ({ videos: [] })),
+      ytSearch(queries.tips).catch(() => ({ videos: [] }))
+    ]);
+
+    const formatVideos = (results, categoryName) => {
+      const videos = results.videos || [];
+      return videos.slice(0, 8).map(v => ({
+        id: v.videoId,
+        title: v.title,
+        channel: v.author ? v.author.name : "Unknown",
+        duration: v.seconds || 300,
+        thumbnail: v.thumbnail || v.image,
+        category: categoryName
+      }));
+    };
+
+    res.json({
+      core: formatVideos(coreRes, `${cleanTopic} Core`),
+      interview: formatVideos(interviewRes, `${cleanTopic} Prep`),
+      tips: formatVideos(tipsRes, `${cleanTopic} Tips`)
+    });
+  } catch (error) {
+    console.error("[PersonalizedFeed] Error generating personalized feed:", error);
+    res.status(500).json({ error: "Failed to fetch personalized feed" });
+  }
+});
+
 // POST Pathfinder Generate Roadmap
 router.post("/pathfinder/generate", async (req, res) => {
   req.setTimeout(600000);

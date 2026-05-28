@@ -126,5 +126,21 @@
     ],
     "createdAt": "2026-05-27T11:52:41.099Z",
     "lastSeenDay": 1
+  },
+  {
+    "username": "grey",
+    "salt": "7816a31293911f0eca4e629dde21a1f0",
+    "passwordHash": "6f807952eb2bb11bf96463a595dd6a63b63f8f0da22cb6c854cf00548b9e66452da0a61721ae6e39b24937791489ce989e8ee9431e1f03b9a1fa0452df839e3c",
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Fluffy&backgroundColor=transparent",
+    "selectedClass": "vibechecker",
+    "xp": 0,
+    "level": 1,
+    "wins": 0,
+    "losses": 1,
+    "totalVideosWatched": 0,
+    "totalWatchTime": 0,
+    "watchHistory": [],
+    "createdAt": "2026-05-28T09:18:30.460Z",
+    "lastSeenDay": 1
   }
 ]
