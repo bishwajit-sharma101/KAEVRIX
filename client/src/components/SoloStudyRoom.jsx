@@ -487,34 +487,6 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
           color: #ea580c;
           border: 1px solid #ffedd5;
         }
-        .study-notes-document pre {
-          padding: 24px;
-          border-radius: 16px;
-          overflow-x: auto;
-          margin: 24px 0;
-          border: 1px solid rgba(255,106,0,0.2);
-          position: relative;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-        .study-notes-document pre::before {
-          content: 'CODE';
-          position: absolute;
-          top: 0;
-          right: 0;
-          padding: 4px 12px;
-          font-size: 10px;
-          font-weight: 800;
-          letter-spacing: 1px;
-          background: rgba(255,106,0,0.2);
-          color: #ff6a00;
-          border-radius: 0 16px 0 12px;
-        }
-        .notes-dark pre {
-          background: #0a0604;
-        }
-        .notes-light pre {
-          background: #fafaf9;
-        }
         .study-notes-document pre code {
           background: transparent !important;
           border: none !important;
@@ -624,56 +596,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
             </div>
           </div>
  
-          {/* Quest Progress Tracker Card */}
-          <div style={{
-            background: isDarkMode ? "rgba(30, 20, 15, 0.4)" : "#ffffff",
-            border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid #ffedd5",
-            borderRadius: "20px",
-            padding: "24px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.02)",
-            backdropFilter: "blur(12px)"
-          }}>
-            <h3 style={{ fontSize: "15px", fontWeight: "900", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 16px 0", color: isDarkMode ? "#ffb300" : "#ea580c" }}>
-              ⚡ Quest Tracker: Watch Progress
-            </h3>
- 
-            {/* Glowing Custom Progress Bar */}
-            <div style={{
-              width: "100%",
-              height: "12px",
-              background: isDarkMode ? "rgba(255,255,255,0.06)" : "#f1f5f9",
-              borderRadius: "10px",
-              overflow: "hidden",
-              position: "relative",
-              marginBottom: "16px"
-            }}>
-              <div style={{
-                position: "absolute",
-                top: 0, left: 0,
-                height: "100%",
-                width: `${progress}%`,
-                background: progress >= 90 
-                  ? "linear-gradient(90deg, #10b981, #34d399)" 
-                  : "linear-gradient(90deg, #ff6a00, #ffb300)",
-                borderRadius: "10px",
-                transition: "width 0.4s ease-out",
-                boxShadow: progress >= 90 ? "0 0 10px rgba(16,185,129,0.5)" : "0 0 12px rgba(255,106,0,0.5)"
-              }} />
-            </div>
- 
-            {/* Progress status note */}
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px" }}>
-              <span style={{ fontSize: "18px" }}>
-                {progress >= 90 ? "🎉" : "🔒"}
-              </span>
-              <span style={{ color: "var(--text-muted)", fontWeight: "600" }}>
-                {progress >= 90 
-                  ? "Boss battle unlocked! You are now prepared to take the Level Up Quiz."
-                  : `Watch at least 90% of the video to unlock the Level Up Quiz. (Current: ${Math.round(progress)}%)`
-                }
-              </span>
-            </div>
-          </div>
+
         </div>
  
         {/* Right Side: Interactive Notes & Quizzes */}

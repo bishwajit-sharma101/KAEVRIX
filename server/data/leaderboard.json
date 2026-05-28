@@ -97,15 +97,20 @@
   },
   {
     "username": "white",
-    "xp": 50,
+    "xp": 130,
     "level": 1,
     "wins": 0,
     "losses": 2,
     "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Bandit&backgroundColor=transparent",
     "selectedClass": "edgelord",
-    "totalVideosWatched": 1,
+    "totalVideosWatched": 2,
     "totalWatchTime": 655,
     "watchHistory": [
+      {
+        "title": "#2 TypeScript Tutorial for Beginners - Data Types and Variables",
+        "timestamp": "2026-05-28T10:34:49.086Z",
+        "solo": true
+      },
       {
         "id": "l7o9rwHzVdQ",
         "title": "Learn JavaScript in 10 Minutes | JavaScript for Beginners",
