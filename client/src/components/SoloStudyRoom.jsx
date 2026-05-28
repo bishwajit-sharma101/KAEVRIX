@@ -262,57 +262,299 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
       position: "fixed",
       inset: 0,
       zIndex: 2000,
-      background: isDarkMode ? "#090d16" : "#f1f5f9",
-      color: isDarkMode ? "#f8fafc" : "#1e293b",
+      background: isDarkMode 
+        ? "radial-gradient(circle at 80% 20%, #1f1105 0%, #0c0805 40%, #050302 100%)" 
+        : "radial-gradient(circle at 80% 20%, #fff7f0 0%, #faf6f3 40%, #ffffff 100%)",
+      color: isDarkMode ? "#f8fafc" : "#0f172a",
       display: "flex",
       flexDirection: "column",
-      fontFamily: "var(--font-sans)",
+      fontFamily: "'Inter', var(--font-sans)",
       overflow: "hidden"
-    }} className="animate-slideup">
+    }} className="animate-slideup animate-glow-background">
       
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;700;900&display=swap');
+
         @keyframes slideUp {
-          from { transform: translateY(100vh); }
-          to { transform: translateY(0); }
+          from { transform: translateY(100vh); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
         }
         .animate-slideup {
-          animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         @keyframes progressGlow {
-          0%, 100% { box-shadow: 0 0 10px rgba(79,70,229,0.3); }
-          50% { box-shadow: 0 0 20px rgba(79,70,229,0.6); }
+          0%, 100% { box-shadow: 0 0 15px rgba(255,106,0,0.2), 0 0 30px rgba(255,106,0,0.1); }
+          50% { box-shadow: 0 0 40px rgba(255,106,0,0.5), 0 0 80px rgba(255,106,0,0.2); }
         }
         .unlocked-pulse {
           animation: pulse 1.5s infinite ease-in-out;
+        }
+        
+        /* Custom scrollbars */
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 106, 0, 0.25);
+          border-radius: 12px;
+          border: 2px solid transparent;
+          background-clip: content-box;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(255, 106, 0, 0.6);
+        }
+
+        /* High-Fidelity Markdown notes typography styling */
+        .study-notes-document {
+          font-family: 'Inter', sans-serif;
+        }
+        .study-notes-document h1, .study-notes-document h2, .study-notes-document h3 {
+          font-family: 'Outfit', sans-serif;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+          line-height: 1.2;
+        }
+        .study-notes-document h1 {
+          font-size: 32px;
+          margin: 40px 0 20px 0;
+          background: linear-gradient(135deg, #ff6a00, #ffb300, #ff4500);
+          background-size: 200% auto;
+          animation: textGradient 4s linear infinite;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+        @keyframes textGradient {
+          0% { background-position: 0% center; }
+          100% { background-position: 200% center; }
+        }
+        .study-notes-document h2 {
+          font-size: 24px;
+          margin: 36px 0 16px 0;
+          padding-bottom: 12px;
+          position: relative;
+        }
+        .study-notes-document h2::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          bottom: 0;
+          width: 60px;
+          height: 4px;
+          border-radius: 2px;
+          background: linear-gradient(90deg, #ff6a00, transparent);
+        }
+        .notes-dark h2 { color: #facc15; }
+        .notes-light h2 { color: #ea580c; }
+        
+        .study-notes-document h3 {
+          font-size: 18px;
+          margin: 28px 0 12px 0;
+        }
+        .notes-dark h3 { color: #fb923c; }
+        .notes-light h3 { color: #c2410c; }
+        
+        .study-notes-document p {
+          font-size: 15.5px;
+          line-height: 1.85;
+          margin-bottom: 20px;
+          letter-spacing: 0.01em;
+        }
+        .notes-dark p { color: rgba(255,255,255,0.85); }
+        .notes-light p { color: #334155; }
+        
+        .study-notes-document strong {
+          font-weight: 700;
+          padding: 2px 6px;
+          border-radius: 6px;
+          display: inline-block;
+          margin: 0 2px;
+        }
+        .notes-dark strong { 
+          color: #fff;
+          background: rgba(255, 106, 0, 0.2);
+          box-shadow: 0 0 10px rgba(255,106,0,0.1);
+        }
+        .notes-light strong { 
+          color: #9a3412;
+          background: #ffedd5;
+          box-shadow: 0 0 10px rgba(234,88,12,0.1);
+        }
+
+        .study-notes-document blockquote {
+          margin: 24px 0;
+          padding: 16px 24px;
+          border-left: 4px solid #ff6a00;
+          border-radius: 0 12px 12px 0;
+          font-style: italic;
+          font-size: 16px;
+        }
+        .notes-dark blockquote {
+          background: linear-gradient(90deg, rgba(255,106,0,0.1) 0%, transparent 100%);
+          color: #fb923c;
+        }
+        .notes-light blockquote {
+          background: linear-gradient(90deg, rgba(255,106,0,0.05) 0%, transparent 100%);
+          color: #c2410c;
+        }
+
+        /* Bullet points and lists */
+        .study-notes-document ul, .study-notes-document ol {
+          padding-left: 24px;
+          margin: 16px 0 24px 0;
+        }
+        .study-notes-document li {
+          margin-bottom: 10px;
+          line-height: 1.7;
+          font-size: 15.5px;
+        }
+        .study-notes-document li::marker {
+          color: #ff6a00;
+        }
+        .notes-dark li { color: rgba(255,255,255,0.85); }
+        .notes-light li { color: #475569; }
+
+        /* Tables */
+        .study-notes-document table {
+          width: 100%;
+          border-collapse: separate;
+          border-spacing: 0;
+          margin: 32px 0;
+          font-size: 14.5px;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        .notes-dark table {
+          border: 1px solid rgba(255, 106, 0, 0.2);
+          background: rgba(25, 20, 15, 0.4);
+        }
+        .notes-light table {
+          border: 1px solid #fed7aa;
+          background: #fffcf9;
+        }
+        .study-notes-document th, .study-notes-document td {
+          padding: 16px 20px;
+          text-align: left;
+        }
+        .study-notes-document th {
+          font-weight: 800;
+          text-transform: uppercase;
+          font-size: 12.5px;
+          letter-spacing: 0.8px;
+        }
+        .notes-dark th {
+          background: rgba(255, 106, 0, 0.2);
+          color: #fcd34d;
+        }
+        .notes-light th {
+          background: #ffedd5;
+          color: #c2410c;
+        }
+        .study-notes-document td {
+          border-bottom: 1px solid rgba(255, 106, 0, 0.1);
+        }
+        .notes-dark td {
+          color: rgba(255,255,255,0.85);
+          border-color: rgba(255, 106, 0, 0.1);
+        }
+        .notes-light td {
+          color: #475569;
+          border-color: #ffedd5;
+        }
+        .study-notes-document tr:last-child td {
+          border-bottom: none;
+        }
+
+        /* Code Snippets */
+        .study-notes-document code {
+          font-family: 'Fira Code', 'Courier New', monospace;
+          font-size: 14px;
+          padding: 4px 8px;
+          border-radius: 6px;
+          font-weight: 600;
+        }
+        .notes-dark code {
+          background: rgba(255, 106, 0, 0.15);
+          color: #fb923c;
+          border: 1px solid rgba(255, 106, 0, 0.25);
+        }
+        .notes-light code {
+          background: #fff7ed;
+          color: #ea580c;
+          border: 1px solid #ffedd5;
+        }
+        .study-notes-document pre {
+          padding: 24px;
+          border-radius: 16px;
+          overflow-x: auto;
+          margin: 24px 0;
+          border: 1px solid rgba(255,106,0,0.2);
+          position: relative;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .study-notes-document pre::before {
+          content: 'CODE';
+          position: absolute;
+          top: 0;
+          right: 0;
+          padding: 4px 12px;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 1px;
+          background: rgba(255,106,0,0.2);
+          color: #ff6a00;
+          border-radius: 0 16px 0 12px;
+        }
+        .notes-dark pre {
+          background: #0a0604;
+        }
+        .notes-light pre {
+          background: #fafaf9;
+        }
+        .study-notes-document pre code {
+          background: transparent !important;
+          border: none !important;
+          padding: 0 !important;
+          color: inherit !important;
+          font-weight: 500;
+          box-shadow: none;
         }
       `}</style>
 
       {/* Top Header Navigation */}
       <div style={{
-        background: isDarkMode ? "linear-gradient(90deg, #0f172a 0%, #1e1b4b 100%)" : "#ffffff",
-        borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0",
-        padding: "16px 32px",
+        background: isDarkMode ? "rgba(13, 8, 5, 0.7)" : "rgba(255, 255, 255, 0.7)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderBottom: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid rgba(255, 106, 0, 0.1)",
+        padding: "16px 40px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        flexShrink: 0
+        flexShrink: 0,
+        zIndex: 10,
+        boxShadow: "0 4px 30px rgba(0,0,0,0.05)"
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
           <button 
             onClick={() => { sound.playClockTick(); onBack(); }}
             style={{
-              background: isDarkMode ? "rgba(255,255,255,0.05)" : "#f8fafc",
-              border: isDarkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid #cbd5e1",
-              color: isDarkMode ? "#94a3b8" : "#475569",
+              background: isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed",
+              border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.2)" : "1px solid #ffedd5",
+              color: isDarkMode ? "#ff8c3a" : "#ea580c",
               padding: "8px 16px",
               borderRadius: "10px",
-              fontWeight: "700",
+              fontWeight: "750",
               fontSize: "13px",
               cursor: "pointer",
               transition: "all 0.2s"
             }}
-            onMouseOver={e => { e.currentTarget.style.color = isDarkMode ? "#ffffff" : "#0f172a"; e.currentTarget.style.background = isDarkMode ? "rgba(255,255,255,0.1)" : "#f1f5f9"; }}
-            onMouseOut={e => { e.currentTarget.style.color = isDarkMode ? "#94a3b8" : "#475569"; e.currentTarget.style.background = isDarkMode ? "rgba(255,255,255,0.05)" : "#f8fafc"; }}
+            onMouseOver={e => { e.currentTarget.style.color = isDarkMode ? "#ffffff" : "#ea580c"; e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.16)" : "#ffedd5"; }}
+            onMouseOut={e => { e.currentTarget.style.color = isDarkMode ? "#ff8c3a" : "#ea580c"; e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed"; }}
           >
             ← Exit Training
           </button>
@@ -332,29 +574,33 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
             fontWeight: "800",
             padding: "6px 14px",
             borderRadius: "20px",
-            background: progress >= 90 ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)",
-            color: progress >= 90 ? "#10b981" : "#f59e0b",
-            border: `1.5px solid ${progress >= 90 ? "#10b981" : "#f59e0b"}`
+            background: progress >= 90 ? "rgba(16,185,129,0.12)" : "rgba(255, 106, 0, 0.1)",
+            color: progress >= 90 ? "#10b981" : "#ff6a00",
+            border: `1.5px solid ${progress >= 90 ? "#10b981" : "#ff6a00"}`
           }}>
             {progress >= 90 ? "🔓 QUIZ AVAILABLE" : `⏱ ${Math.round(progress)}% WATCHED`}
           </span>
         </div>
       </div>
-
+ 
       {/* Main Splitscreen Layout */}
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+      <div style={{ display: "flex", flex: 1, overflow: "hidden", padding: "24px", gap: "24px" }}>
         
         {/* Left Side: Large Immersive Player */}
         <div style={{
-          width: "60%",
+          width: "55%",
           padding: "32px",
           display: "flex",
           flexDirection: "column",
-          gap: "24px",
-          background: isDarkMode ? "#070a13" : "#f8fafc",
+          gap: "32px",
+          background: isDarkMode ? "rgba(13, 8, 5, 0.6)" : "rgba(255, 255, 255, 0.6)",
+          backdropFilter: "blur(16px)",
+          borderRadius: "24px",
+          border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid rgba(255, 106, 0, 0.1)",
+          boxShadow: isDarkMode ? "0 20px 40px rgba(0,0,0,0.4)" : "0 20px 40px rgba(0,0,0,0.05)",
           overflowY: "auto",
           boxSizing: "border-box"
-        }}>
+        }} className="custom-scrollbar">
           
           {/* Theatre Player Wrapper */}
           <div style={{
@@ -365,7 +611,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
             borderRadius: "20px",
             overflow: "hidden",
             boxShadow: isDarkMode ? "0 20px 50px rgba(0,0,0,0.5)" : "0 10px 30px rgba(0,0,0,0.15)",
-            border: isDarkMode ? "2px solid rgba(255,255,255,0.06)" : "2px solid #ffffff",
+            border: isDarkMode ? "2px solid rgba(255, 106, 0, 0.18)" : "2px solid #ffedd5",
             animation: "progressGlow 4s infinite"
           }}>
             <div style={{ position: "absolute", inset: 0 }}>
@@ -377,19 +623,20 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
               />
             </div>
           </div>
-
+ 
           {/* Quest Progress Tracker Card */}
           <div style={{
-            background: isDarkMode ? "#0f172a" : "#ffffff",
-            border: isDarkMode ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0",
+            background: isDarkMode ? "rgba(30, 20, 15, 0.4)" : "#ffffff",
+            border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid #ffedd5",
             borderRadius: "20px",
             padding: "24px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.02)"
+            boxShadow: "0 4px 12px rgba(0,0,0,0.02)",
+            backdropFilter: "blur(12px)"
           }}>
             <h3 style={{ fontSize: "15px", fontWeight: "900", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 16px 0", color: isDarkMode ? "#ffb300" : "#ea580c" }}>
               ⚡ Quest Tracker: Watch Progress
             </h3>
-
+ 
             {/* Glowing Custom Progress Bar */}
             <div style={{
               width: "100%",
@@ -407,13 +654,13 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                 width: `${progress}%`,
                 background: progress >= 90 
                   ? "linear-gradient(90deg, #10b981, #34d399)" 
-                  : "linear-gradient(90deg, #4f46e5, #818cf8)",
+                  : "linear-gradient(90deg, #ff6a00, #ffb300)",
                 borderRadius: "10px",
                 transition: "width 0.4s ease-out",
-                boxShadow: progress >= 90 ? "0 0 10px rgba(16,185,129,0.5)" : "0 0 10px rgba(79,70,229,0.5)"
+                boxShadow: progress >= 90 ? "0 0 10px rgba(16,185,129,0.5)" : "0 0 12px rgba(255,106,0,0.5)"
               }} />
             </div>
-
+ 
             {/* Progress status note */}
             <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px" }}>
               <span style={{ fontSize: "18px" }}>
@@ -428,20 +675,24 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
             </div>
           </div>
         </div>
-
+ 
         {/* Right Side: Interactive Notes & Quizzes */}
         <div style={{
-          width: "40%",
+          width: "45%",
           display: "flex",
           flexDirection: "column",
-          background: isDarkMode ? "#0f172a" : "#ffffff",
-          borderLeft: isDarkMode ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0"
+          background: isDarkMode ? "rgba(13, 8, 5, 0.85)" : "rgba(255, 255, 255, 0.85)",
+          backdropFilter: "blur(20px)",
+          borderRadius: "24px",
+          border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.2)" : "1px solid rgba(255, 106, 0, 0.15)",
+          boxShadow: isDarkMode ? "0 20px 40px rgba(0,0,0,0.4)" : "0 20px 40px rgba(0,0,0,0.05)",
+          overflow: "hidden"
         }}>
           
           {/* Tab Navigation */}
           <div style={{
             display: "flex",
-            borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0",
+            borderBottom: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid #ffedd5",
             flexShrink: 0
           }}>
             {[
@@ -457,10 +708,10 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                   background: "transparent",
                   border: "none",
                   borderBottom: activeTab === t.id 
-                    ? `3px solid ${t.id === "quiz" && progress >= 90 ? "#10b981" : "#4f46e5"}` 
+                    ? `3px solid ${t.id === "quiz" && progress >= 90 ? "#10b981" : "#ff6a00"}` 
                     : "3px solid transparent",
                   color: activeTab === t.id 
-                    ? (isDarkMode ? "#ffffff" : "#0f172a") 
+                    ? (isDarkMode ? "#ffb300" : "#ea580c") 
                     : "var(--text-muted)",
                   fontWeight: "800",
                   fontSize: "14px",
@@ -493,10 +744,10 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                     <div style={{
                       width: "80px", height: "80px",
                       borderRadius: "50%",
-                      background: "linear-gradient(135deg, #4f46e5, #ff6a00)",
+                      background: "linear-gradient(135deg, #ff6a00, #ffb300)",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: "40px", color: "#fff",
-                      boxShadow: "0 0 25px rgba(79,70,229,0.4)",
+                      boxShadow: "0 0 25px rgba(255,106,0,0.45)",
                       marginBottom: "24px",
                       animation: "pulse 1.8s infinite ease-in-out"
                     }}>
@@ -544,7 +795,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                   </div>
                 ) : notes ? (
                   /* Render Markdown guide */
-                  <div className="study-notes-document">
+                  <div className={`study-notes-document ${isDarkMode ? 'notes-dark' : 'notes-light'}`}>
                     <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "24px" }}>
                       <button 
                         onClick={handleDownloadNotes}
@@ -594,12 +845,12 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                         padding: "14px 28px",
                         borderRadius: "12px",
                         border: "none",
-                        background: "linear-gradient(135deg, #4f46e5, #ff6a00)",
+                        background: "linear-gradient(135deg, #ff6a00, #ea580c)",
                         color: "#ffffff",
                         fontWeight: "800",
                         fontSize: "14px",
                         cursor: "pointer",
-                        boxShadow: "0 6px 20px rgba(79,70,229,0.3)",
+                        boxShadow: "0 6px 20px rgba(255,106,0,0.3)",
                         transition: "all 0.2s"
                       }}
                       onMouseOver={e => e.currentTarget.style.transform = "translateY(-1px)"}
@@ -643,11 +894,11 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                     <div style={{
                       fontSize: "16px",
                       fontWeight: "800",
-                      color: "#4f46e5",
+                      color: "#ff6a00",
                       padding: "8px 20px",
                       borderRadius: "20px",
-                      background: "rgba(79,70,229,0.1)",
-                      border: "1.5px solid rgba(79,70,229,0.2)"
+                      background: "rgba(255, 106, 0, 0.08)",
+                      border: "1.5px solid rgba(255, 106, 0, 0.2)"
                     }}>
                       Watch Progress: {Math.round(progress)}% / 90%
                     </div>
