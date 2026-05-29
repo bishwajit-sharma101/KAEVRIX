@@ -55,11 +55,11 @@ export default function Lobby({
 
       <div style={{ display: "flex", gap: "20px", marginTop: "10px", marginBottom: "30px" }}>
         <button
-          className={`btn-primary ${isMeReady ? "btn-disabled" : ""}`}
-          disabled={isMeReady}
+          className={`btn-primary ${isMeReady || room?.generatingQuiz ? "btn-disabled" : ""}`}
+          disabled={isMeReady || room?.generatingQuiz}
           onClick={handleReadyClick}
         >
-          {isMeReady ? "✓ READY LOCKED" : "⚔️ CHOOSE READY"}
+          {room?.generatingQuiz ? "🧠 AI GENERATING QUIZ..." : (isMeReady ? "✓ READY LOCKED" : "⚔️ CHOOSE READY")}
         </button>
         <button className="btn-secondary" onClick={onForfeit}>
           FORFEIT

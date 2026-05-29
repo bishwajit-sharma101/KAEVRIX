@@ -393,7 +393,12 @@ export default function GameArena({
             <h3 className="arena-video-title">{room?.video.title}</h3>
             <p className="arena-video-creator">📺 {room?.video.channel} | Category: {room?.video.category}</p>
           </div>
-          <button className="btn-primary" style={{ padding: "10px 20px", borderRadius: "10px" }} onClick={handleSkipToQuiz}>
+          <button 
+            className={`btn-primary ${room?.generatingQuiz ? "btn-disabled" : ""}`} 
+            style={{ padding: "10px 20px", borderRadius: "10px" }} 
+            onClick={handleSkipToQuiz}
+            disabled={room?.generatingQuiz}
+          >
             Skip to Quiz ➜
           </button>
         </div>

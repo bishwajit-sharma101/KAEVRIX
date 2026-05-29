@@ -42,6 +42,7 @@ export async function createHumanMatch(p1Socket, p2Socket, videoId, videoObj = n
     }
   }
 
+  let isGenerating = false;
   if (!video) {
     // Construct from socket metadata or default
     const title = p1Socket.queuedVideoTitle || p2Socket.queuedVideoTitle || `Custom Video: ${videoId}`;
@@ -49,7 +50,6 @@ export async function createHumanMatch(p1Socket, p2Socket, videoId, videoObj = n
     const duration = Number(p1Socket.queuedVideoDuration || p2Socket.queuedVideoDuration) || 300;
     const thumbnail = p1Socket.queuedVideoThumbnail || p2Socket.queuedVideoThumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
     
-    const generatedQuestions = await generateQuizForVideo(videoId, title, duration);
     video = {
       id: videoId,
       title,
@@ -57,26 +57,22 @@ export async function createHumanMatch(p1Socket, p2Socket, videoId, videoObj = n
       category: "Custom Watch",
       duration,
       thumbnail,
-      questions: generatedQuestions.postVideoQuestions,
-      inVideoQuestions: generatedQuestions.inVideoQuestions,
-      captions: generatedQuestions.captions || []
+      questions: [],
+      inVideoQuestions: [],
+      captions: []
     };
+    isGenerating = true;
   } else {
     // Ensure inVideoQuestions exists on video
     if (!video.inVideoQuestions) {
-      const generatedQuestions = await generateQuizForVideo(video.id, video.title, video.duration);
-      video = {
-        ...video,
-        questions: video.questions || generatedQuestions.postVideoQuestions,
-        inVideoQuestions: generatedQuestions.inVideoQuestions,
-        captions: generatedQuestions.captions || []
-      };
+      isGenerating = true;
     }
   }
 
   const room = {
     id: roomId,
     video,
+    generatingQuiz: isGenerating,
     players: [
       { socketId: p1Socket.id, username: p1Socket.username, avatar: p1Socket.avatar, selectedClass: p1Socket.selectedClass, progress: 0, finished: false, score: 0, answers: [], submitTime: null, ready: false, isBot: false, inVideoXp: 0 },
       { socketId: p2Socket.id, username: p2Socket.username, avatar: p2Socket.avatar, selectedClass: p2Socket.selectedClass, progress: 0, finished: false, score: 0, answers: [], submitTime: null, ready: false, isBot: false, inVideoXp: 0 }
@@ -96,7 +92,24 @@ export async function createHumanMatch(p1Socket, p2Socket, videoId, videoObj = n
   p1Socket.currentRoomId = roomId;
   p2Socket.currentRoomId = roomId; // Assign on other socket too
   
-  console.log(`[Match] Human Match Created in room "${roomId}" for video "${video.title}"`);
+  console.log(`[Match] Human Match Created in room "${roomId}" for video "${video.title}" (Generating: ${isGenerating})`);
+  
+  // Skip lobby - immediately start countdown
+  startCountdown(room);
+
+  if (isGenerating) {
+    generateQuizForVideo(video.id, video.title, video.duration).then(generatedQuestions => {
+      const r = rooms.get(roomId);
+      if (r) {
+        r.video.questions = r.video.questions?.length ? r.video.questions : generatedQuestions.postVideoQuestions;
+        r.video.inVideoQuestions = generatedQuestions.inVideoQuestions;
+        r.video.captions = generatedQuestions.captions || [];
+        r.generatingQuiz = false;
+        io.to(roomId).emit("room_update", r);
+        console.log(`[Match] AI Quiz Generation complete for room "${roomId}"`);
+      }
+    }).catch(err => console.error(`[Match] Failed to generate quiz for room "${roomId}"`, err));
+  }
 }
 
 // Room Creation Helper (Bot Match)
@@ -108,6 +121,7 @@ export async function createBotMatch(playerSocket, videoId, customVideoDetails =
   if (video) {
     video = { ...video };
   }
+  let isGenerating = false;
   if (!video && videoId) {
     // If it's a custom URL/search
     const title = customVideoDetails?.title || playerSocket.queuedVideoTitle || `Custom Video: ${videoId}`;
@@ -115,7 +129,6 @@ export async function createBotMatch(playerSocket, videoId, customVideoDetails =
     const duration = Number(customVideoDetails?.duration || playerSocket.queuedVideoDuration) || 300;
     const thumbnail = customVideoDetails?.thumbnail || playerSocket.queuedVideoThumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
     
-    const generatedQuestions = await generateQuizForVideo(videoId, title, duration);
     video = {
       id: videoId,
       title,
@@ -123,10 +136,11 @@ export async function createBotMatch(playerSocket, videoId, customVideoDetails =
       category: "Custom Watch",
       duration,
       thumbnail,
-      questions: generatedQuestions.postVideoQuestions,
-      inVideoQuestions: generatedQuestions.inVideoQuestions,
-      captions: generatedQuestions.captions || []
+      questions: [],
+      inVideoQuestions: [],
+      captions: []
     };
+    isGenerating = true;
   }
 
   if (!video) {
@@ -137,13 +151,7 @@ export async function createBotMatch(playerSocket, videoId, customVideoDetails =
 
   // Ensure inVideoQuestions exists on video
   if (!video.inVideoQuestions) {
-    const generatedQuestions = await generateQuizForVideo(video.id, video.title, video.duration);
-    video = {
-      ...video,
-      questions: video.questions || generatedQuestions.postVideoQuestions,
-      inVideoQuestions: generatedQuestions.inVideoQuestions,
-      captions: generatedQuestions.captions || []
-    };
+    isGenerating = true;
   }
 
   const BOT_CLASSES = ["doomscroller", "speedrunner", "streamsniper", "edgelord", "vibechecker", "glitchmancer", "sigmagrinder", "npc", "brainiac", "gachaaddict"];
@@ -151,6 +159,7 @@ export async function createBotMatch(playerSocket, videoId, customVideoDetails =
   const room = {
     id: roomId,
     video,
+    generatingQuiz: isGenerating,
     players: [
       { socketId: playerSocket.id, username: playerSocket.username, avatar: playerSocket.avatar, selectedClass: playerSocket.selectedClass, progress: 0, finished: false, score: 0, answers: [], submitTime: null, ready: false, isBot: false, inVideoXp: 0 },
       { socketId: `bot_${Math.random().toString(36).substr(2, 5)}`, username: botName, avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${botName}&backgroundColor=transparent`, selectedClass: botClass, progress: 0, finished: false, score: 0, answers: [], submitTime: null, ready: true, isBot: true, promptedInVideoIndices: [], isAnsweringInVideo: false, inVideoXp: 0 }
@@ -164,7 +173,24 @@ export async function createBotMatch(playerSocket, videoId, customVideoDetails =
   playerSocket.emit("match_found", { roomId, room });
   playerSocket.currentRoomId = roomId;
 
-  console.log(`[Match] Bot Match Created in room "${roomId}" for video "${video.title}". Bot: ${botName}`);
+  console.log(`[Match] Bot Match Created in room "${roomId}" for video "${video.title}". Bot: ${botName} (Generating: ${isGenerating})`);
+  
+  // Skip lobby - immediately start countdown
+  startCountdown(room);
+
+  if (isGenerating) {
+    generateQuizForVideo(video.id, video.title, video.duration).then(generatedQuestions => {
+      const r = rooms.get(roomId);
+      if (r) {
+        r.video.questions = r.video.questions?.length ? r.video.questions : generatedQuestions.postVideoQuestions;
+        r.video.inVideoQuestions = generatedQuestions.inVideoQuestions;
+        r.video.captions = generatedQuestions.captions || [];
+        r.generatingQuiz = false;
+        io.to(roomId).emit("room_update", r);
+        console.log(`[Match] AI Quiz Generation complete for bot room "${roomId}"`);
+      }
+    }).catch(err => console.error(`[Match] Failed to generate quiz for bot room "${roomId}"`, err));
+  }
 
   // Simulate bot introduction chat
   setTimeout(() => {

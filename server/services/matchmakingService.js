@@ -43,6 +43,7 @@ export async function joinQueue(socket, { username, avatar, selectedClass, video
       // Match found! Cancel the opponent's bot fallback timer
       const opponent = queue.shift();
       if (opponent.botFallbackTimer) clearTimeout(opponent.botFallbackTimer);
+      
       await createHumanMatch(socket, opponent, videoId);
     } else {
       queue.push(socket);
@@ -78,6 +79,7 @@ export async function joinQueue(socket, { username, avatar, selectedClass, video
     if (quickMatchQueue.length > 0) {
       const opponent = quickMatchQueue.shift();
       if (opponent.botFallbackTimer) clearTimeout(opponent.botFallbackTimer);
+      
       // Select random curated video
       const randomVideo = curatedVideos[Math.floor(Math.random() * curatedVideos.length)];
       await createHumanMatch(socket, opponent, randomVideo.id, randomVideo);

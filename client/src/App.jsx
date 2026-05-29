@@ -390,7 +390,8 @@ export default function App() {
       const opp = room.players.find((p) => p.username.toLowerCase() !== name.toLowerCase());
       setOpponent(opp);
       setChatMessages([]);
-      setStatus("matched");
+      setCountdown(5);
+      setStatus("countdown");
       sound.playMatchFound();
     });
 
@@ -525,6 +526,20 @@ export default function App() {
     }
   };
 
+  const [isWaitingForQuiz, setIsWaitingForQuiz] = useState(false);
+
+  useEffect(() => {
+    // If we're waiting for the quiz and the room updates with questions, transition to quiz
+    if (isWaitingForQuiz && room && room.video && room.video.questions && !room.generatingQuiz) {
+      setQuestions(room.video.questions);
+      setSelectedAnswers(Array(room.video.questions.length).fill(null));
+      setCurrentQuestionIdx(0);
+      setQuizTimer(60);
+      setStatus("quiz");
+      setIsWaitingForQuiz(false);
+    }
+  }, [isWaitingForQuiz, room]);
+
   const handleVideoFinished = (fromClick = false) => {
     const progressAtEntry = fromClick ? myProgress : 100;
     setMyProgress(progressAtEntry);
@@ -535,12 +550,14 @@ export default function App() {
       socket.emit("video_finished");
     }
     
-    if (room && room.video && room.video.questions) {
+    if (room && room.video && room.video.questions && !room.generatingQuiz) {
       setQuestions(room.video.questions);
       setSelectedAnswers(Array(room.video.questions.length).fill(null));
       setCurrentQuestionIdx(0);
       setQuizTimer(60);
       setStatus("quiz");
+    } else {
+      setIsWaitingForQuiz(true);
     }
   };
 

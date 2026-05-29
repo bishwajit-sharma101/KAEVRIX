@@ -97,15 +97,20 @@
   },
   {
     "username": "white",
-    "xp": 130,
+    "xp": 170,
     "level": 1,
     "wins": 0,
     "losses": 2,
     "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Bandit&backgroundColor=transparent",
     "selectedClass": "edgelord",
-    "totalVideosWatched": 2,
+    "totalVideosWatched": 3,
     "totalWatchTime": 655,
     "watchHistory": [
+      {
+        "title": "Top 20 React JS Interview Questions For 2025 | React Interviewer Questions & Answers | Intellipaat",
+        "timestamp": "2026-05-29T15:12:11.021Z",
+        "solo": true
+      },
       {
         "title": "#2 TypeScript Tutorial for Beginners - Data Types and Variables",
         "timestamp": "2026-05-28T10:34:49.086Z",

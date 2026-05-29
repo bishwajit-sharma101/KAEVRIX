@@ -111,13 +111,18 @@
     "passwordHash": "2e19c5449d48ce91bd6de851854c4b8fe96eb7ae0f02e7c4c5f4bfee994cbd845e01837210af11440938a8490d525cbe2f08e7781b503bd3df0ae39bcb8fcfae",
     "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Bandit&backgroundColor=transparent",
     "selectedClass": "edgelord",
-    "xp": 130,
+    "xp": 170,
     "level": 1,
     "wins": 0,
     "losses": 2,
-    "totalVideosWatched": 2,
+    "totalVideosWatched": 3,
     "totalWatchTime": 655,
     "watchHistory": [
+      {
+        "title": "Top 20 React JS Interview Questions For 2025 | React Interviewer Questions & Answers | Intellipaat",
+        "timestamp": "2026-05-29T15:12:11.023Z",
+        "solo": true
+      },
       {
         "title": "#2 TypeScript Tutorial for Beginners - Data Types and Variables",
         "timestamp": "2026-05-28T10:34:49.097Z",
@@ -130,7 +135,7 @@
       }
     ],
     "createdAt": "2026-05-27T11:52:41.099Z",
-    "lastSeenDay": 2
+    "lastSeenDay": 3
   },
   {
     "username": "grey",
@@ -146,6 +151,6 @@
     "totalWatchTime": 0,
     "watchHistory": [],
     "createdAt": "2026-05-28T09:18:30.460Z",
-    "lastSeenDay": 1
+    "lastSeenDay": 2
   }
 ]

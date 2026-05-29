@@ -31,14 +31,43 @@ const LEVEL_META = {
   3: { emoji: "🔥", label: "Mastery",     range: "Advanced → God Tier" },
 };
 
-function MilestoneNode({ milestone, levelColor, isLastInLevel, onSelect, isSelected, levelNum, index, isDarkMode }) {
+const getConstellationLayout = (n) => {
+  if (n === 1) return [{x: 50, y: 50}];
+  if (n === 2) return [{x: 20, y: 50}, {x: 80, y: 50}];
+  if (n === 3) return [{x: 20, y: 80}, {x: 50, y: 20}, {x: 80, y: 80}]; // Triangle
+  
+  // Organic Constellation Path (Sine Wave)
+  const coords = [];
+  const startX = 10;
+  const endX = 90;
+  const stepX = (endX - startX) / (n - 1 || 1);
+  
+  for(let i=0; i<n; i++) {
+    // 2 periods of sine wave over the path
+    const progress = i / (n - 1 || 1);
+    const angle = progress * Math.PI * 4; 
+    let y = 50 + Math.sin(angle) * 35; // Oscillation between 15% and 85%
+    
+    // Add vertical organic jitter
+    if (i % 2 === 0) y -= 5; else y += 5;
+    y = Math.max(10, Math.min(90, y)); // Clamp safely
+    
+    let x = startX + (stepX * i);
+    coords.push({x, y});
+  }
+  return coords;
+};
+
+function MilestoneNode({ milestone, levelColor, onSelect, isSelected, isDarkMode, position }) {
   const statusConfig = getStatusConfig(isDarkMode);
   const cfg = statusConfig[milestone.status] || statusConfig.locked;
   const isClickable = milestone.status !== "locked";
-  const isEven = index % 2 === 0;
   const isLocked = milestone.status === "locked";
   const isActive = milestone.status === "active";
   const isCompleted = milestone.status === "completed";
+
+  // Different neon color for active/completed states
+  const neonColor = isCompleted ? "#00f2fe" : (isActive ? "#ff007f" : levelColor);
 
   let medallionBg;
   if (isCompleted) {
@@ -66,246 +95,89 @@ function MilestoneNode({ milestone, levelColor, isLastInLevel, onSelect, isSelec
 
   const cornerColor = isLocked
     ? (isDarkMode ? "rgba(100,90,80,0.32)" : "rgba(185,175,160,0.5)")
-    : isSelected ? (isDarkMode ? "#ffd700" : levelColor)
-    : (isCompleted || isActive) ? levelColor
+    : isSelected ? (isDarkMode ? "#ffd700" : neonColor)
+    : (isCompleted || isActive) ? neonColor
     : (isDarkMode ? "#8a7343" : "#c5a85c");
 
   const medallionBorder = isLocked
     ? `2px solid ${isDarkMode ? "rgba(100,90,80,0.25)" : "#e2e8f0"}`
-    : isSelected ? `2.5px solid ${isDarkMode ? "#ffd700" : levelColor}`
+    : isSelected ? `2.5px solid ${isDarkMode ? "#ffd700" : neonColor}`
     : `2px solid ${cornerColor}`;
 
   const medallionGlow = isLocked ? "none"
-    : isSelected ? `0 0 28px ${levelColor}, 0 0 56px ${levelColor}55, inset 0 0 16px ${levelColor}33`
-    : isActive ? `0 0 20px ${levelColor}bb, 0 0 40px ${levelColor}44`
-    : isCompleted ? `0 0 14px ${levelColor}88, 0 0 28px ${levelColor}33`
+    : isSelected ? `0 0 38px ${neonColor}, 0 0 76px ${neonColor}77, inset 0 0 20px ${neonColor}44`
+    : isActive ? `0 0 30px ${neonColor}cc, 0 0 60px ${neonColor}66`
+    : isCompleted ? `0 0 24px ${neonColor}aa, 0 0 48px ${neonColor}55`
     : "none";
 
-  const labelBg = isSelected
-    ? (isDarkMode ? "rgba(212,175,55,0.11)" : "rgba(254,243,199,0.55)")
-    : (isDarkMode ? "rgba(22,16,8,0.75)" : "#ffffff");
-
-  const titleColor = isLocked
-    ? (isDarkMode ? "#7c7267" : "#94a3b8")
-    : isSelected ? (isDarkMode ? "#ffd700" : levelColor)
-    : (isDarkMode ? "#f3e2b4" : "#78350f");
-
-  const sideAccentActive = (isCompleted || isActive) ? levelColor + "cc" : (isDarkMode ? "rgba(138,115,67,0.22)" : "rgba(0,0,0,0.07)");
-  const sideAccentSelected = isDarkMode ? "#ffd700" : levelColor;
-
   return (
-    <div className="node-row">
-      {!isLastInLevel && (
-        <div className="node-connector" style={{
-          width: "3px",
-          background: isCompleted
-            ? `linear-gradient(to bottom, ${levelColor}ee, ${levelColor}77)`
-            : (isDarkMode
-                ? "repeating-linear-gradient(to bottom, rgba(212,175,55,0.48) 0, rgba(212,175,55,0.48) 4px, transparent 4px, transparent 10px)"
-                : "repeating-linear-gradient(to bottom, rgba(180,140,60,0.48) 0, rgba(180,140,60,0.48) 4px, transparent 4px, transparent 10px)"),
-          boxShadow: isCompleted ? `0 0 9px ${levelColor}bb` : "none",
-        }} />
-      )}
-
-      {isEven ? (
-        <div
-          className="node-label-card align-left"
-          onClick={() => isClickable && onSelect(milestone)}
-          style={{
-            cursor: isClickable ? "pointer" : "default",
-            opacity: isLocked ? 0.38 : 1,
-            background: labelBg,
-            border: `1.5px solid ${isDarkMode ? "rgba(138,115,67,0.18)" : "rgba(0,0,0,0.06)"}`,
-            borderRight: `3px solid ${isSelected ? sideAccentSelected : sideAccentActive}`,
-            boxShadow: isSelected ? `0 4px 22px ${levelColor}20, -4px 0 18px ${levelColor}15` : "none",
-            backdropFilter: isDarkMode ? "blur(10px)" : "none",
-          }}
-          onMouseOver={e => {
-            if (isClickable && !isSelected) {
-              e.currentTarget.style.background = isDarkMode ? "rgba(212,175,55,0.09)" : "rgba(254,243,199,0.5)";
-              e.currentTarget.style.borderRightColor = levelColor;
-            }
-          }}
-          onMouseOut={e => {
-            if (!isSelected) {
-              e.currentTarget.style.background = labelBg;
-              e.currentTarget.style.borderRightColor = sideAccentActive;
-            }
-          }}
-        >
-          {milestone.isRevision && (
-            <div style={{
-              background: "rgba(234,179,8,0.18)", border: "1px solid rgba(234,179,8,0.5)",
-              color: "#eab308", fontSize: "8px", fontWeight: "900",
-              padding: "1px 7px", borderRadius: "8px", letterSpacing: "0.5px",
-              marginBottom: "5px", display: "inline-block"
-            }}>REVISION</div>
-          )}
-          <div style={{ fontSize: "13px", fontWeight: "800", color: titleColor, fontFamily: "'Cinzel', serif", marginBottom: "4px", lineHeight: "1.3" }}>
-            {milestone.title}
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.45", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
-            {milestone.description}
-          </div>
-          <div style={{ display: "flex", gap: "8px", marginTop: "7px", alignItems: "center", justifyContent: "flex-end" }}>
-            {milestone.estimatedMinutes && (
-              <span style={{ fontSize: "10px", color: "var(--text-muted)", fontFamily: "monospace" }}>⏱ {milestone.estimatedMinutes}m</span>
-            )}
-            {milestone.xpReward && (
-              <span style={{ fontSize: "10px", fontWeight: "800", color: isDarkMode ? "#d4af37" : "#b45309" }}>+{milestone.xpReward} XP</span>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="node-spacer" />
-      )}
-
-      {/* Center: Elden Ring Grace Node */}
-      <div className="node-medallion-container">
-        {/* Rotating arc ring — active only */}
+    <div style={{
+      position: "absolute",
+      left: `${position.x}%`,
+      top: `${position.y}%`,
+      transform: "translate(-50%, -50%)",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      zIndex: 10,
+    }}>
+      {/* Premium Cyberpunk Diamond Node */}
+      <div 
+        className="node-medallion-container" 
+        onClick={() => isClickable && onSelect(milestone)}
+        style={{ 
+          position: "relative",
+          cursor: isClickable ? "pointer" : "default",
+          transition: "transform 0.22s cubic-bezier(0.4,0,0.2,1)",
+        }}
+        onMouseOver={e => {
+          if (isClickable) e.currentTarget.style.transform = "scale(1.15)";
+        }}
+        onMouseOut={e => {
+          e.currentTarget.style.transform = "none";
+        }}
+      >
+        {/* Outer Rotating Glow Ring (if active) */}
         {isActive && (
           <div style={{
-            position: "absolute",
-            top: "-15px", left: "-15px", right: "-15px", bottom: "-15px",
-            borderRadius: "50%",
-            border: `1.5px solid ${levelColor}`,
-            borderTopColor: "transparent",
-            borderLeftColor: "transparent",
-            animation: "graceRotate 3.5s linear infinite",
-            pointerEvents: "none",
-            zIndex: 4,
+            position: "absolute", top: "-10px", left: "-10px", right: "-10px", bottom: "-10px",
+            border: `2px dashed ${neonColor}`, borderRadius: "4px",
+            transform: "rotate(45deg)", animation: "graceRotate 6s linear infinite",
+            pointerEvents: "none", zIndex: 0,
           }} />
         )}
-        {/* Halo pulse ring */}
-        {(isActive || isCompleted) && (
+
+        {/* The Diamond Base */}
+        <div style={{
+          position: "relative", width: "56px", height: "56px",
+          background: isCompleted ? neonColor : (isActive ? neonColor : "#1e293b"),
+          borderRadius: "12px", // rounded diamond
+          transform: "rotate(45deg)",
+          boxShadow: isCompleted ? `0 0 25px ${neonColor}, 0 0 50px ${neonColor}66` : (isActive ? `0 0 20px ${neonColor}aa` : "none"),
+          border: `2px solid ${isCompleted || isActive ? "#ffffff" : "#334155"}`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 2,
+        }}>
+          {/* Inner Dark Tech Core */}
           <div style={{
-            position: "absolute",
-            top: "-8px", left: "-8px", right: "-8px", bottom: "-8px",
-            borderRadius: "50%",
-            border: `1px solid ${levelColor}55`,
-            animation: isActive ? "gracePulse 1.8s ease-in-out infinite" : "none",
-            pointerEvents: "none",
-          }} />
-        )}
-        {/* Main clickable orb */}
-        <div
-          onClick={() => isClickable && onSelect(milestone)}
-          style={{
-            position: "relative",
-            width: "76px", height: "76px",
-            borderRadius: "50%",
-            background: medallionBg,
-            border: medallionBorder,
-            boxShadow: medallionGlow,
-            cursor: isClickable ? "pointer" : "default",
+            width: "44px", height: "44px",
+            background: "#0f172a",
+            borderRadius: "8px",
             display: "flex", alignItems: "center", justifyContent: "center",
-            transition: "transform 0.22s cubic-bezier(0.4,0,0.2,1), box-shadow 0.22s",
-            zIndex: 2,
-          }}
-          onMouseOver={e => {
-            if (isClickable) {
-              e.currentTarget.style.transform = "scale(1.12)";
-              e.currentTarget.style.boxShadow = `0 0 26px ${levelColor}, 0 0 52px ${levelColor}55`;
-            }
-          }}
-          onMouseOut={e => {
-            e.currentTarget.style.transform = "none";
-            e.currentTarget.style.boxShadow = medallionGlow;
-          }}
-        >
-          {/* Inner dashed decorative ring */}
-          <div style={{
-            position: "absolute", top: "7px", left: "7px", right: "7px", bottom: "7px",
-            borderRadius: "50%",
-            border: `1px dashed ${isDarkMode ? "rgba(212,175,55,0.3)" : "rgba(180,140,60,0.45)"}`,
-            pointerEvents: "none",
-          }} />
-          {/* Status icon */}
-          <span style={{
-            fontSize: isLocked ? "15px" : "20px",
-            color: isLocked
-              ? (isDarkMode ? "rgba(180,168,155,0.28)" : "rgba(150,150,150,0.35)")
-              : isSelected ? (isDarkMode ? "#ffd700" : levelColor)
-              : cfg.text,
-            fontWeight: "900",
-            fontFamily: "'Cinzel', serif",
-            textShadow: (!isLocked && (isActive || isCompleted || isSelected)) ? `0 0 10px ${levelColor}` : "none",
-            position: "relative", zIndex: 1,
+            boxShadow: "inset 0 0 15px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.5)"
           }}>
-            {cfg.icon}
-          </span>
-          {/* 4 corner diamond points: N / S / W / E */}
-          {!isLocked && [
-            { top: "-8px", left: "50%", transform: "translateX(-50%) rotate(45deg)" },
-            { bottom: "-8px", left: "50%", transform: "translateX(-50%) rotate(45deg)" },
-            { left: "-8px", top: "50%", transform: "translateY(-50%) rotate(45deg)" },
-            { right: "-8px", top: "50%", transform: "translateY(-50%) rotate(45deg)" },
-          ].map((pos, i) => (
-            <div key={i} style={{
-              position: "absolute",
-              width: "12px", height: "12px",
-              background: cornerColor,
-              boxShadow: `0 0 7px ${cornerColor}${(isSelected || isActive || isCompleted) ? "dd" : "77"}`,
-              pointerEvents: "none",
-              ...pos,
-            }} />
-          ))}
+            {/* Un-rotated Icon Container */}
+            <span style={{
+              transform: "rotate(-45deg)", 
+              color: isCompleted ? neonColor : (isActive ? neonColor : "#64748b"),
+              fontSize: "22px", fontWeight: "900",
+              textShadow: isCompleted || isActive ? `0 0 15px ${neonColor}` : "none"
+            }}>
+              {isCompleted ? "✓" : (isLocked ? "🔒" : "◈")}
+            </span>
+          </div>
         </div>
       </div>
-
-      {/* Right label */}
-      {!isEven ? (
-        <div
-          className="node-label-card align-right"
-          onClick={() => isClickable && onSelect(milestone)}
-          style={{
-            cursor: isClickable ? "pointer" : "default",
-            opacity: isLocked ? 0.38 : 1,
-            background: labelBg,
-            border: `1.5px solid ${isDarkMode ? "rgba(138,115,67,0.18)" : "rgba(0,0,0,0.06)"}`,
-            borderLeft: `3px solid ${isSelected ? sideAccentSelected : sideAccentActive}`,
-            boxShadow: isSelected ? `0 4px 22px ${levelColor}20, 4px 0 18px ${levelColor}15` : "none",
-            backdropFilter: isDarkMode ? "blur(10px)" : "none",
-          }}
-          onMouseOver={e => {
-            if (isClickable && !isSelected) {
-              e.currentTarget.style.background = isDarkMode ? "rgba(212,175,55,0.09)" : "rgba(254,243,199,0.5)";
-              e.currentTarget.style.borderLeftColor = levelColor;
-            }
-          }}
-          onMouseOut={e => {
-            if (!isSelected) {
-              e.currentTarget.style.background = labelBg;
-              e.currentTarget.style.borderLeftColor = sideAccentActive;
-            }
-          }}
-        >
-          {milestone.isRevision && (
-            <div style={{
-              background: "rgba(234,179,8,0.18)", border: "1px solid rgba(234,179,8,0.5)",
-              color: "#eab308", fontSize: "8px", fontWeight: "900",
-              padding: "1px 7px", borderRadius: "8px", letterSpacing: "0.5px",
-              marginBottom: "5px", display: "inline-block"
-            }}>REVISION</div>
-          )}
-          <div style={{ fontSize: "13px", fontWeight: "800", color: titleColor, fontFamily: "'Cinzel', serif", marginBottom: "4px", lineHeight: "1.3" }}>
-            {milestone.title}
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.45", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
-            {milestone.description}
-          </div>
-          <div style={{ display: "flex", gap: "8px", marginTop: "7px", alignItems: "center" }}>
-            {milestone.estimatedMinutes && (
-              <span style={{ fontSize: "10px", color: "var(--text-muted)", fontFamily: "monospace" }}>⏱ {milestone.estimatedMinutes}m</span>
-            )}
-            {milestone.xpReward && (
-              <span style={{ fontSize: "10px", fontWeight: "800", color: isDarkMode ? "#d4af37" : "#b45309" }}>+{milestone.xpReward} XP</span>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="node-spacer" />
-      )}
     </div>
   );
 }
@@ -1953,31 +1825,91 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
               </div>
 
               {/* Milestones — shown when expanded */}
-              {isOpen && (
-                <div style={{ padding: "28px", background: isDarkMode ? "var(--bg-dark-base)" : "#ffffff" }}>
-                  {/* gamified vertical skill path */}
+              {isOpen && (() => {
+                const layout = getConstellationLayout(data.milestones.length);
+                const isLevelComplete = data.completedInLevel === data.milestones.length;
+                return (
+                <div style={{ 
+                  padding: "40px", 
+                  background: "#09090b", // ALWAYS dark for gaming vibe
+                  position: "relative",
+                  overflow: "hidden",
+                  borderBottomLeftRadius: "16px",
+                  borderBottomRightRadius: "16px",
+                  backgroundImage: `
+                    radial-gradient(circle at 50% 50%, ${color}1a 0%, transparent 70%),
+                    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
+                  `,
+                  backgroundSize: '100% 100%, 40px 40px, 40px 40px'
+                }}>
+                  {/* gamified constellation skill path */}
                   <div style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "50px",
-                    padding: "20px 0",
-                    position: "relative"
+                    position: "relative",
+                    width: "100%",
+                    height: "350px", // Organic snake needs less vertical height than tree
+                    margin: "20px 0",
                   }}>
+                    {/* SVG Connecting Lines */}
+                    <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "visible" }}>
+                      {data.milestones.map((milestone, idx) => {
+                        const start = layout[idx];
+                        const nextIdx = (idx + 1) % data.milestones.length;
+                        const end = layout[nextIdx];
+                        
+                        // Only draw the final closing line if the level is complete and we have enough nodes for a polygon
+                        if (idx === data.milestones.length - 1 && (!isLevelComplete || data.milestones.length < 3)) return null;
+
+                        const isLineActive = milestone.status === "completed";
+                        const lineNeon = "#00f2fe";
+                        
+                        return (
+                          <line
+                            key={`line-${idx}`}
+                            x1={`${start.x}%`} y1={`${start.y}%`}
+                            x2={`${end.x}%`} y2={`${end.y}%`}
+                            stroke={isLineActive ? lineNeon : (isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)")}
+                            strokeWidth={isLineActive ? "5" : "2"}
+                            strokeDasharray={isLineActive ? "none" : "8, 8"}
+                            style={{
+                              filter: isLineActive ? `drop-shadow(0 0 15px ${lineNeon}) drop-shadow(0 0 30px ${lineNeon}88)` : "none",
+                              transition: "all 0.5s ease"
+                            }}
+                          />
+                        );
+                      })}
+                    </svg>
+
+                    {/* Completion Emoji Overlay */}
+                    {isLevelComplete && (
+                      <div style={{
+                        position: "absolute",
+                        top: "50%", left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        fontSize: "140px",
+                        opacity: isDarkMode ? 0.2 : 0.1,
+                        pointerEvents: "none",
+                        zIndex: 0,
+                        textShadow: `0 0 50px ${color}`,
+                        animation: "gracePulse 3s infinite ease-in-out"
+                      }}>
+                        👌
+                      </div>
+                    )}
+
+                    {/* Nodes */}
                     {data.milestones.map((milestone, idx) => (
                       <MilestoneNode
                         key={milestone.id}
                         milestone={milestone}
                         levelColor={color}
-                        isLastInLevel={idx === data.milestones.length - 1}
                         isSelected={selectedMilestone?.id === milestone.id}
                         onSelect={(m) => {
                           sound.playClockTick();
                           setSelectedMilestone(m);
                         }}
-                        levelNum={num}
-                        index={idx}
                         isDarkMode={isDarkMode}
+                        position={layout[idx]}
                       />
                     ))}
                   </div>
@@ -2003,7 +1935,8 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
                     </div>
                   )}
                 </div>
-              )}
+                );
+              })()}
             </div>
           );
         })}
