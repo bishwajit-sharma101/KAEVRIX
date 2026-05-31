@@ -11,7 +11,9 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
   const [notes, setNotes] = useState(null);
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [statusText, setStatusText] = useState("Analyzing video context...");
+  const [isFocusPlaying, setIsFocusPlaying] = useState(false);
   const [isNotesExpanded, setIsNotesExpanded] = useState(false);
+  const focusAudioRef = useRef(null);
   const [noteStyle, setNoteStyle] = useState("smart");
 
   // Quiz States: not_started, loading, active, completed
@@ -835,16 +837,33 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
               {activeTab === "notes" ? "📝 AI Study Guide" : "⚡ Quest Quiz"}
             </div>
 
-            {/* Expand / Minimize Toggle Button */}
+            {/* Focus Audio Element */}
+            <audio ref={focusAudioRef} src="/songs/song16.mp3" loop />
+
+            {/* Focus Audio Toggle Button */}
             <button
-              onClick={() => { sound.playClockTick(); setIsNotesExpanded(prev => !prev); }}
-              title={isNotesExpanded ? "Show Video Player" : "Expand Study Panel"}
+              onClick={() => {
+                sound.playClockTick();
+                if (focusAudioRef.current) {
+                  if (isFocusPlaying) {
+                    focusAudioRef.current.pause();
+                    setIsFocusPlaying(false);
+                    setIsNotesExpanded(false);
+                  } else {
+                    focusAudioRef.current.play().then(() => {
+                      setIsFocusPlaying(true);
+                      setIsNotesExpanded(true);
+                    }).catch(err => console.log("Audio block", err));
+                  }
+                }
+              }}
+              title={isFocusPlaying ? "Deactivate Focus Mode" : "Activate Focus Mode"}
               style={{
-                background: isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed",
-                border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.2)" : "1px solid #ffedd5",
-                color: isDarkMode ? "#ff8c3a" : "#ea580c",
+                background: isFocusPlaying ? (isDarkMode ? "rgba(16, 185, 129, 0.15)" : "#d1fae5") : (isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed"),
+                border: isFocusPlaying ? (isDarkMode ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid #10b981") : (isDarkMode ? "1px solid rgba(255, 106, 0, 0.2)" : "1px solid #ffedd5"),
+                color: isFocusPlaying ? "#10b981" : (isDarkMode ? "#ff8c3a" : "#ea580c"),
                 borderRadius: "8px",
-                width: "36px",
+                padding: "0 14px",
                 height: "36px",
                 display: "flex",
                 alignItems: "center",
@@ -852,25 +871,45 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                 cursor: "pointer",
                 transition: "all 0.2s",
                 marginLeft: "12px",
-                flexShrink: 0
+                flexShrink: 0,
+                fontSize: "13px",
+                fontWeight: "900",
+                letterSpacing: "0.5px",
+                textTransform: "uppercase",
+                fontFamily: "'Outfit', sans-serif",
+                gap: "8px"
               }}
-              onMouseOver={e => e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.16)" : "#ffedd5"}
-              onMouseOut={e => e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed"}
+              onMouseOver={e => {
+                if (!isFocusPlaying) {
+                  e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.16)" : "#ffedd5";
+                }
+              }}
+              onMouseOut={e => {
+                if (!isFocusPlaying) {
+                  e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed";
+                }
+              }}
             >
-              {isNotesExpanded ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 14h6v6" />
-                  <path d="M20 10h-6V4" />
-                  <path d="M14 10l7-7" />
-                  <path d="M10 14l-7 7" />
-                </svg>
+              {isFocusPlaying ? (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 14h6v6" />
+                    <path d="M20 10h-6V4" />
+                    <path d="M14 10l7-7" />
+                    <path d="M10 14l-7 7" />
+                  </svg>
+                  <span>FOCUSING</span>
+                </>
               ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M15 3h6v6" />
-                  <path d="M9 21H3v-6" />
-                  <path d="M21 3l-7 7" />
-                  <path d="M3 21l7-7" />
-                </svg>
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 3h6v6" />
+                    <path d="M9 21H3v-6" />
+                    <path d="M21 3l-7 7" />
+                    <path d="M3 21l7-7" />
+                  </svg>
+                  <span>FOCUS</span>
+                </>
               )}
             </button>
           </div>
