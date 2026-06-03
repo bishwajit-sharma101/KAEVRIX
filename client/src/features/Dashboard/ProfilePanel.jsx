@@ -9,6 +9,17 @@ const TIER_COLORS = {
   "Legend": "var(--neon-pink)"
 };
 
+const PRESET_COSMETICS = [
+  { banner: "", avatarFrame: "", profileEffect: "" },
+  { banner: "none", avatarFrame: "inferno-aura", profileEffect: "inferno" },
+  { banner: "none", avatarFrame: "rage-aura", profileEffect: "rage" },
+  { banner: "none", avatarFrame: "void-aura", profileEffect: "void" },
+  { banner: "https://images.unsplash.com/photo-1620802051772-52055660890c?w=800", avatarFrame: "kawaii-clouds", profileEffect: "magical-girl" },
+  { banner: "https://images.unsplash.com/photo-1561485132-59468cd0b553?w=800", avatarFrame: "lightning-strike", profileEffect: "thunder-storm" },
+  { banner: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800", avatarFrame: "hologram-ring", profileEffect: "matrix-glitch" },
+  { banner: "https://images.unsplash.com/photo-1483664852095-d6cc6870702d?w=800", avatarFrame: "frost-ring", profileEffect: "blizzard" }
+];
+
 export default function ProfilePanel({ username, selectedClass, onSurpassLimits }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,6 +37,18 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
       if (res.ok) {
         const data = await res.json();
         setProfile(data);
+        
+        // Auto-sync active cosmetic index
+        if (data?.cosmetics) {
+          const idx = PRESET_COSMETICS.findIndex(
+            c => c.profileEffect === data.cosmetics.profileEffect &&
+                 c.avatarFrame === data.cosmetics.avatarFrame &&
+                 c.banner === data.cosmetics.banner
+          );
+          if (idx !== -1) {
+            setCosmeticIndex(idx);
+          }
+        }
       }
     } catch (err) {
       console.error("Failed to load profile:", err);
@@ -43,6 +66,61 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
   const winRate = totalMatches > 0 ? Math.round((profile.wins / totalMatches) * 100) : 0;
   const watchTime = Math.floor((profile?.totalWatchTime || 0) / 60);
 
+  const profileEffect = profile?.cosmetics?.profileEffect;
+  const avatarFrame = profile?.cosmetics?.avatarFrame;
+
+  // Apply aura background and styling to document body dynamically
+  useEffect(() => {
+    document.body.style.transition = "background 0.5s ease, background-color 0.5s ease, color 0.5s ease";
+
+    if (!profileEffect) {
+      document.body.style.removeProperty("background");
+      document.body.style.removeProperty("--text-light");
+      document.body.style.removeProperty("--text-muted");
+      document.body.style.removeProperty("--bg-dark-base");
+      document.body.style.removeProperty("--bg-dark-surface");
+      return;
+    }
+
+    if (["rage", "void", "inferno", "matrix-glitch", "blizzard", "thunder-storm"].includes(profileEffect)) {
+      document.body.style.setProperty("--text-light", "#ffffff");
+      document.body.style.setProperty("--text-muted", "rgba(255, 255, 255, 0.6)");
+      document.body.style.setProperty("--bg-dark-base", "rgba(0, 0, 0, 0.5)");
+      document.body.style.setProperty("--bg-dark-surface", "rgba(0, 0, 0, 0.5)");
+    } else if (profileEffect === "magical-girl") {
+      document.body.style.setProperty("--text-light", "#d81b60");
+      document.body.style.setProperty("--text-muted", "#f06292");
+      document.body.style.setProperty("--bg-dark-base", "#ffe4e1");
+      document.body.style.setProperty("--bg-dark-surface", "#fff0f5");
+    }
+
+    if (profileEffect === "rage") {
+      document.body.style.background = "linear-gradient(to bottom, #4a0000 0%, #1a0000 100%)";
+    } else if (profileEffect === "void") {
+      document.body.style.background = "linear-gradient(to bottom, #2b0b4a 0%, #0a0414 100%)";
+    } else if (profileEffect === "inferno") {
+      document.body.style.background = "linear-gradient(to bottom, #4a1c00 0%, #1a0500 100%)";
+    } else if (profileEffect === "matrix-glitch") {
+      document.body.style.background = "#051505";
+      document.body.style.setProperty("--text-light", "#00ff00");
+    } else if (profileEffect === "blizzard") {
+      document.body.style.background = "linear-gradient(to bottom, #001f3f 0%, #000a14 100%)";
+    } else if (profileEffect === "thunder-storm") {
+      document.body.style.background = "linear-gradient(to bottom, #0a0f24 0%, #02040a 100%)";
+    } else if (profileEffect === "magical-girl") {
+      document.body.style.background = "linear-gradient(to bottom, #fff0f5 0%, #ffe4e1 100%)";
+    }
+
+    return () => {
+      document.body.style.removeProperty("background");
+      document.body.style.removeProperty("--text-light");
+      document.body.style.removeProperty("--text-muted");
+      document.body.style.removeProperty("--bg-dark-base");
+      document.body.style.removeProperty("--bg-dark-surface");
+      document.body.style.removeProperty("transition");
+    };
+  }, [profileEffect]);
+
   if (loading) {
     return (
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
@@ -50,13 +128,6 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
       </div>
     );
   }
-
-  const PRESET_COSMETICS = [
-    { banner: "", avatarFrame: "", profileEffect: "" },
-    { banner: "https://images.unsplash.com/photo-1504333638930-c8787321efa0?w=800", avatarFrame: "inferno-aura", profileEffect: "inferno" },
-    { banner: "https://images.unsplash.com/photo-1620802051772-52055660890c?w=800", avatarFrame: "kawaii-clouds", profileEffect: "magical-girl" },
-    { banner: "https://images.unsplash.com/photo-1561485132-59468cd0b553?w=800", avatarFrame: "lightning-strike", profileEffect: "thunder-storm" }
-  ];
 
   const handleCycleCosmetics = async () => {
     const nextIndex = (cosmeticIndex + 1) % PRESET_COSMETICS.length;
@@ -83,15 +154,21 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
   };
 
   const bannerUrl = profile?.cosmetics?.banner;
-  const bannerBackground = bannerUrl 
-    ? `url(${bannerUrl}) center/cover no-repeat` 
-    : "linear-gradient(135deg, rgba(255,106,0,0.8) 0%, rgba(255,59,48,0.4) 100%)";
+  const bannerBackground = bannerUrl === "none"
+    ? "transparent"
+    : bannerUrl 
+      ? `url(${bannerUrl}) center/cover no-repeat` 
+      : "linear-gradient(135deg, rgba(255,106,0,0.8) 0%, rgba(255,59,48,0.4) 100%)";
 
-  const profileEffect = profile?.cosmetics?.profileEffect;
-  const avatarFrame = profile?.cosmetics?.avatarFrame;
+  const getRootStyle = () => {
+    return { 
+      flex: 1, overflowY: "auto", height: "100%", display: "flex", 
+      flexDirection: "column", paddingBottom: "60px", position: "relative"
+    };
+  };
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", height: "100%", display: "flex", flexDirection: "column", paddingBottom: "60px", position: "relative" }}>
+    <div style={getRootStyle()}>
       
       <style>{`
         /* ============================ */
@@ -152,6 +229,18 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-10px); }
         }
+        @keyframes snowFall {
+          0% { transform: translateY(-100px) translateX(0) scale(1); opacity: 1; }
+          100% { transform: translateY(500px) translateX(50px) scale(0.5); opacity: 0; }
+        }
+        @keyframes matrixScan {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(100vh); }
+        }
+        @keyframes hologramFlicker {
+          0%, 100% { opacity: 0.8; }
+          50% { opacity: 0.3; filter: hue-rotate(90deg); }
+        }
       `}</style>
 
       {/* --- BACKGROUND PROFILE EFFECTS --- */}
@@ -159,17 +248,11 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
       {/* Thunder Storm Effect */}
       {profileEffect === "thunder-storm" && (
         <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "400px", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
-          {/* Lightning Flashes */}
           <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", animation: "lightningFlash 5s infinite", mixBlendMode: "overlay" }} />
-          {/* Rain */}
           {[...Array(30)].map((_, i) => (
             <div key={i} style={{ 
-              position: "absolute", 
-              top: "-100px",
-              left: (Math.random() * 120) - 10 + "%", 
-              width: "2px", 
-              height: (20 + Math.random() * 30) + "px", 
-              background: "rgba(255,255,255,0.4)",
+              position: "absolute", top: "-100px", left: (Math.random() * 120) - 10 + "%", 
+              width: "2px", height: (20 + Math.random() * 30) + "px", background: "rgba(255,255,255,0.4)",
               animation: "rainFall " + (0.2 + Math.random() * 0.3) + "s linear " + (Math.random()) + "s infinite"
             }} />
           ))}
@@ -178,21 +261,69 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
 
       {/* Inferno Effect */}
       {profileEffect === "inferno" && (
-        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden", mixBlendMode: "screen" }}>
-          {/* Intense Glow Base */}
-          <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "300px", background: "linear-gradient(to top, rgba(255,60,0,0.6), transparent)" }} />
-          {/* Embers */}
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "300px", background: "linear-gradient(to top, rgba(255,60,0,0.4), transparent)", mixBlendMode: "screen" }} />
           {[...Array(40)].map((_, i) => (
             <div key={i} style={{ 
-              position: "absolute", 
-              bottom: "-20px",
-              left: (Math.random() * 100) + "%", 
-              width: (4 + Math.random() * 8) + "px", 
-              height: (4 + Math.random() * 8) + "px", 
-              background: Math.random() > 0.5 ? "#ffaa00" : "#ff3300", 
-              borderRadius: "50%",
-              boxShadow: "0 0 10px #ff3300",
+              position: "absolute", bottom: "-20px", left: (Math.random() * 100) + "%", 
+              width: (4 + Math.random() * 8) + "px", height: (4 + Math.random() * 8) + "px", 
+              background: Math.random() > 0.5 ? "#ffaa00" : "#ff3300", borderRadius: "50%", boxShadow: "0 0 10px #ff3300",
               animation: "fireEmber " + (1 + Math.random() * 2) + "s ease-in " + (Math.random() * 2) + "s infinite"
+            }} />
+          ))}
+        </div>
+      )}
+
+      {/* Rage Effect */}
+      {profileEffect === "rage" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "300px", background: "linear-gradient(to top, rgba(255,0,0,0.4), transparent)", mixBlendMode: "screen" }} />
+          {[...Array(50)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", bottom: "-20px", left: (Math.random() * 100) + "%", 
+              width: (4 + Math.random() * 10) + "px", height: (4 + Math.random() * 10) + "px", 
+              background: Math.random() > 0.5 ? "#ff0000" : "#550000", borderRadius: "50%", boxShadow: "0 0 15px #ff0000",
+              animation: "fireEmber " + (0.5 + Math.random() * 1.5) + "s ease-in " + (Math.random() * 2) + "s infinite"
+            }} />
+          ))}
+        </div>
+      )}
+
+      {/* Void Effect */}
+      {profileEffect === "void" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "300px", background: "linear-gradient(to top, rgba(138,43,226,0.5), transparent)", mixBlendMode: "screen" }} />
+          {[...Array(30)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", bottom: "-20px", left: (Math.random() * 100) + "%", 
+              width: (10 + Math.random() * 20) + "px", height: (10 + Math.random() * 20) + "px", 
+              background: Math.random() > 0.5 ? "rgba(138,43,226,0.8)" : "rgba(75,0,130,0.8)", borderRadius: "50%", filter: "blur(5px)",
+              animation: "fireEmber " + (2 + Math.random() * 3) + "s ease-in " + (Math.random() * 2) + "s infinite"
+            }} />
+          ))}
+        </div>
+      )}
+
+      {/* Matrix Glitch Effect */}
+      {profileEffect === "matrix-glitch" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "10px", background: "rgba(0, 255, 0, 0.4)", boxShadow: "0 0 20px #0f0", animation: "matrixScan 3s linear infinite" }} />
+          {[...Array(20)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", top: "-50px", left: (Math.random() * 100) + "%", color: "#0f0", fontSize: "14px", fontFamily: "monospace", textShadow: "0 0 5px #0f0",
+              animation: "rainFall " + (2 + Math.random() * 2) + "s linear " + (Math.random() * 2) + "s infinite"
+            }}>10101101</div>
+          ))}
+        </div>
+      )}
+
+      {/* Blizzard Effect */}
+      {profileEffect === "blizzard" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          {[...Array(40)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", top: "-20px", left: (Math.random() * 100) + "%", width: (4 + Math.random() * 6) + "px", height: (4 + Math.random() * 6) + "px", 
+              background: "#fff", borderRadius: "50%", boxShadow: "0 0 10px #fff", animation: "snowFall " + (1 + Math.random() * 2) + "s linear " + (Math.random() * 2) + "s infinite"
             }} />
           ))}
         </div>
@@ -201,10 +332,6 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
       {/* Magical Girl (Kawaii) Effect */}
       {profileEffect === "magical-girl" && (
         <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
-          {/* Full-Body Soft Pink Ambient Glow */}
-          <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", background: "linear-gradient(to bottom, rgba(255,182,193,0.2) 0%, rgba(255,105,180,0.05) 100%)", mixBlendMode: "overlay" }} />
-          
-          {/* Spinning Sunburst (Banner Area Only) */}
           <div style={{ 
             position: "absolute", top: "-50%", left: "-50%", width: "200%", height: "400px", 
             background: "conic-gradient(from 0deg, rgba(255,182,193,0.4) 0deg 15deg, transparent 15deg 30deg, rgba(173,216,230,0.4) 30deg 45deg, transparent 45deg 60deg, rgba(255,182,193,0.4) 60deg 75deg, transparent 75deg 90deg, rgba(173,216,230,0.4) 90deg 105deg, transparent 105deg 120deg, rgba(255,182,193,0.4) 120deg 135deg, transparent 135deg 150deg, rgba(173,216,230,0.4) 150deg 165deg, transparent 165deg 180deg, rgba(255,182,193,0.4) 180deg 195deg, transparent 195deg 210deg, rgba(173,216,230,0.4) 210deg 225deg, transparent 225deg 240deg, rgba(255,182,193,0.4) 240deg 255deg, transparent 255deg 270deg, rgba(173,216,230,0.4) 270deg 285deg, transparent 285deg 300deg, rgba(255,182,193,0.4) 300deg 315deg, transparent 315deg 330deg, rgba(173,216,230,0.4) 330deg 345deg, transparent 345deg 360deg)",
@@ -279,6 +406,20 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
               </>
             )}
 
+            {avatarFrame === "rage-aura" && (
+              <>
+                <div style={{ position: "absolute", top: "-30px", left: "-30px", right: "-30px", bottom: "-30px", background: "linear-gradient(45deg, #8b0000, #ff0000, #330000)", mixBlendMode: "screen", filter: "blur(15px)", animation: "plasmaMorph 2s linear infinite", zIndex: -1 }} />
+                <div style={{ position: "absolute", top: "-15px", left: "-15px", right: "-15px", bottom: "-15px", background: "linear-gradient(45deg, #ff0000, #8b0000)", mixBlendMode: "screen", filter: "blur(8px)", animation: "plasmaMorph 1.5s linear reverse infinite", zIndex: -1 }} />
+              </>
+            )}
+
+            {avatarFrame === "void-aura" && (
+              <>
+                <div style={{ position: "absolute", top: "-35px", left: "-35px", right: "-35px", bottom: "-35px", background: "linear-gradient(45deg, #8a2be2, #4b0082, #ff00ff)", mixBlendMode: "screen", filter: "blur(20px)", animation: "plasmaMorph 4s linear infinite", zIndex: -1 }} />
+                <div style={{ position: "absolute", top: "-20px", left: "-20px", right: "-20px", bottom: "-20px", background: "linear-gradient(45deg, #4b0082, #8a2be2)", mixBlendMode: "screen", filter: "blur(12px)", animation: "plasmaMorph 3s linear reverse infinite", zIndex: -1 }} />
+              </>
+            )}
+
             {avatarFrame === "lightning-strike" && (
               <>
                 <div style={{ position: "absolute", top: "-15px", left: "-15px", right: "-15px", bottom: "-15px", border: "4px solid cyan", borderRadius: "50%", animation: "electricSpin 0.5s steps(4) infinite", filter: "blur(2px)", mixBlendMode: "screen" }} />
@@ -304,11 +445,26 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
               </>
             )}
 
+            {avatarFrame === "hologram-ring" && (
+              <>
+                <div style={{ position: "absolute", top: "-10px", left: "-10px", right: "-10px", bottom: "-10px", border: "2px solid #0f0", borderRadius: "50%", animation: "hologramFlicker 2s infinite", filter: "blur(2px)", mixBlendMode: "screen" }} />
+                <div style={{ position: "absolute", top: "-5px", left: "-5px", right: "-5px", bottom: "-5px", border: "4px dashed #0f0", borderRadius: "50%", animation: "electricSpin 4s linear infinite" }} />
+                <div style={{ position: "absolute", top: "-20px", left: "0", right: "0", height: "5px", background: "#0f0", boxShadow: "0 0 15px #0f0", animation: "matrixScan 2s linear infinite" }} />
+              </>
+            )}
+
+            {avatarFrame === "frost-ring" && (
+              <>
+                <div style={{ position: "absolute", top: "-15px", left: "-15px", right: "-15px", bottom: "-15px", border: "4px solid rgba(173,216,230,0.8)", borderRadius: "50%", filter: "blur(4px)", animation: "plasmaMorph 5s linear infinite" }} />
+                <div style={{ position: "absolute", top: "-5px", left: "-5px", right: "-5px", bottom: "-5px", border: "2px dotted white", borderRadius: "50%", animation: "electricSpin 10s linear infinite" }} />
+              </>
+            )}
+
             <div style={{ 
               width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden",
               background: "var(--bg-dark-surface)", display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: "60px", position: "relative", zIndex: 5,
-              ...(avatarFrame !== "lightning-strike" && avatarFrame !== "inferno-aura" && avatarFrame !== "kawaii-clouds" ? getAvatarFrameStyle(avatarFrame) : { border: "2px solid transparent" })
+              ...(avatarFrame !== "lightning-strike" && avatarFrame !== "inferno-aura" && avatarFrame !== "rage-aura" && avatarFrame !== "void-aura" && avatarFrame !== "kawaii-clouds" && avatarFrame !== "hologram-ring" && avatarFrame !== "frost-ring" ? getAvatarFrameStyle(avatarFrame) : { border: "2px solid transparent" })
             }}>
               {profile?.avatar ? (
                 profile.avatar.includes('http') ? <img src={profile.avatar} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : profile.avatar

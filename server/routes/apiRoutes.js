@@ -247,7 +247,7 @@ router.post("/solo-xp", async (req, res) => {
 
 // POST Update Profile Cosmetics
 router.post("/profile/cosmetics", async (req, res) => {
-  const { username, banner, avatarFrame } = req.body;
+  const { username, banner, avatarFrame, profileEffect } = req.body;
   if (!username) return res.status(400).json({ error: "Username required" });
   
   try {
@@ -257,6 +257,7 @@ router.post("/profile/cosmetics", async (req, res) => {
     user.cosmetics = user.cosmetics || {};
     if (banner !== undefined) user.cosmetics.banner = banner;
     if (avatarFrame !== undefined) user.cosmetics.avatarFrame = avatarFrame;
+    if (profileEffect !== undefined) user.cosmetics.profileEffect = profileEffect;
 
     await user.save();
     res.json({ success: true, cosmetics: user.cosmetics });

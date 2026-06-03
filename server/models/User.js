@@ -84,7 +84,8 @@ const userSchema = new mongoose.Schema({
   },
   cosmetics: {
     banner: { type: String, default: "" },
-    avatarFrame: { type: String, default: "" }
+    avatarFrame: { type: String, default: "" },
+    profileEffect: { type: String, default: "" }
   }
 });
 

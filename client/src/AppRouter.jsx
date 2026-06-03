@@ -91,9 +91,9 @@ export default function AppRouter(props) {
             placeholder="Search YouTube videos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ flex: 1, border: "none", background: "transparent", padding: "12px 20px", fontSize: "15px", outline: "none", color: "var(--text-light)" }}
+            style={{ flex: 1, border: "none", background: "transparent", padding: "12px 20px", fontSize: "15px", outline: "none", color: isDarkMode ? "#ffffff" : "#0f172a" }}
           />
-          <button type="submit" style={{ padding: "0 24px", background: "#f8fafc", border: "none", borderLeft: "1px solid #e2e8f0", cursor: "pointer", color: "var(--text-muted)", fontSize: "16px" }} disabled={isSearching}>
+          <button type="submit" style={{ padding: "0 24px", background: "#f8fafc", border: "none", borderLeft: "1px solid #e2e8f0", cursor: "pointer", color: isDarkMode ? "#94a3b8" : "#64748b", fontSize: "16px" }} disabled={isSearching}>
             {isSearching ? "..." : "🔍"}
           </button>
         </form>
