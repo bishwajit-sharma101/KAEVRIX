@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import * as sound from "../../utils/audio";
 import ProfilePanel from "../Dashboard/ProfilePanel";
 
-export default function CommunityTab({ username, backendUrl, getRankTitle, isDarkMode }) {
+export default function CommunityTab({ username, backendUrl, getRankTitle, isDarkMode, socket }) {
   const [friends, setFriends] = useState([]);
   const [incomingRequests, setIncomingRequests] = useState([]);
   const [discoverUsers, setDiscoverUsers] = useState([]);
@@ -12,8 +12,68 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
   const [selectedProfileUser, setSelectedProfileUser] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [sentThisSession, setSentThisSession] = useState([]);
-  const [activeView, setActiveView] = useState("discover"); // discover | squad | requests
+  const [activeView, setActiveView] = useState("discover"); // discover | squad | requests | messages
   const itemsPerPage = 8;
+  
+  // Chat & Presence State
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+  const [activeChatUser, setActiveChatUser] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const chatScrollRef = useRef(null);
+
+  // Socket Listeners
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handleOnlineList = (list) => setOnlineUsers(new Set(list));
+    const handleUserOnline = (user) => setOnlineUsers(prev => { const n = new Set(prev); n.add(user); return n; });
+    const handleUserOffline = (user) => setOnlineUsers(prev => { const n = new Set(prev); n.delete(user); return n; });
+    const handleReceiveDm = (msg) => {
+      // If we are currently chatting with the sender or receiver, append to our local chat state
+      if ((msg.sender === activeChatUser && msg.receiver === username) || 
+          (msg.sender === username && msg.receiver === activeChatUser)) {
+        setChatMessages(prev => [...prev, msg]);
+      }
+      // Note: We might want a notification if they aren't the active chat user
+    };
+
+    socket.on("online_users_list", handleOnlineList);
+    socket.on("user_online", handleUserOnline);
+    socket.on("user_offline", handleUserOffline);
+    socket.on("receive_dm", handleReceiveDm);
+
+    return () => {
+      socket.off("online_users_list", handleOnlineList);
+      socket.off("user_online", handleUserOnline);
+      socket.off("user_offline", handleUserOffline);
+      socket.off("receive_dm", handleReceiveDm);
+    };
+  }, [socket, activeChatUser, username]);
+
+  // Fetch DM History when activeChatUser changes
+  useEffect(() => {
+    if (activeChatUser && activeView === "messages") {
+      fetch(`${backendUrl}/api/chat/messages/${username}/${activeChatUser}`)
+        .then(res => res.json())
+        .then(data => setChatMessages(data || []))
+        .catch(err => console.error("Error fetching chat:", err));
+    }
+  }, [activeChatUser, activeView, backendUrl, username]);
+
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
+
+  const handleSendDm = (e) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !activeChatUser || !socket) return;
+    socket.emit("send_dm", { sender: username, receiver: activeChatUser, content: chatInput.trim() });
+    setChatInput("");
+  };
 
   const fetchFriendsData = async () => {
     try {
@@ -242,6 +302,23 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
         padding: 0 5px;
         font-family: var(--font-sans);
       }
+      .cv4-status-dot {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid var(--bg-dark-base);
+        z-index: 10;
+      }
+      .cv4-status-online {
+        background: var(--neon-green);
+        box-shadow: 0 0 8px rgba(16,185,129,0.6);
+      }
+      .cv4-status-offline {
+        background: #64748b;
+      }
       .cv4-sent-badge {
         padding: 7px 14px;
         border-radius: 8px;
@@ -298,6 +375,25 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
         font-weight: 700;
         letter-spacing: 0.5px;
         border: 1px solid rgba(16,185,129,0.15);
+      }
+      .cv4-message-btn {
+        padding: 8px 22px;
+        border-radius: 20px;
+        border: 1px solid var(--neon-orange);
+        background: rgba(255,106,0,0.08);
+        color: var(--neon-orange);
+        font-weight: 800;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        font-family: var(--font-gamer);
+        letter-spacing: 1px;
+      }
+      .cv4-message-btn:hover {
+        background: var(--neon-orange);
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(255,106,0,0.3);
+        transform: translateY(-2px);
       }
       .cv4-section-line {
         font-size: 11px;
@@ -481,6 +577,7 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
         ) : (
           <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", background: "rgba(255,106,0,0.08)" }}>👤</div>
         )}
+        <div className={`cv4-status-dot ${onlineUsers.has(user.username) ? 'cv4-status-online' : 'cv4-status-offline'}`} />
       </div>
       {/* Player Info */}
       <div style={{ width: "140px", flexShrink: 0 }}>
@@ -576,7 +673,83 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
             Requests
             {incomingRequests.length > 0 && <span className="cv4-tab-badge">{incomingRequests.length}</span>}
           </button>
+          <button className={`cv4-tab ${activeView === "messages" ? "cv4-tab-active" : ""}`} onClick={() => { sound.playClockTick(); setActiveView("messages"); }}>
+            Messages
+          </button>
         </div>
+
+        {/* Messages View */}
+        {activeView === "messages" && (
+          <div style={{ display: "flex", height: "60vh", background: "var(--bg-dark-surface)", borderRadius: "16px", border: "1px solid var(--glass-border)", overflow: "hidden" }}>
+            {/* Friends Sidebar */}
+            <div style={{ width: "260px", borderRight: "1px solid var(--glass-border)", display: "flex", flexDirection: "column" }}>
+              <div style={{ padding: "16px", borderBottom: "1px solid var(--glass-border)", fontSize: "14px", fontWeight: "800", color: "var(--text-light)", fontFamily: "var(--font-gamer)", letterSpacing: "1px" }}>DIRECT MESSAGES</div>
+              <div style={{ flex: 1, overflowY: "auto", padding: "12px" }}>
+                {friends.length > 0 ? friends.map(user => (
+                  <div key={user.username} 
+                    onClick={() => { sound.playClockTick(); setActiveChatUser(user.username); }}
+                    style={{ 
+                      display: "flex", alignItems: "center", gap: "12px", padding: "12px", 
+                      borderRadius: "10px", cursor: "pointer", transition: "all 0.2s",
+                      background: activeChatUser === user.username ? "rgba(255,106,0,0.1)" : "transparent",
+                      border: `1px solid ${activeChatUser === user.username ? "var(--neon-orange)" : "transparent"}`
+                    }}>
+                    <div className="cv4-avatar" style={{ width: "32px", height: "32px" }}>
+                      {user.avatar && user.avatar.includes('http') ? <img src={user.avatar} alt="" /> : <div style={{width:"100%",height:"100%",background:"#333",display:"flex",alignItems:"center",justifyContent:"center"}}>👤</div>}
+                      <div className={`cv4-status-dot ${onlineUsers.has(user.username) ? 'cv4-status-online' : 'cv4-status-offline'}`} style={{ width: "10px", height: "10px", bottom: 0, right: 0 }} />
+                    </div>
+                    <div style={{ fontSize: "14px", fontWeight: "700", color: activeChatUser === user.username ? "var(--neon-orange)" : "var(--text-light)" }}>
+                      {user.username}
+                    </div>
+                  </div>
+                )) : <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "10px" }}>No friends to message yet.</div>}
+              </div>
+            </div>
+            {/* Chat Area */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+              {activeChatUser ? (
+                <>
+                  <div style={{ padding: "20px", borderBottom: "1px solid var(--glass-border)", display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div style={{ fontSize: "18px", fontWeight: "800", color: "var(--text-light)" }}>@{activeChatUser}</div>
+                    {onlineUsers.has(activeChatUser) && <span style={{ padding: "4px 8px", background: "rgba(16,185,129,0.1)", color: "var(--neon-green)", borderRadius: "4px", fontSize: "10px", fontWeight: "800" }}>ONLINE</span>}
+                  </div>
+                  <div ref={chatScrollRef} style={{ flex: 1, padding: "20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "16px" }}>
+                    {chatMessages.map((msg, i) => {
+                      const isMe = msg.sender === username;
+                      return (
+                        <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
+                          <div style={{ 
+                            maxWidth: "70%", padding: "10px 16px", borderRadius: "16px",
+                            background: isMe ? "var(--neon-orange)" : "var(--bg-dark-base)",
+                            color: isMe ? "#fff" : "var(--text-light)",
+                            border: isMe ? "none" : "1px solid var(--glass-border)",
+                            borderBottomRightRadius: isMe ? "4px" : "16px",
+                            borderBottomLeftRadius: isMe ? "16px" : "4px",
+                            fontSize: "14px", lineHeight: 1.4
+                          }}>
+                            {msg.content}
+                          </div>
+                          <div style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "4px", fontWeight: "600" }}>
+                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <form onSubmit={handleSendDm} style={{ padding: "16px", borderTop: "1px solid var(--glass-border)", display: "flex", gap: "12px" }}>
+                    <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={`Message @${activeChatUser}...`} style={{ flex: 1, padding: "12px 16px", borderRadius: "24px", border: "1px solid var(--glass-border)", background: "var(--bg-dark-base)", color: "var(--text-light)", outline: "none", fontSize: "14px" }} />
+                    <button type="submit" style={{ padding: "0 24px", borderRadius: "24px", background: "var(--accent-gradient)", color: "#fff", border: "none", fontWeight: "800", cursor: "pointer", transition: "all 0.2s" }} onMouseOver={e => e.currentTarget.style.transform="scale(1.05)"} onMouseOut={e => e.currentTarget.style.transform="scale(1)"}>SEND</button>
+                  </form>
+                </>
+              ) : (
+                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", flexDirection: "column", gap: "12px" }}>
+                  <div style={{ fontSize: "40px" }}>💬</div>
+                  <div style={{ fontSize: "16px", fontWeight: "700" }}>Select a friend to start chatting</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Requests View */}
         {activeView === "requests" && (
@@ -615,7 +788,14 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
                 </div>
                 {friends.map(user => (
                   <Row key={user.username} user={user} action={
-                    <span className="cv4-allied-badge">ALLIED</span>
+                    <button className="cv4-message-btn" onClick={(e) => { 
+                      e.stopPropagation(); 
+                      sound.playClockTick();
+                      setActiveChatUser(user.username);
+                      setActiveView("messages");
+                    }}>
+                      MESSAGE
+                    </button>
                   } />
                 ))}
               </>

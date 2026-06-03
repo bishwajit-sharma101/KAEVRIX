@@ -380,6 +380,8 @@ export default function App() {
     // Setup socket listeners
     newSocket.on("connect", () => {
       console.log("[Socket] Connected to backend");
+      // Register presence globally
+      newSocket.emit("user_login", name.trim());
     });
 
     newSocket.on("match_found", ({ roomId, room }) => {

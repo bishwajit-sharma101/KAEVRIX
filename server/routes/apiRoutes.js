@@ -25,6 +25,7 @@ import {
   getUserThemeInfo,
   getUserProfile
 } from "../services/authService.js";
+import { getConversation, markAsRead } from "../services/chatService.js";
 
 const router = express.Router();
 
@@ -330,6 +331,28 @@ router.get("/auth/theme/:username", async (req, res) => {
     res.json(info);
   } else {
     res.status(404).json({ error: "User not found" });
+  }
+});
+
+// GET Chat Conversation
+router.get("/chat/messages/:user1/:user2", async (req, res) => {
+  const { user1, user2 } = req.params;
+  try {
+    const messages = await getConversation(user1, user2);
+    res.json(messages);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST Chat Mark as Read
+router.post("/chat/read", async (req, res) => {
+  const { sender, receiver } = req.body;
+  try {
+    await markAsRead(sender, receiver);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

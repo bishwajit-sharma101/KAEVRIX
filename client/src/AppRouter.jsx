@@ -275,6 +275,7 @@ export default function AppRouter(props) {
           }}
           onStartSoloStudy={handleStartSoloStudy}
           setStatus={setStatus}
+          socket={socket}
         />
       )}
 

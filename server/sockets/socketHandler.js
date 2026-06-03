@@ -11,10 +11,47 @@ import {
   sendBotChat, 
   handleBotHitByPowerup 
 } from "../services/gameService.js";
+import { saveMessage } from "../services/chatService.js";
+
+// Global map to track online users: username -> socketId
+export const onlineUsers = new Map();
 
 export function registerSocketHandlers(io) {
   io.on("connection", (socket) => {
     console.log(`[Socket] Connected: ${socket.id}`);
+
+    // Presence & Global
+    socket.on("user_login", (username) => {
+      if (!username) return;
+      socket.username = username;
+      onlineUsers.set(username, socket.id);
+      console.log(`[Presence] User "${username}" is online. Total online: ${onlineUsers.size}`);
+      
+      // Tell this user who is online (send list of online users)
+      const onlineList = Array.from(onlineUsers.keys());
+      socket.emit("online_users_list", onlineList);
+
+      // Broadcast to everyone else that this user came online
+      socket.broadcast.emit("user_online", username);
+    });
+
+    socket.on("send_dm", async ({ sender, receiver, content }) => {
+      try {
+        // Save to DB
+        const msg = await saveMessage(sender, receiver, content);
+        
+        // If receiver is online, send immediately
+        const receiverSocketId = onlineUsers.get(receiver);
+        if (receiverSocketId) {
+          io.to(receiverSocketId).emit("receive_dm", msg);
+        }
+        
+        // Send back confirmation to sender
+        socket.emit("receive_dm", msg);
+      } catch (err) {
+        console.error("[Socket] Failed to send DM:", err);
+      }
+    });
 
     // Queue events
     socket.on("join_queue", async (params) => {
@@ -231,6 +268,14 @@ export function registerSocketHandlers(io) {
 
     socket.on("disconnect", () => {
       console.log(`[Socket] Disconnected: ${socket.id}`);
+      
+      // Global presence cleanup
+      if (socket.username) {
+        onlineUsers.delete(socket.username);
+        console.log(`[Presence] User "${socket.username}" went offline.`);
+        socket.broadcast.emit("user_offline", socket.username);
+      }
+
       cleanUpQueue(socket);
       
       const currentRoomId = socket.currentRoomId;

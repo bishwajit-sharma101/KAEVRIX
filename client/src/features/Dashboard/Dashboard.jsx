@@ -48,7 +48,8 @@ export default function Dashboard({
   onTestJourneyDay,
   isSearching,
   onStartSoloStudy,
-  setStatus
+  setStatus,
+  socket
 }) {
   const [activeTab, setActiveTab] = useState("duels");
   const [personalizedFeed, setPersonalizedFeed] = useState([]);
@@ -833,6 +834,7 @@ export default function Dashboard({
             backendUrl={backendUrl}
             getRankTitle={getRankTitle}
             isDarkMode={isDarkMode}
+            socket={socket}
           />
         )}
 
@@ -849,26 +851,149 @@ export default function Dashboard({
         )}
 
         {activeTab === "rankings" && (
-          <div style={{ background: "#ffffff", borderRadius: "24px", padding: "40px", boxShadow: "0 10px 40px rgba(0,0,0,0.04)", border: "1px solid #f1f5f9" }}>
-            <h2 style={{ fontSize: "36px", fontWeight: "800", color: "#4338ca", marginBottom: "12px" }}>Global Rankings</h2>
-            <p style={{ color: "var(--text-muted)", fontSize: "16px", marginBottom: "40px" }}>The top duelists across all domains.</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {leaderboard.map((player, index) => (
-                <div key={player.username} style={{ display: "flex", alignItems: "center", gap: "20px", padding: "20px", background: player.username?.toLowerCase() === username?.toLowerCase() ? "#fff7ed" : "#f8fafc", borderRadius: "16px", border: player.username?.toLowerCase() === username?.toLowerCase() ? "2px solid var(--neon-orange)" : "1px solid #e2e8f0", transition: "all 0.2s ease" }}>
-                  <div style={{ fontSize: "24px", fontWeight: "900", color: index === 0 ? "#f59e0b" : index === 1 ? "#94a3b8" : index === 2 ? "#b45309" : "#cbd5e1", width: "40px", textAlign: "center" }}>#{index + 1}</div>
-                  <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "#fff", border: "2px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", overflow: "hidden" }}>
-                    {player.avatar ? (player.avatar.includes('http') ? <img src={player.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : player.avatar) : "👤"}
+          <div style={{ padding: "0 4px" }}>
+            <div style={{ marginBottom: "36px" }}>
+              <div style={{ fontSize: "11px", fontWeight: "800", color: "var(--neon-orange)", letterSpacing: "4px", marginBottom: "10px", fontFamily: "var(--font-gamer)" }}>
+                GLOBAL RANKINGS
+              </div>
+              <h2 style={{ 
+                fontSize: "44px", fontWeight: "900", margin: 0, lineHeight: 1.1, 
+                fontFamily: "var(--font-outfit)", letterSpacing: "-2px",
+                background: "var(--accent-gradient)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
+              }}>
+                The Top Duelists
+              </h2>
+              <p style={{ color: "var(--text-muted)", fontSize: "15px", margin: "10px 0 0", fontWeight: "500" }}>
+                Legends across all domains.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {leaderboard.map((player, index) => {
+                const isTop3 = index < 3;
+                const rankColor = index === 0 ? "var(--neon-gold)" : index === 1 ? "#cbd5e1" : index === 2 ? "#cd7f32" : "var(--text-muted)";
+                const rankGlow = index === 0 ? "0 0 15px rgba(255,179,0,0.6)" : index === 1 ? "0 0 10px rgba(203,213,225,0.4)" : index === 2 ? "0 0 10px rgba(205,127,50,0.4)" : "none";
+                const isMe = player.username?.toLowerCase() === username?.toLowerCase();
+
+                return (
+                  <div key={player.username} style={{ 
+                    position: "relative",
+                    display: "flex", alignItems: "center", gap: "24px", padding: "16px 24px", 
+                    borderRadius: "4px", cursor: "pointer", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    background: isMe ? "linear-gradient(90deg, rgba(255,106,0,0.1) 0%, transparent 100%)" : "rgba(255,255,255,0.02)",
+                    borderLeft: `4px solid ${isMe ? "var(--neon-orange)" : isTop3 ? rankColor : "transparent"}`,
+                    overflow: "hidden"
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = "linear-gradient(90deg, rgba(255,106,0,0.15) 0%, rgba(255,106,0,0.02) 100%)";
+                    e.currentTarget.style.transform = "translateX(4px)";
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = isMe ? "linear-gradient(90deg, rgba(255,106,0,0.1) 0%, transparent 100%)" : "rgba(255,255,255,0.02)";
+                    e.currentTarget.style.transform = "translateX(0)";
+                  }}
+                  >
+                    {/* Background glow for Top 3 */}
+                    {isTop3 && (
+                      <div style={{
+                        position: "absolute", top: 0, bottom: 0, left: 0, width: "100px",
+                        background: `linear-gradient(90deg, ${rankColor} 0%, transparent 100%)`,
+                        opacity: 0.05, pointerEvents: "none"
+                      }} />
+                    )}
+
+                    {/* Rank Number */}
+                    <div style={{ 
+                      width: "40px", textAlign: "right", fontSize: isTop3 ? "32px" : "20px", 
+                      fontWeight: "900", color: rankColor, fontFamily: "var(--font-gamer)", 
+                      textShadow: rankGlow, fontStyle: "italic", letterSpacing: "-2px" 
+                    }}>
+                      {index + 1}
+                    </div>
+                    
+                    {/* Avatar */}
+                    <div style={{ 
+                      width: "56px", height: "56px", borderRadius: "12px", 
+                      position: "relative", flexShrink: 0, overflow: "hidden", 
+                      border: `2px solid ${isTop3 ? rankColor : "var(--glass-border)"}`, 
+                      boxShadow: isTop3 ? rankGlow : "none",
+                      transform: "rotate(45deg)"
+                    }}>
+                      <div style={{ width: "142%", height: "142%", transform: "rotate(-45deg) translate(-15%, -15%)" }}>
+                        {player.avatar ? (
+                          player.avatar.includes('http') 
+                            ? <img src={player.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> 
+                            : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", background: "var(--bg-dark-surface)" }}>{player.avatar}</div>
+                        ) : (
+                          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", background: "var(--bg-dark-surface)" }}>👤</div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* User Info */}
+                    <div style={{ flex: 1, marginLeft: "12px" }}>
+                      <div style={{ 
+                        fontWeight: "800", color: isMe ? "var(--neon-orange)" : "var(--text-light)", 
+                        fontSize: "18px", fontFamily: "var(--font-outfit)", letterSpacing: "1px", 
+                        textTransform: "uppercase" 
+                      }}>
+                        {player.username}
+                      </div>
+                      <div style={{ fontSize: "11px", color: "var(--neon-orange)", marginTop: "4px", fontWeight: "700", fontFamily: "var(--font-gamer)", letterSpacing: "2px" }}>
+                        {getRankTitle(player.level || 1)}
+                      </div>
+                    </div>
+
+                    {/* Stats HUD Block */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "32px", borderLeft: "1px solid var(--glass-border)", paddingLeft: "32px" }}>
+                      {/* Level Hexagon */}
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "60px" }}>
+                        <div style={{ 
+                          fontSize: "24px", fontWeight: "900", color: "var(--text-light)", 
+                          fontFamily: "var(--font-gamer)", lineHeight: 1 
+                        }}>
+                          {player.level || 1}
+                        </div>
+                        <div style={{ fontSize: "9px", color: "var(--text-muted)", fontWeight: "800", letterSpacing: "2px", marginTop: "4px" }}>
+                          LEVEL
+                        </div>
+                      </div>
+
+                      {/* Score/XP */}
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "80px" }}>
+                        <div style={{ 
+                          fontSize: "18px", fontWeight: "800", color: "var(--neon-orange)", 
+                          fontFamily: "var(--font-outfit)", lineHeight: 1 
+                        }}>
+                          {(player.xp || 0).toLocaleString()}
+                        </div>
+                        <div style={{ fontSize: "9px", color: "var(--text-muted)", fontWeight: "800", letterSpacing: "2px", marginTop: "4px" }}>
+                          SCORE
+                        </div>
+                      </div>
+
+                      {/* Combat Record */}
+                      <div style={{ display: "flex", flexDirection: "column", width: "100px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                          <span style={{ fontSize: "10px", fontWeight: "800", color: "var(--neon-green)" }}>{player.wins || 0} W</span>
+                          <span style={{ fontSize: "10px", fontWeight: "800", color: "var(--text-muted)" }}>-</span>
+                          <span style={{ fontSize: "10px", fontWeight: "800", color: "var(--neon-pink)" }}>{player.losses || 0} L</span>
+                        </div>
+                        <div style={{ width: "100%", height: "4px", background: "var(--glass-border)", display: "flex" }}>
+                          <div style={{ 
+                            width: `${(player.wins || 0) + (player.losses || 0) === 0 ? 50 : ((player.wins || 0) / ((player.wins || 0) + (player.losses || 0))) * 100}%`, 
+                            height: "100%", background: "var(--neon-green)" 
+                          }} />
+                          <div style={{ flex: 1, height: "100%", background: "var(--neon-pink)" }} />
+                        </div>
+                        <div style={{ fontSize: "9px", color: "var(--text-muted)", fontWeight: "800", letterSpacing: "2px", marginTop: "6px", textAlign: "center" }}>
+                          WIN RATIO
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "18px", fontWeight: "700", color: "var(--text-light)" }}>{player.username}</div>
-                    <div style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "4px" }}>{getRankTitle(player.level || 1)}</div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                    <span style={{ fontSize: "16px", fontWeight: "800", color: "var(--neon-orange)" }}>LVL {player.level || 1}</span>
-                    <span style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>{player.wins} Wins | {player.losses} Losses</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
