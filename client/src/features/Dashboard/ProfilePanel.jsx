@@ -95,20 +95,20 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
     }
 
     if (profileEffect === "rage") {
-      document.body.style.background = "linear-gradient(to bottom, #4a0000 0%, #1a0000 100%)";
+      document.body.style.background = "linear-gradient(135deg, #180909 0%, #0c0404 100%)";
     } else if (profileEffect === "void") {
-      document.body.style.background = "linear-gradient(to bottom, #2b0b4a 0%, #0a0414 100%)";
+      document.body.style.background = "linear-gradient(135deg, #130a1c 0%, #09040d 100%)";
     } else if (profileEffect === "inferno") {
-      document.body.style.background = "linear-gradient(to bottom, #4a1c00 0%, #1a0500 100%)";
+      document.body.style.background = "linear-gradient(135deg, #1a0f08 0%, #0d0704 100%)";
     } else if (profileEffect === "matrix-glitch") {
-      document.body.style.background = "#051505";
+      document.body.style.background = "linear-gradient(135deg, #090d09 0%, #040604 100%)";
       document.body.style.setProperty("--text-light", "#00ff00");
     } else if (profileEffect === "blizzard") {
-      document.body.style.background = "linear-gradient(to bottom, #001f3f 0%, #000a14 100%)";
+      document.body.style.background = "linear-gradient(135deg, #0a111a 0%, #05080c 100%)";
     } else if (profileEffect === "thunder-storm") {
-      document.body.style.background = "linear-gradient(to bottom, #0a0f24 0%, #02040a 100%)";
+      document.body.style.background = "linear-gradient(135deg, #0d0f17 0%, #06070a 100%)";
     } else if (profileEffect === "magical-girl") {
-      document.body.style.background = "linear-gradient(to bottom, #fff0f5 0%, #ffe4e1 100%)";
+      document.body.style.background = "linear-gradient(135deg, #fff5f7 0%, #ffebee 100%)";
     }
 
     return () => {
