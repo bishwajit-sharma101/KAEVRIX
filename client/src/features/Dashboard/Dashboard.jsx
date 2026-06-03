@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import * as sound from "../../utils/audio";
 import CognitivePathfinder from "../Roadmap/CognitivePathfinder";
 import ProfilePanel from "./ProfilePanel";
+import CommunityTab from "../Community/CommunityTab";
 
 const TRENDING_TOPICS = [
   { icon: "⚡", label: "JavaScript", color: "#f59e0b", players: 1420 },
@@ -355,7 +356,7 @@ export default function Dashboard({
     { id: "profile", icon: "👤", label: "Profile" },
     { id: "duels", icon: "🎮", label: "Arena" },
     { id: "pathfinder", icon: "🧠", label: "Pathfinder" },
-    { id: "rules", icon: "📘", label: "Combat Manual" },
+    { id: "community", icon: "👥", label: "Community" },
     { id: "rankings", icon: "🏆", label: "Global Rankings" },
   ];
 
@@ -826,33 +827,13 @@ export default function Dashboard({
       </div>
     )}
 
-        {activeTab === "rules" && (
-          <div style={{ background: "#ffffff", borderRadius: "24px", padding: "40px", boxShadow: "0 10px 40px rgba(0,0,0,0.04)", border: "1px solid #f1f5f9" }}>
-            <h2 style={{ fontSize: "36px", fontWeight: "800", color: "#4338ca", marginBottom: "12px" }}>Combat Manual</h2>
-            <p style={{ color: "var(--text-muted)", fontSize: "16px", marginBottom: "40px" }}>Master the arena with these essential techniques and status effects.</p>
-            <div style={{ background: "linear-gradient(145deg, #f8fafc, #eff6ff)", borderRadius: "20px", padding: "30px", border: "1px solid #e2e8f0" }}>
-              <h3 style={{ fontSize: "24px", fontWeight: "700", color: "#1e40af", marginBottom: "20px" }}>Status Effects Explained</h3>
-              <p style={{ color: "var(--text-muted)", lineHeight: "1.6", marginBottom: "30px" }}>
-                Understanding how different status effects interact is key to dominating the Duel Arena. Collect battery power (+2% per sec) to invoke active countermeasures!
-              </p>
-              <div style={{ background: "#ffffff", borderRadius: "16px", padding: "25px", boxShadow: "0 4px 6px rgba(0,0,0,0.02)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: "20px" }}>
-                <h4 style={{ fontSize: "18px", fontWeight: "700", color: "var(--text-light)", marginBottom: "10px" }}>Weapon Systems</h4>
-                {[
-                  { icon: "⚡", bg: "#fef3c7", color: "#d97706", title: "EMP Freeze (50% energy)", desc: "Pause the opponent's video stream for 3 seconds and glitch their viewport with CRT static noise." },
-                  { icon: "🌫️", bg: "#f1f5f9", color: "#64748b", title: "Smoke Screen (40% energy)", desc: "Blur the opponent's view for 5 seconds using heavy smoke fog. Reduces visibility significantly." },
-                  { icon: "💻", bg: "#fee2e2", color: "#ef4444", title: "Hacker's Clue (60% energy)", desc: "Scans answers during the quiz phase to permanently filter out two incorrect choices for the active question." },
-                ].map(w => (
-                  <div key={w.title} style={{ display: "flex", gap: "15px", alignItems: "flex-start" }}>
-                    <div style={{ fontSize: "24px", background: w.bg, padding: "10px", borderRadius: "12px", color: w.color, display: "flex", flexShrink: 0 }}>{w.icon}</div>
-                    <div>
-                      <strong style={{ color: "var(--text-light)", fontSize: "15px" }}>{w.title}</strong>
-                      <p style={{ color: "var(--text-muted)", fontSize: "14px", marginTop: "4px", lineHeight: "1.5" }}>{w.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+        {activeTab === "community" && (
+          <CommunityTab 
+            username={username}
+            backendUrl={backendUrl}
+            getRankTitle={getRankTitle}
+            isDarkMode={isDarkMode}
+          />
         )}
 
         {activeTab === "pathfinder" && (

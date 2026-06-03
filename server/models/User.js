@@ -60,6 +60,18 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 1,
   },
+  friends: {
+    type: [String],
+    default: [],
+  },
+  friendRequests: {
+    type: [String],
+    default: [],
+  },
+  sentRequests: {
+    type: [String],
+    default: [],
+  },
 });
 
 const User = mongoose.model("User", userSchema);

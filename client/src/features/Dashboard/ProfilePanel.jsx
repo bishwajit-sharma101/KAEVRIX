@@ -26,7 +26,7 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits,
     }
   };
 
-  const clsDef = CHARACTER_CLASSES[selectedClass] || CHARACTER_CLASSES["doomscroller"];
+  const clsDef = CHARACTER_CLASSES[selectedClass || profile?.selectedClass] || CHARACTER_CLASSES["doomscroller"];
   const level = profile ? profile.level : 1;
   const xp = profile ? profile.xp : 0;
   const xpForNextLevel = level * 200;

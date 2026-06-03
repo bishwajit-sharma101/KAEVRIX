@@ -6,6 +6,12 @@ import {
   getPlayerProfile, 
   addSoloXp 
 } from "../services/leaderboardService.js";
+import {
+  getDiscoverUsers,
+  getFriendsData,
+  sendFriendRequest,
+  respondToRequest
+} from "../services/communityService.js";
 import { 
   generateRoadmapFromAnswers, 
   generateStudyNotes,
@@ -222,19 +228,66 @@ router.post("/quiz/generate", async (req, res) => {
   }
 });
 
-// POST Solo XP
+// POST Solo XP Update
 router.post("/solo-xp", async (req, res) => {
   const { username, xpEarned, videoTitle } = req.body;
-  if (!username || !xpEarned) {
-    return res.status(400).json({ error: "username and xpEarned required" });
+  if (!username || xpEarned == null) {
+    return res.status(400).json({ error: "Missing required fields" });
   }
 
   const result = await addSoloXp(username, xpEarned, videoTitle);
-  if (!result) {
-    return res.status(404).json({ error: "User not found" });
+  if (result) {
+    res.json(result);
+  } else {
+    res.status(400).json({ error: "Failed to update solo xp" });
   }
+});
 
-  res.json(result);
+// GET Community Discover
+router.get("/community/discover/:username", async (req, res) => {
+  const { username } = req.params;
+  const { filter } = req.query;
+  try {
+    const users = await getDiscoverUsers(username, filter);
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET Community Friends Data
+router.get("/community/friends/:username", async (req, res) => {
+  const { username } = req.params;
+  try {
+    const data = await getFriendsData(username);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST Send Friend Request
+router.post("/community/request", async (req, res) => {
+  const { fromUser, toUser } = req.body;
+  if (!fromUser || !toUser) return res.status(400).json({ error: "Missing usernames" });
+  try {
+    await sendFriendRequest(fromUser, toUser);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST Respond to Request
+router.post("/community/respond", async (req, res) => {
+  const { username, fromUser, action } = req.body; // action: "accept" | "reject"
+  if (!username || !fromUser || !action) return res.status(400).json({ error: "Missing fields" });
+  try {
+    await respondToRequest(username, fromUser, action);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // POST Auth Register
