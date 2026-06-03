@@ -14,6 +14,9 @@ const PRESET_COSMETICS = [
   { banner: "none", avatarFrame: "inferno-aura", profileEffect: "inferno" },
   { banner: "none", avatarFrame: "rage-aura", profileEffect: "rage" },
   { banner: "none", avatarFrame: "void-aura", profileEffect: "void" },
+  { banner: "none", avatarFrame: "sakura-bunny", profileEffect: "sakura-dream" },
+  { banner: "none", avatarFrame: "synth-ring", profileEffect: "cyberpunk-neon" },
+  { banner: "none", avatarFrame: "vinyl-glow", profileEffect: "lofi-study" },
   { banner: "https://images.unsplash.com/photo-1620802051772-52055660890c?w=800", avatarFrame: "kawaii-clouds", profileEffect: "magical-girl" },
   { banner: "https://images.unsplash.com/photo-1561485132-59468cd0b553?w=800", avatarFrame: "lightning-strike", profileEffect: "thunder-storm" },
   { banner: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800", avatarFrame: "hologram-ring", profileEffect: "matrix-glitch" },
@@ -82,7 +85,7 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
       return;
     }
 
-    if (["rage", "void", "inferno", "matrix-glitch", "blizzard", "thunder-storm"].includes(profileEffect)) {
+    if (["rage", "void", "inferno", "matrix-glitch", "blizzard", "thunder-storm", "cyberpunk-neon"].includes(profileEffect)) {
       document.body.style.setProperty("--text-light", "#ffffff");
       document.body.style.setProperty("--text-muted", "rgba(255, 255, 255, 0.6)");
       document.body.style.setProperty("--bg-dark-base", "rgba(0, 0, 0, 0.5)");
@@ -92,6 +95,16 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
       document.body.style.setProperty("--text-muted", "#f06292");
       document.body.style.setProperty("--bg-dark-base", "#ffe4e1");
       document.body.style.setProperty("--bg-dark-surface", "#fff0f5");
+    } else if (profileEffect === "sakura-dream") {
+      document.body.style.setProperty("--text-light", "#880e4f");
+      document.body.style.setProperty("--text-muted", "#ad1457");
+      document.body.style.setProperty("--bg-dark-base", "#fff3f5");
+      document.body.style.setProperty("--bg-dark-surface", "#fff8fa");
+    } else if (profileEffect === "lofi-study") {
+      document.body.style.setProperty("--text-light", "#f5e6d3");
+      document.body.style.setProperty("--text-muted", "#a89f91");
+      document.body.style.setProperty("--bg-dark-base", "rgba(0, 0, 0, 0.4)");
+      document.body.style.setProperty("--bg-dark-surface", "rgba(0, 0, 0, 0.4)");
     }
 
     if (profileEffect === "rage") {
@@ -109,6 +122,14 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
       document.body.style.background = "linear-gradient(135deg, #0d0f17 0%, #06070a 100%)";
     } else if (profileEffect === "magical-girl") {
       document.body.style.background = "linear-gradient(135deg, #fff5f7 0%, #ffebee 100%)";
+    } else if (profileEffect === "sakura-dream") {
+      document.body.style.background = "linear-gradient(135deg, #fff5f7 0%, #ffebee 100%)";
+    } else if (profileEffect === "cyberpunk-neon") {
+      document.body.style.background = "linear-gradient(135deg, #0d0614 0%, #030107 100%)";
+      document.body.style.setProperty("--text-light", "#00ffff");
+      document.body.style.setProperty("--text-muted", "#ff00ff");
+    } else if (profileEffect === "lofi-study") {
+      document.body.style.background = "linear-gradient(135deg, #131110 0%, #0b0a09 100%)";
     }
 
     return () => {
@@ -241,6 +262,82 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
           0%, 100% { opacity: 0.8; }
           50% { opacity: 0.3; filter: hue-rotate(90deg); }
         }
+
+        /* ============================ */
+        /* 4. SAKURA DREAM              */
+        /* ============================ */
+        @keyframes sakuraSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes sakuraPetalFall {
+          0% { transform: translateY(-20px) translateX(0) rotate(0deg); opacity: 0; }
+          10% { opacity: 0.8; }
+          90% { opacity: 0.8; }
+          100% { transform: translateY(600px) translateX(100px) rotate(360deg); opacity: 0; }
+        }
+        @keyframes bunnyEarWiggle {
+          0%, 100% { transform: rotate(-15deg) scale(1); }
+          50% { transform: rotate(-18deg) scale(1.03); }
+        }
+        @keyframes bunnyEarWiggleRight {
+          0%, 100% { transform: rotate(15deg) scale(1); }
+          50% { transform: rotate(18deg) scale(1.03); }
+        }
+
+        /* ============================ */
+        /* 5. CYBERPUNK NEON            */
+        /* ============================ */
+        @keyframes cyberGridScroll {
+          0% { transform: perspective(200px) rotateX(60deg) translateY(0); }
+          100% { transform: perspective(200px) rotateX(60deg) translateY(40px); }
+        }
+        @keyframes neonFlicker {
+          0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+            box-shadow: 0 0 10px #00ffff, 0 0 20px rgba(0, 255, 255, 0.4), inset 0 0 10px #00ffff;
+            border-color: #00ffff;
+          }
+          20%, 24%, 55% {
+            box-shadow: none;
+            border-color: rgba(0, 255, 255, 0.2);
+          }
+        }
+        @keyframes neonFlickerPink {
+          0%, 14%, 16%, 18%, 20%, 64%, 66%, 100% {
+            box-shadow: 0 0 10px #ff00ff, 0 0 20px rgba(255, 0, 255, 0.4), inset 0 0 10px #ff00ff;
+            border-color: #ff00ff;
+          }
+          15%, 19%, 65% {
+            box-shadow: none;
+            border-color: rgba(255, 0, 255, 0.2);
+          }
+        }
+        @keyframes synthwaveSunPulse {
+          0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.15; }
+          50% { transform: translateX(-50%) scale(1.05); opacity: 0.25; }
+        }
+
+        /* ============================ */
+        /* 6. LOFI STUDY                */
+        /* ============================ */
+        @keyframes vinylSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes lofiNotesRise {
+          0% { transform: translateY(50px) translateX(0) scale(0.8) rotate(0deg); opacity: 0; }
+          10% { opacity: 0.7; }
+          90% { opacity: 0.7; }
+          100% { transform: translateY(-450px) translateX(-40px) scale(1.1) rotate(15deg); opacity: 0; }
+        }
+        @keyframes dustFloat {
+          0%, 100% { transform: translateY(0) translateX(0); opacity: 0.2; }
+          50% { transform: translateY(-120px) translateX(20px); opacity: 0.7; }
+        }
+        @keyframes warmLightRay {
+          0%, 100% { opacity: 0.08; transform: rotate(-12deg) scaleX(1); }
+          50% { opacity: 0.20; transform: rotate(-10deg) scaleX(1.05); }
+        }
       `}</style>
 
       {/* --- BACKGROUND PROFILE EFFECTS --- */}
@@ -359,6 +456,91 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
         </div>
       )}
 
+      {/* Sakura Dream Effect */}
+      {profileEffect === "sakura-dream" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          {[...Array(24)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", top: "-20px", left: (Math.random() * 100) + "%", 
+              fontSize: (12 + Math.random() * 16) + "px",
+              animation: "sakuraPetalFall " + (4 + Math.random() * 5) + "s linear " + (Math.random() * 5) + "s infinite",
+              opacity: 0.8
+            }}>🌸</div>
+          ))}
+        </div>
+      )}
+
+      {/* Cyberpunk Neon Effect */}
+      {profileEffect === "cyberpunk-neon" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
+          {/* Retro Neon Sun */}
+          <div style={{ 
+            position: "absolute", top: "40px", left: "50%",
+            width: "320px", height: "160px", 
+            background: "linear-gradient(to bottom, #ff007f 0%, #ffaa00 100%)",
+            borderRadius: "160px 160px 0 0",
+            animation: "synthwaveSunPulse 6s ease-in-out infinite",
+            zIndex: -1
+          }}>
+            {/* Horizontal sun slices */}
+            {[...Array(6)].map((_, i) => (
+               <div key={i} style={{ 
+                 position: "absolute", bottom: (i * 12) + "px", left: 0, width: "100%", height: (2 + i) + "px", background: "var(--bg-dark-base)" 
+               }} />
+            ))}
+          </div>
+          
+          {/* Perspective Cyber Grid */}
+          <div style={{ 
+            position: "absolute", bottom: 0, left: "-50%", width: "200%", height: "350px", 
+            backgroundImage: "linear-gradient(rgba(0, 255, 255, 0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 255, 0.15) 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+            transformOrigin: "top center",
+            animation: "cyberGridScroll 2s linear infinite",
+            maskImage: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)",
+            WebkitMaskImage: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)",
+            opacity: 0.35, zIndex: -1
+          }} />
+        </div>
+      )}
+
+      {/* Lo-Fi Study Effect */}
+      {profileEffect === "lofi-study" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          {/* Warm Cafe Window Light Ray */}
+          <div style={{ 
+            position: "absolute", top: "-10%", left: "-10%", width: "60%", height: "120%", 
+            background: "linear-gradient(105deg, rgba(245, 230, 211, 0.08) 0%, transparent 60%)",
+            transformOrigin: "top left",
+            animation: "warmLightRay 8s ease-in-out infinite",
+            zIndex: -1
+          }} />
+          
+          {/* Rising chill music notes */}
+          {[...Array(8)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", bottom: "-20px", left: (15 + Math.random() * 70) + "%", 
+              fontSize: (18 + Math.random() * 12) + "px", color: "#f5e6d3",
+              animation: "lofiNotesRise " + (6 + Math.random() * 4) + "s linear " + (Math.random() * 6) + "s infinite",
+              opacity: 0.45
+            }}>{i % 2 === 0 ? "🎵" : "🎶"}</div>
+          ))}
+          
+          {/* Floating dust motes in the warm light */}
+          {[...Array(15)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", 
+              top: (Math.random() * 100) + "%", left: (Math.random() * 100) + "%", 
+              width: (2 + Math.random() * 4) + "px", height: (2 + Math.random() * 4) + "px", 
+              background: "#f5e6d3", borderRadius: "50%",
+              boxShadow: "0 0 6px #f5e6d3",
+              animation: "dustFloat " + (8 + Math.random() * 6) + "s ease-in-out " + (Math.random() * 4) + "s infinite",
+              opacity: 0.35
+            }} />
+          ))}
+        </div>
+      )}
+
       {/* 1. CUSTOMIZABLE BANNER SECTION */}
       <div style={{ 
         width: "100%", height: "240px", 
@@ -460,11 +642,79 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
               </>
             )}
 
+            {avatarFrame === "sakura-bunny" && (
+              <>
+                {/* Wiggling Bunny Ears */}
+                <div style={{ 
+                  position: "absolute", top: "-45px", left: "15px", width: "30px", height: "70px", 
+                  background: "#ffffff", border: "5px solid #ff80ab", borderRadius: "50% 50% 0 0", 
+                  transform: "rotate(-15deg)", transformOrigin: "bottom center", 
+                  animation: "bunnyEarWiggle 3s ease-in-out infinite", zIndex: 1 
+                }}>
+                  <div style={{ width: "12px", height: "45px", background: "#ff80ab", borderRadius: "50% 50% 0 0", margin: "10px auto 0" }} />
+                </div>
+                <div style={{ 
+                  position: "absolute", top: "-45px", right: "15px", width: "30px", height: "70px", 
+                  background: "#ffffff", border: "5px solid #ff80ab", borderRadius: "50% 50% 0 0", 
+                  transform: "rotate(15deg)", transformOrigin: "bottom center", 
+                  animation: "bunnyEarWiggleRight 3s ease-in-out 0.3s infinite", zIndex: 1 
+                }}>
+                  <div style={{ width: "12px", height: "45px", background: "#ff80ab", borderRadius: "50% 50% 0 0", margin: "10px auto 0" }} />
+                </div>
+                {/* Spin Sakura Blossom outline */}
+                <div style={{ 
+                  position: "absolute", inset: "-15px", border: "4px dashed #ff80ab", borderRadius: "50%", 
+                  animation: "sakuraSpin 15s linear infinite", filter: "drop-shadow(0 0 8px #ff80ab)" 
+                }} />
+                {/* Cute Floating Blossoms */}
+                <div style={{ position: "absolute", top: "-5px", left: "-5px", fontSize: "22px", animation: "kawaiiFloat 2s ease-in-out infinite" }}>🌸</div>
+                <div style={{ position: "absolute", bottom: "-5px", right: "-5px", fontSize: "22px", animation: "kawaiiFloat 2.5s ease-in-out infinite" }}>🌸</div>
+              </>
+            )}
+
+            {avatarFrame === "synth-ring" && (
+              <>
+                {/* Cyan outer ring */}
+                <div style={{ 
+                  position: "absolute", inset: "-15px", border: "3px solid #00ffff", borderRadius: "50%", 
+                  animation: "sakuraSpin 4s linear infinite, neonFlicker 3s infinite", zIndex: 1 
+                }} />
+                {/* Pink inner ring */}
+                <div style={{ 
+                  position: "absolute", inset: "-8px", border: "3px solid #ff00ff", borderRadius: "50%", 
+                  animation: "sakuraSpin 6s linear reverse infinite, neonFlickerPink 4s infinite", zIndex: 1 
+                }} />
+                {/* Grid dots behind */}
+                <div style={{ 
+                  position: "absolute", inset: "-25px", background: "radial-gradient(circle, rgba(0,255,255,0.2) 2px, transparent 4px)", 
+                  backgroundSize: "10px 10px", borderRadius: "50%", filter: "blur(2px)", zIndex: -1 
+                }} />
+              </>
+            )}
+
+            {avatarFrame === "vinyl-glow" && (
+              <>
+                {/* Rotating Vinyl Record Frame */}
+                <div style={{ 
+                  position: "absolute", inset: "-22px", 
+                  background: "repeating-radial-gradient(circle, #1c1917, #1c1917 4px, #0c0a09 5px, #0c0a09 8px)", 
+                  border: "2px solid #d97706", borderRadius: "50%", 
+                  animation: "vinylSpin 12s linear infinite", 
+                  boxShadow: "0 0 20px rgba(217,119,6,0.45)", zIndex: -1 
+                }}>
+                  <div style={{ position: "absolute", inset: "25px", border: "2px solid rgba(217,119,6,0.3)", borderRadius: "50%" }} />
+                </div>
+                {/* Floating gold music notes */}
+                <div style={{ position: "absolute", top: "-10px", left: "-10px", fontSize: "20px", color: "#d97706", animation: "kawaiiFloat 2s ease-in-out infinite" }}>🎵</div>
+                <div style={{ position: "absolute", bottom: "-10px", right: "-10px", fontSize: "20px", color: "#d97706", animation: "kawaiiFloat 3s ease-in-out infinite" }}>🎶</div>
+              </>
+            )}
+
             <div style={{ 
               width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden",
               background: "var(--bg-dark-surface)", display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: "60px", position: "relative", zIndex: 5,
-              ...(avatarFrame !== "lightning-strike" && avatarFrame !== "inferno-aura" && avatarFrame !== "rage-aura" && avatarFrame !== "void-aura" && avatarFrame !== "kawaii-clouds" && avatarFrame !== "hologram-ring" && avatarFrame !== "frost-ring" ? getAvatarFrameStyle(avatarFrame) : { border: "2px solid transparent" })
+              ...(!["lightning-strike", "inferno-aura", "rage-aura", "void-aura", "kawaii-clouds", "hologram-ring", "frost-ring", "sakura-bunny", "synth-ring", "vinyl-glow"].includes(avatarFrame) ? getAvatarFrameStyle(avatarFrame) : { border: "2px solid transparent" })
             }}>
               {profile?.avatar ? (
                 profile.avatar.includes('http') ? <img src={profile.avatar} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : profile.avatar
