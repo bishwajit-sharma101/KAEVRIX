@@ -12,6 +12,7 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
   const [selectedProfileUser, setSelectedProfileUser] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [sentThisSession, setSentThisSession] = useState([]);
+  const [activeView, setActiveView] = useState("discover"); // discover | squad | requests
   const itemsPerPage = 8;
 
   const fetchFriendsData = async () => {
@@ -149,27 +150,97 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
         z-index: 0;
       }
       .cv4-add-btn {
-        padding: 7px 18px;
-        border-radius: 8px;
+        padding: 8px 22px;
+        border-radius: 20px;
         border: none;
         background: var(--accent-gradient);
         color: #fff;
-        font-weight: 700;
-        font-size: 12px;
+        font-weight: 800;
+        font-size: 11px;
         cursor: pointer;
-        transition: all 0.15s ease;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-family: var(--font-sans);
-        box-shadow: 0 2px 10px rgba(255,106,0,0.2);
+        letter-spacing: 1px;
+        font-family: var(--font-gamer);
+        box-shadow: 0 3px 12px rgba(255,106,0,0.25);
+        position: relative;
+        overflow: hidden;
+      }
+      .cv4-add-btn::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+        opacity: 0;
+        transition: opacity 0.25s;
       }
       .cv4-add-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(255,106,0,0.35);
-        filter: brightness(1.1);
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 6px 24px rgba(255,106,0,0.45), 0 0 0 2px rgba(255,106,0,0.15);
+      }
+      .cv4-add-btn:hover::before {
+        opacity: 1;
       }
       .cv4-add-btn:active {
-        transform: translateY(0);
+        transform: translateY(0) scale(0.98);
+      }
+      /* Tab bar */
+      .cv4-tab-bar {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 32px;
+        border-bottom: 1px solid var(--glass-border);
+        padding-bottom: 0;
+      }
+      .cv4-tab {
+        padding: 10px 24px;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        font-weight: 700;
+        font-size: 13px;
+        font-family: var(--font-gamer);
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        text-transform: uppercase;
+      }
+      .cv4-tab::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: transparent;
+        border-radius: 2px 2px 0 0;
+        transition: all 0.2s ease;
+      }
+      .cv4-tab:hover {
+        color: var(--text-light);
+      }
+      .cv4-tab-active {
+        color: var(--neon-orange);
+      }
+      .cv4-tab-active::after {
+        background: var(--accent-gradient);
+        box-shadow: 0 0 10px rgba(255,106,0,0.3);
+      }
+      .cv4-tab-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        background: var(--neon-orange);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 800;
+        margin-left: 8px;
+        padding: 0 5px;
+        font-family: var(--font-sans);
       }
       .cv4-sent-badge {
         padding: 7px 14px;
@@ -182,38 +253,41 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
         border: 1px solid rgba(255,106,0,0.15);
       }
       .cv4-accept-btn {
-        padding: 7px 18px;
-        border-radius: 8px;
+        padding: 8px 22px;
+        border-radius: 20px;
         border: none;
-        background: var(--accent-gradient);
+        background: var(--neon-green);
         color: #fff;
-        font-weight: 700;
-        font-size: 12px;
+        font-weight: 800;
+        font-size: 11px;
         cursor: pointer;
-        transition: all 0.15s ease;
-        font-family: var(--font-sans);
-        box-shadow: 0 2px 10px rgba(255,106,0,0.2);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        font-family: var(--font-gamer);
+        letter-spacing: 1px;
+        box-shadow: 0 3px 12px rgba(16,185,129,0.25);
       }
       .cv4-accept-btn:hover {
-        box-shadow: 0 4px 15px rgba(255,106,0,0.4);
-        transform: translateY(-1px);
+        box-shadow: 0 6px 24px rgba(16,185,129,0.45);
+        transform: translateY(-2px) scale(1.05);
       }
       .cv4-deny-btn {
-        padding: 7px 16px;
-        border-radius: 8px;
+        padding: 8px 22px;
+        border-radius: 20px;
         border: 1px solid var(--glass-border);
         background: transparent;
         color: var(--text-muted);
-        font-weight: 700;
-        font-size: 12px;
+        font-weight: 800;
+        font-size: 11px;
         cursor: pointer;
-        transition: all 0.15s ease;
-        font-family: var(--font-sans);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        font-family: var(--font-gamer);
+        letter-spacing: 1px;
       }
       .cv4-deny-btn:hover {
-        border-color: #ef4444;
-        color: #ef4444;
-        background: rgba(239,68,68,0.05);
+        border-color: var(--neon-pink);
+        color: var(--neon-pink);
+        background: rgba(255,59,48,0.05);
+        transform: translateY(-1px);
       }
       .cv4-allied-badge {
         padding: 5px 12px;
@@ -489,39 +563,74 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
           </p>
         </div>
 
-        {/* Incoming Requests */}
-        {incomingRequests.length > 0 && (
-          <div style={{ marginBottom: "40px" }}>
-            <div className="cv4-section-line" style={{ color: "var(--neon-orange)" }}>
-              <span>⚡ {incomingRequests.length} PENDING REQUEST{incomingRequests.length > 1 ? "S" : ""}</span>
-            </div>
-            {incomingRequests.map(user => (
-              <Row key={user.username} user={user} action={
-                <div style={{ display: "flex", gap: "8px" }}>
-                  <button className="cv4-accept-btn" onClick={(e) => handleRespond(e, user.username, "accept")}>ACCEPT</button>
-                  <button className="cv4-deny-btn" onClick={(e) => handleRespond(e, user.username, "reject")}>DECLINE</button>
+        {/* Tab Bar */}
+        <div className="cv4-tab-bar">
+          <button className={`cv4-tab ${activeView === "discover" ? "cv4-tab-active" : ""}`} onClick={() => { sound.playClockTick(); setActiveView("discover"); }}>
+            Discover
+          </button>
+          <button className={`cv4-tab ${activeView === "squad" ? "cv4-tab-active" : ""}`} onClick={() => { sound.playClockTick(); setActiveView("squad"); }}>
+            My Squad
+            {friends.length > 0 && <span className="cv4-tab-badge">{friends.length}</span>}
+          </button>
+          <button className={`cv4-tab ${activeView === "requests" ? "cv4-tab-active" : ""}`} onClick={() => { sound.playClockTick(); setActiveView("requests"); }}>
+            Requests
+            {incomingRequests.length > 0 && <span className="cv4-tab-badge">{incomingRequests.length}</span>}
+          </button>
+        </div>
+
+        {/* Requests View */}
+        {activeView === "requests" && (
+          <div>
+            {incomingRequests.length > 0 ? (
+              <>
+                <div className="cv4-section-line" style={{ color: "var(--neon-orange)" }}>
+                  <span>⚡ {incomingRequests.length} PENDING</span>
                 </div>
-              } />
-            ))}
+                {incomingRequests.map(user => (
+                  <Row key={user.username} user={user} action={
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button className="cv4-accept-btn" onClick={(e) => handleRespond(e, user.username, "accept")}>ACCEPT</button>
+                      <button className="cv4-deny-btn" onClick={(e) => handleRespond(e, user.username, "reject")}>DECLINE</button>
+                    </div>
+                  } />
+                ))}
+              </>
+            ) : (
+              <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)" }}>
+                <div style={{ fontSize: "36px", marginBottom: "12px" }}>📩</div>
+                <div style={{ fontSize: "16px", fontWeight: "700", color: "var(--text-light)", fontFamily: "var(--font-outfit)", marginBottom: "6px" }}>No pending requests</div>
+                <div style={{ fontSize: "13px", fontWeight: "500" }}>When someone sends you a friend request, it will show up here.</div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Friends */}
-        {friends.length > 0 && (
-          <div style={{ marginBottom: "40px" }}>
-            <div className="cv4-section-line">
-              <span>MY SQUAD · {friends.length}</span>
-            </div>
-            {friends.map(user => (
-              <Row key={user.username} user={user} action={
-                <span className="cv4-allied-badge">ALLIED</span>
-              } />
-            ))}
+        {/* Squad View */}
+        {activeView === "squad" && (
+          <div>
+            {friends.length > 0 ? (
+              <>
+                <div className="cv4-section-line">
+                  <span>MY SQUAD · {friends.length}</span>
+                </div>
+                {friends.map(user => (
+                  <Row key={user.username} user={user} action={
+                    <span className="cv4-allied-badge">ALLIED</span>
+                  } />
+                ))}
+              </>
+            ) : (
+              <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)" }}>
+                <div style={{ fontSize: "36px", marginBottom: "12px" }}>🤝</div>
+                <div style={{ fontSize: "16px", fontWeight: "700", color: "var(--text-light)", fontFamily: "var(--font-outfit)", marginBottom: "6px" }}>No allies yet</div>
+                <div style={{ fontSize: "13px", fontWeight: "500" }}>Add players from the Discover tab and build your squad.</div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Discover */}
-        <div>
+        {/* Discover View */}
+        {activeView === "discover" && <div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
             <div className="cv4-section-line" style={{ marginBottom: 0, flex: "none" }}>
               <span>DISCOVER PLAYERS</span>
@@ -577,7 +686,7 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
               <button className="cv4-page-btn" disabled={currentPage === totalPages} onClick={() => { sound.playClockTick(); setCurrentPage(p => p + 1); }}>NEXT →</button>
             </div>
           )}
-        </div>
+        </div>}
       </div>
 
       {/* Profile Modal */}
