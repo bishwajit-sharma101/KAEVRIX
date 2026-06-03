@@ -1,5 +1,6 @@
 import express from "express";
 import ytSearch from "yt-search";
+import User from "../models/User.js";
 import { curatedVideos } from "../quizData.js";
 import { 
   getLeaderboard, 
@@ -241,6 +242,26 @@ router.post("/solo-xp", async (req, res) => {
     res.json(result);
   } else {
     res.status(400).json({ error: "Failed to update solo xp" });
+  }
+});
+
+// POST Update Profile Cosmetics
+router.post("/profile/cosmetics", async (req, res) => {
+  const { username, banner, avatarFrame } = req.body;
+  if (!username) return res.status(400).json({ error: "Username required" });
+  
+  try {
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    user.cosmetics = user.cosmetics || {};
+    if (banner !== undefined) user.cosmetics.banner = banner;
+    if (avatarFrame !== undefined) user.cosmetics.avatarFrame = avatarFrame;
+
+    await user.save();
+    res.json({ success: true, cosmetics: user.cosmetics });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

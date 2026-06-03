@@ -105,6 +105,28 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
 
   useEffect(() => { loadAllData(); }, [username, backendUrl]);
 
+  // Listen for real-time friend updates
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handleFriendUpdate = (data) => {
+      // Reload friends list when a request is received or accepted
+      fetchFriendsData();
+      if (data && data.sender) {
+        // Optionally show a small toast here if a toast system exists
+        console.log(`Friend update from ${data.sender}`);
+      }
+    };
+
+    socket.on("receive_friend_request", handleFriendUpdate);
+    socket.on("friend_request_accepted", handleFriendUpdate);
+
+    return () => {
+      socket.off("receive_friend_request", handleFriendUpdate);
+      socket.off("friend_request_accepted", handleFriendUpdate);
+    };
+  }, [socket, username, backendUrl]);
+
   const handleFilterSearch = (e) => {
     e.preventDefault();
     sound.playClockTick();
@@ -123,6 +145,9 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
       if (res.ok) {
         setSentThisSession(prev => [...prev, toUser]);
         sound.playLevelUp();
+        if (socket) {
+          socket.emit("send_friend_request", { sender: username, receiver: toUser });
+        }
       }
     } catch (err) { console.error("Send request failed", err); }
   };
@@ -137,7 +162,12 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
         body: JSON.stringify({ username, fromUser, action })
       });
       if (res.ok) {
-        if (action === "accept") sound.playLevelUp();
+        if (action === "accept") {
+          sound.playLevelUp();
+          if (socket) {
+            socket.emit("respond_friend_request", { sender: username, receiver: fromUser, action: "accept" });
+          }
+        }
         fetchFriendsData();
       }
     } catch (err) { console.error("Respond failed", err); }

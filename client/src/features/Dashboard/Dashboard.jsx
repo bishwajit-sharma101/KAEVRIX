@@ -708,9 +708,9 @@ export default function Dashboard({
             ) : searchQuery ? (
               // Search results mode
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
-                {(searchResults || []).map((video) => (
+                {(searchResults || []).map((video, idx) => (
                   <div
-                    key={video.id}
+                    key={`${video.id}-${idx}`}
                     onClick={() => handleSelectVideo(video)}
                     className={`hud-card ${selectedVideo?.id === video.id ? "hud-card-active" : ""}`}
                     style={getVideoCardStyle(video)}
@@ -733,9 +733,9 @@ export default function Dashboard({
                   
                   {todayVideos.length > 0 ? (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
-                      {todayVideos.map((video) => (
+                      {todayVideos.map((video, idx) => (
                         <div
-                          key={video.id}
+                          key={`${video.id}-${idx}`}
                           onClick={() => handleSelectVideo(video)}
                           className={`hud-card ${selectedVideo?.id === video.id ? "hud-card-active" : ""}`}
                           style={getVideoCardStyle(video)}
@@ -762,9 +762,9 @@ export default function Dashboard({
 
                   {personalizedFeed.length > 0 ? (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
-                      {personalizedFeed.map((video) => (
+                      {personalizedFeed.map((video, idx) => (
                         <div
-                          key={video.id}
+                          key={`${video.id}-${idx}`}
                           onClick={() => handleSelectVideo(video)}
                           className={`hud-card ${selectedVideo?.id === video.id ? "hud-card-active" : ""}`}
                           style={getVideoCardStyle(video)}
@@ -783,9 +783,9 @@ export default function Dashboard({
             ) : (
               // Curated Fallbacks
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
-                {(curatedVideos || []).map((video) => (
+                {(curatedVideos || []).map((video, idx) => (
                   <div
-                    key={video.id}
+                    key={`${video.id}-${idx}`}
                     onClick={() => handleSelectVideo(video)}
                     className={`hud-card ${selectedVideo?.id === video.id ? "hud-card-active" : ""}`}
                     style={getVideoCardStyle(video)}
@@ -919,13 +919,13 @@ export default function Dashboard({
                       boxShadow: isTop3 ? rankGlow : "none",
                       transform: "rotate(45deg)"
                     }}>
-                      <div style={{ width: "142%", height: "142%", transform: "rotate(-45deg) translate(-15%, -15%)" }}>
+                      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", transform: "rotate(-45deg) scale(1.45)" }}>
                         {player.avatar ? (
                           player.avatar.includes('http') 
                             ? <img src={player.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> 
-                            : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", background: "var(--bg-dark-surface)" }}>{player.avatar}</div>
+                            : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", background: "var(--bg-dark-surface)" }}>{player.avatar}</div>
                         ) : (
-                          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", background: "var(--bg-dark-surface)" }}>👤</div>
+                          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", background: "var(--bg-dark-surface)" }}>👤</div>
                         )}
                       </div>
                     </div>

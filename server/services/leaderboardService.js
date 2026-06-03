@@ -1,5 +1,43 @@
 import User from "../models/User.js";
 
+// --- SKILL SYSTEM HELPERS ---
+const categorizeVideo = (title) => {
+  if (!title) return "General Tech";
+  const t = title.toLowerCase();
+  if (t.includes("javascript") || t.includes(" js ") || t.includes("react") || t.includes("node")) return "JavaScript";
+  if (t.includes("python") || t.includes("django") || t.includes("flask")) return "Python";
+  if (t.includes(" os ") || t.includes("operating system") || t.includes("linux")) return "Operating Systems";
+  if (t.includes("c++") || t.includes("cpp")) return "C++";
+  if (t.includes("java") || t.includes("spring")) return "Java";
+  if (t.includes("css") || t.includes("html") || t.includes("frontend") || t.includes("web dev")) return "Frontend Web";
+  if (t.includes("system design") || t.includes("architecture")) return "System Design";
+  if (t.includes("algorithm") || t.includes("leetcode") || t.includes("data structure")) return "Algorithms";
+  return "General Tech";
+};
+
+const calculateTier = (xp) => {
+  if (xp >= 5000) return "Legend";
+  if (xp >= 3000) return "Master";
+  if (xp >= 1500) return "Expert";
+  if (xp >= 500) return "Adept";
+  return "Novice";
+};
+
+const awardSkillXp = (user, title, xpEarned) => {
+  if (!user.skills) user.skills = [];
+  const skillName = categorizeVideo(title);
+  let skill = user.skills.find(s => s.name === skillName);
+  
+  if (!skill) {
+    skill = { name: skillName, xp: 0, tier: "Novice" };
+    user.skills.push(skill);
+  }
+  
+  skill.xp += xpEarned;
+  skill.tier = calculateTier(skill.xp);
+};
+// ----------------------------
+
 let onStatsUpdatedCallback = null;
 
 export function registerStatsCallback(cb) {
@@ -67,6 +105,8 @@ export async function updatePlayerStats(username, xpGained, won, videoDetails = 
       if (user.watchHistory.length > 20) {
         user.watchHistory = user.watchHistory.slice(0, 20);
       }
+
+      awardSkillXp(user, videoDetails.title, xpGained);
     }
 
     // Level formula: Level = Math.floor(XP / 200) + 1
@@ -110,6 +150,7 @@ export async function addSoloXp(username, xpEarned, videoTitle) {
          user.watchHistory = user.watchHistory.slice(0, 20);
       }
       user.totalVideosWatched = (user.totalVideosWatched || 0) + 1;
+      awardSkillXp(user, videoTitle, xpEarned);
     }
 
     await user.save();

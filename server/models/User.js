@@ -72,6 +72,20 @@ const userSchema = new mongoose.Schema({
     type: [String],
     default: [],
   },
+  skills: {
+    type: [
+      {
+        name: String,
+        xp: { type: Number, default: 0 },
+        tier: { type: String, default: "Novice" }
+      }
+    ],
+    default: [],
+  },
+  cosmetics: {
+    banner: { type: String, default: "" },
+    avatarFrame: { type: String, default: "" }
+  }
 });
 
 const User = mongoose.model("User", userSchema);

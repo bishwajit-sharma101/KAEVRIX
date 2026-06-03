@@ -53,6 +53,23 @@ export function registerSocketHandlers(io) {
       }
     });
 
+    socket.on("send_friend_request", ({ sender, receiver }) => {
+      const receiverSocketId = onlineUsers.get(receiver);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("receive_friend_request", { sender });
+      }
+    });
+
+    socket.on("respond_friend_request", ({ sender, receiver, action }) => {
+      // sender is the person accepting/rejecting the request, receiver is the original requester
+      if (action === "accept") {
+        const receiverSocketId = onlineUsers.get(receiver);
+        if (receiverSocketId) {
+          io.to(receiverSocketId).emit("friend_request_accepted", { sender });
+        }
+      }
+    });
+
     // Queue events
     socket.on("join_queue", async (params) => {
       await joinQueue(socket, params);
