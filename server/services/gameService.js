@@ -469,7 +469,7 @@ export function handleBotHitByPowerup(room, botPlayer, type) {
 }
 
 // Evaluate Match & Announce Winner
-export function evaluateGame(room) {
+export async function evaluateGame(room) {
   if (!io) return;
   room.status = "finished";
   
@@ -573,7 +573,7 @@ export function evaluateGame(room) {
   };
 
   // Update XP and levels for human players
-  room.players.forEach((p) => {
+  for (const p of room.players) {
     if (!p.isBot) {
       let base = 50; // base participation XP
       let won = false;
@@ -586,16 +586,19 @@ export function evaluateGame(room) {
       }
 
       const xpGained = base + (p.inVideoXp || 0);
-      const { user, leveledUp } = updatePlayerStats(p.username, xpGained, won, room.video, p.avatar, p.selectedClass);
+      const { user, leveledUp } = await updatePlayerStats(p.username, xpGained, won, room.video, p.avatar, p.selectedClass);
       p.xpGained = xpGained;
       p.leveledUp = leveledUp;
-      p.totalXp = user.xp;
-      p.level = user.level;
+      if (user) {
+        p.totalXp = user.xp;
+        p.level = user.level;
+      }
     }
-  });
+  }
 
-  io.to(room.id).emit("game_over", { results, room, leaderboard: getLeaderboard() });
-  console.log(`[Game] Room "${room.id}" finished. Winner: ${isDraw ? "Draw" : winner.username}`);
+  const leaderboard = await getLeaderboard();
+  io.to(room.id).emit("game_over", { results, room, leaderboard });
+  console.log(`[Game] Room "${room.id}" finished. Winner: ${isDraw ? "Draw" : winner?.username}`);
   
   // Cancel active intervals if any
   const timers = activeIntervals.get(room.id);

@@ -9,7 +9,8 @@ import {
 import { 
   generateRoadmapFromAnswers, 
   generateStudyNotes,
-  generateQuizForVideo
+  generateQuizForVideo,
+  generateLevelMilestones
 } from "../geminiService.js";
 import {
   registerUser,
@@ -22,13 +23,13 @@ import {
 const router = express.Router();
 
 // GET Leaderboard
-router.get("/leaderboard", (req, res) => {
-  res.json(getLeaderboard());
+router.get("/leaderboard", async (req, res) => {
+  res.json(await getLeaderboard());
 });
 
 // GET Profile
-router.get("/profile/:username", (req, res) => {
-  const user = getPlayerProfile(req.params.username);
+router.get("/profile/:username", async (req, res) => {
+  const user = await getPlayerProfile(req.params.username);
   if (user) {
     res.json(user);
   } else {
@@ -166,6 +167,25 @@ router.post("/pathfinder/generate", async (req, res) => {
   }
 });
 
+// POST Pathfinder Generate Level (Lazy JIT Generation)
+router.post("/pathfinder/generate-level", async (req, res) => {
+  req.setTimeout(600000);
+  res.setTimeout(600000);
+  const { topic, level, previousContext } = req.body;
+  
+  if (!topic || !level) {
+    return res.status(400).json({ error: "topic and level are required" });
+  }
+
+  try {
+    const milestones = await generateLevelMilestones(topic, level, previousContext);
+    res.json({ milestones });
+  } catch (err) {
+    console.error(`[Pathfinder] Level ${level} generation failed:`, err.message);
+    res.status(500).json({ error: `Level ${level} generation failed`, details: err.message });
+  }
+});
+
 // POST Pathfinder Study Notes
 router.post("/pathfinder/study-notes", async (req, res) => {
   req.setTimeout(600000);
@@ -203,13 +223,13 @@ router.post("/quiz/generate", async (req, res) => {
 });
 
 // POST Solo XP
-router.post("/solo-xp", (req, res) => {
+router.post("/solo-xp", async (req, res) => {
   const { username, xpEarned, videoTitle } = req.body;
   if (!username || !xpEarned) {
     return res.status(400).json({ error: "username and xpEarned required" });
   }
 
-  const result = addSoloXp(username, xpEarned, videoTitle);
+  const result = await addSoloXp(username, xpEarned, videoTitle);
   if (!result) {
     return res.status(404).json({ error: "User not found" });
   }
@@ -218,10 +238,10 @@ router.post("/solo-xp", (req, res) => {
 });
 
 // POST Auth Register
-router.post("/auth/register", (req, res) => {
+router.post("/auth/register", async (req, res) => {
   const { username, password, avatar, selectedClass } = req.body;
   try {
-    const result = registerUser(username, password, avatar, selectedClass);
+    const result = await registerUser(username, password, avatar, selectedClass);
     res.json(result);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -229,10 +249,10 @@ router.post("/auth/register", (req, res) => {
 });
 
 // POST Auth Login
-router.post("/auth/login", (req, res) => {
+router.post("/auth/login", async (req, res) => {
   const { username, password } = req.body;
   try {
-    const result = loginUser(username, password);
+    const result = await loginUser(username, password);
     res.json(result);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -240,19 +260,19 @@ router.post("/auth/login", (req, res) => {
 });
 
 // POST Auth Verify Token
-router.post("/auth/verify", (req, res) => {
+router.post("/auth/verify", async (req, res) => {
   const { token } = req.body;
   if (!token) return res.status(400).json({ error: "Token required" });
   const username = verifyToken(token);
   if (!username) return res.status(401).json({ error: "Invalid token session" });
-  const user = getUserProfile(username);
+  const user = await getUserProfile(username);
   if (!user) return res.status(404).json({ error: "User profile not found" });
   res.json({ user });
 });
 
 // GET Auth Theme & Identity of Username
-router.get("/auth/theme/:username", (req, res) => {
-  const info = getUserThemeInfo(req.params.username);
+router.get("/auth/theme/:username", async (req, res) => {
+  const info = await getUserThemeInfo(req.params.username);
   if (info) {
     res.json(info);
   } else {

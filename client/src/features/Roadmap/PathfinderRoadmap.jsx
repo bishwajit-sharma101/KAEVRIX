@@ -206,6 +206,24 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
   const answers = savedAnswers ? JSON.parse(savedAnswers) : [];
   const userReason = answers.find(a => a.question.toLowerCase().includes("why"))?.answer || "learning";
 
+  const cleanMilestoneTitle = (title) => {
+    if (!title) return "";
+    const rawAns = answers && answers.length > 0 ? answers[0].answer : "";
+    let cleaned = title;
+    if (rawAns && rawAns.length > 20 && cleaned.includes(rawAns)) {
+      cleaned = cleaned.replace(rawAns, "").trim() || "Module";
+    }
+    if (cleaned.length > 45) {
+      const words = cleaned.split(" ");
+      if (words.length > 4) {
+        cleaned = "..." + words.slice(-4).join(" ");
+      } else {
+        cleaned = cleaned.substring(0, 45) + "...";
+      }
+    }
+    return cleaned;
+  };
+
   const handleGenerate = async () => {
     setLoading(true);
     setGenStep(0);
@@ -239,7 +257,7 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
       sound.playCorrect();
     } catch (err) {
       clearInterval(logInterval);
-      const fallback = `## ${milestone.title}\n\n${milestone.description}\n\n${(milestone.keyPoints || []).map(p => `- ${p}`).join("\n")}`;
+      const fallback = `## ${cleanMilestoneTitle(milestone.title)}\n\n${cleanMilestoneTitle(milestone.description).replace("Get started with Module,", "Get started,")}\n\n${(milestone.keyPoints || []).map(p => `- ${p}`).join("\n")}`;
       setNotes(fallback);
       onSaveNotes(milestone.id, fallback);
     } finally {
@@ -329,7 +347,7 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
               {cfg.label}
             </span>
             <h2 style={{ fontSize: "24px", fontWeight: "900", color: "#0f172a", marginTop: "12px", marginBottom: "8px", lineHeight: "1.25" }}>
-              {milestone.title}
+              {cleanMilestoneTitle(milestone.title)}
             </h2>
             <p style={{ fontSize: "14px", color: "#64748b", lineHeight: "1.5", marginBottom: "24px" }}>
               {milestone.description}
@@ -467,7 +485,7 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
               Kaevrix Pathfinder Study Suite
             </div>
             <div style={{ color: "#ffffff", fontSize: "20px", fontWeight: "950", marginTop: "2px" }}>
-              📖 {milestone.title} Notes
+              📖 {cleanMilestoneTitle(milestone.title)} Notes
             </div>
           </div>
           <button 
@@ -689,7 +707,7 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
   );
 }
 
-function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, onSearchDuel, onMarkComplete, onUpdateMilestoneData, onOpenNotes, onSelectVideo, isDarkMode }) {
+function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, onSearchDuel, onMarkComplete, onUpdateMilestoneData, onOpenNotes, onSelectVideo, isDarkMode, username }) {
   const cfg = getStatusConfig(isDarkMode)[milestone.status] || getStatusConfig(isDarkMode).locked;
   const hasNotes = !!milestone.studyNotes;
 
@@ -699,6 +717,26 @@ function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, on
   const keyPoints = milestone.keyPoints || [];
   const activeSubtopicIndex = milestone.subtopicIndex || 0;
   const isAllSubtopicsFinished = activeSubtopicIndex >= keyPoints.length;
+
+  const cleanMilestoneTitle = (title) => {
+    if (!title) return "";
+    const savedAnswers = localStorage.getItem(`kaevrix_roadmap_answers_${username}`);
+    const answers = savedAnswers ? JSON.parse(savedAnswers) : null;
+    const rawAns = answers && answers[0] ? answers[0].answer : "";
+    let cleaned = title;
+    if (rawAns && rawAns.length > 20 && cleaned.includes(rawAns)) {
+      cleaned = cleaned.replace(rawAns, "").trim() || "Module";
+    }
+    if (cleaned.length > 45) {
+      const words = cleaned.split(" ");
+      if (words.length > 4) {
+        cleaned = "..." + words.slice(-4).join(" ");
+      } else {
+        cleaned = cleaned.substring(0, 45) + "...";
+      }
+    }
+    return cleaned;
+  };
 
   useEffect(() => {
     // Only search if strictly unlocked (skip locked and completed) and not all finished
@@ -778,10 +816,10 @@ function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, on
             <span style={{ fontSize: "12px", fontWeight: "800", color: levelColor }}>+{milestone.xpReward} XP</span>
           </div>
           <h2 style={{ fontSize: "22px", fontWeight: "900", color: isDarkMode ? "#fff" : "var(--text-light)", lineHeight: "1.3", marginBottom: "6px" }}>
-            {milestone.title}
+            {cleanMilestoneTitle(milestone.title)}
           </h2>
           <p style={{ fontSize: "14px", color: isDarkMode ? "rgba(255,255,255,0.6)" : "var(--text-muted)", lineHeight: "1.5", margin: 0 }}>
-            {milestone.description}
+            {cleanMilestoneTitle(milestone.description).replace("Get started with Module,", "Get started,")}
           </p>
         </div>
 
@@ -1428,6 +1466,57 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
   const [expandedLevel, setExpandedLevel] = useState(1);
   const [viewingNotes, setViewingNotes] = useState(false);
   const [activeVideo, setActiveVideo] = useState(null);
+  
+  const [decryptingLevel, setDecryptingLevel] = useState(null);
+  const [decryptError, setDecryptError] = useState(null);
+
+  const handleDecryptLevel = async (levelNum) => {
+    if (decryptingLevel) return;
+    setDecryptingLevel(levelNum);
+    setDecryptError(null);
+    try {
+      sound.playClockTick();
+      
+      // Build context of previously completed levels
+      const prevContext = [];
+      if (levelNum > 1 && roadmap.level1) {
+        prevContext.push(...roadmap.level1.milestones.map(m => m.title));
+      }
+      if (levelNum > 2 && roadmap.level2) {
+        prevContext.push(...roadmap.level2.milestones.map(m => m.title));
+      }
+
+      const res = await fetch(`${BACKEND_URL}/api/pathfinder/generate-level`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: roadmap.topic,
+          level: levelNum,
+          previousContext: prevContext.join(", ")
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to decrypt level. Neural link unstable.");
+      }
+
+      const data = await res.json();
+      
+      setRoadmap(prev => {
+        const next = JSON.parse(JSON.stringify(prev));
+        next[`level${levelNum}`].milestones = data.milestones;
+        return next;
+      });
+      
+      sound.playLevelUp();
+    } catch (err) {
+      console.error("[Decrypt] Error:", err);
+      setDecryptError(err.message);
+      sound.playError();
+    } finally {
+      setDecryptingLevel(null);
+    }
+  };
 
   const saveStudyNotes = (milestoneId, notesText) => {
     setRoadmap(prev => {
@@ -1682,10 +1771,31 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
                 🗺️ COGNITIVE PATHFINDER
               </span>
             </div>
-            <h1 style={{ fontSize: "32px", fontWeight: "900", color: "var(--text-light)", marginBottom: "4px", textShadow: isDarkMode ? "0 0 15px rgba(255,255,255,0.15)" : "none" }}>
+            <h1 style={{ 
+              fontSize: "32px", 
+              fontWeight: "900", 
+              color: "var(--text-light)", 
+              marginBottom: "4px", 
+              textShadow: isDarkMode ? "0 0 15px rgba(255,255,255,0.15)" : "none",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+              textOverflow: "ellipsis"
+            }}>
               {roadmap.topic}
             </h1>
-            <p style={{ color: "var(--text-muted)", fontSize: "15px", maxWidth: "600px", lineHeight: "1.5" }}>
+            <p style={{ 
+              color: "var(--text-muted)", 
+              fontSize: "15px", 
+              maxWidth: "600px", 
+              lineHeight: "1.5",
+              display: "-webkit-box",
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+              textOverflow: "ellipsis"
+            }}>
               {roadmap.summary}
             </p>
           </div>
@@ -1993,26 +2103,89 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
                     ))}
                   </div>
 
-                  {/* Level completion message */}
-                  {data.completedInLevel === data.milestones.length && (
-                    <div style={{
-                      marginTop: "20px",
-                      padding: "16px 20px",
-                      background: `${color}15`,
-                      border: `1.5px solid ${color}44`,
-                      borderRadius: "14px",
-                      display: "flex", alignItems: "center", gap: "12px",
-                      boxShadow: `0 0 15px ${color}11`
-                    }}>
-                      <span style={{ fontSize: "24px" }}>🎉</span>
-                      <div>
-                        <div style={{ fontWeight: "800", color, fontSize: "15px" }}>Level Complete!</div>
-                        <div style={{ fontSize: "13px", color: "var(--text-muted)" }}>
-                          You've mastered all {data.milestones.length} milestones in this level. Next level unlocked!
+                  {/* Level completion or Decrypt Next Level message */}
+                  {(() => {
+                    if (data.completedInLevel !== data.milestones.length) return null;
+                    
+                    const nextLevelNum = levelNum + 1;
+                    const nextLevelKey = `level${nextLevelNum}`;
+                    const nextLevelData = roadmap[nextLevelKey];
+                    const isNextEncrypted = nextLevelData?.milestones?.[0]?.isEncrypted;
+
+                    if (isNextEncrypted) {
+                      const isDecrypting = decryptingLevel === nextLevelNum;
+                      return (
+                        <div style={{
+                          marginTop: "20px", padding: "20px",
+                          background: `linear-gradient(135deg, #0f172a, ${color}15)`,
+                          border: `1.5px solid ${color}66`,
+                          borderRadius: "14px", textAlign: "center",
+                          boxShadow: `0 0 25px ${color}22`
+                        }}>
+                          <div style={{ fontWeight: "800", color, fontSize: "16px", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "1px" }}>
+                            Neural Link Established
+                          </div>
+                          <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "16px" }}>
+                            You have mastered Level {levelNum}. Level {nextLevelNum} is currently encrypted.
+                          </div>
+                          
+                          {decryptError && decryptingLevel === nextLevelNum && (
+                            <div style={{ color: "#ef4444", fontSize: "12px", marginBottom: "12px" }}>
+                              {decryptError}
+                            </div>
+                          )}
+
+                          <button 
+                            onClick={() => handleDecryptLevel(nextLevelNum)}
+                            disabled={isDecrypting}
+                            style={{
+                              background: isDecrypting ? "#334155" : `linear-gradient(45deg, ${color}, #2563eb)`,
+                              color: "#fff",
+                              border: "none",
+                              padding: "12px 24px",
+                              borderRadius: "8px",
+                              fontWeight: "bold",
+                              fontSize: "14px",
+                              cursor: isDecrypting ? "not-allowed" : "pointer",
+                              display: "inline-flex", alignItems: "center", gap: "8px",
+                              boxShadow: isDecrypting ? "none" : `0 4px 15px ${color}66`,
+                              transition: "all 0.2s"
+                            }}>
+                            {isDecrypting ? (
+                              <>
+                                <span style={{ animation: "spin 1s linear infinite" }}>⚙️</span> Decrypting Curriculum...
+                              </>
+                            ) : (
+                              <>
+                                🔓 Decrypt Level {nextLevelNum}
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div style={{
+                        marginTop: "20px",
+                        padding: "16px 20px",
+                        background: `${color}15`,
+                        border: `1.5px solid ${color}44`,
+                        borderRadius: "14px",
+                        display: "flex", alignItems: "center", gap: "12px",
+                        boxShadow: `0 0 15px ${color}11`
+                      }}>
+                        <span style={{ fontSize: "24px" }}>🎉</span>
+                        <div>
+                          <div style={{ fontWeight: "800", color, fontSize: "15px" }}>Level Complete!</div>
+                          <div style={{ fontSize: "13px", color: "var(--text-muted)" }}>
+                            You've mastered all {data.milestones.length} milestones in this level.
+                            {nextLevelData ? " Next level unlocked!" : " You've completed the roadmap!"}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
                 );
               })()}
@@ -2042,6 +2215,7 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
             setSelectedMilestone(null);
           }}
           isDarkMode={isDarkMode}
+          username={username}
         />
       )}
 

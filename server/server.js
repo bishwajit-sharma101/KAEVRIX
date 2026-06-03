@@ -3,8 +3,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 
-import { loadLeaderboard } from "./services/leaderboardService.js";
-import { loadUsers } from "./services/authService.js";
+import connectDB from "./config/db.js";
 import { init as initGameService } from "./services/gameService.js";
 import { init as initMatchmakingService } from "./services/matchmakingService.js";
 import apiRouter from "./routes/apiRoutes.js";
@@ -27,10 +26,6 @@ const io = new Server(httpServer, {
   }
 });
 
-// Load persistent data
-loadLeaderboard();
-loadUsers();
-
 // Initialize services with io instance
 initGameService(io);
 initMatchmakingService(io);
@@ -41,9 +36,11 @@ app.use("/api", apiRouter);
 // Register Socket handlers
 registerSocketHandlers(io);
 
-// Start Server
-httpServer.listen(PORT, () => {
-  console.log(`========================================`);
-  console.log(` Kaevrix Backend Server Running on Port ${PORT}`);
-  console.log(`========================================`);
+// Connect to Database and Start Server
+connectDB().then(() => {
+  httpServer.listen(PORT, () => {
+    console.log(`========================================`);
+    console.log(` Kaevrix Backend Server Running on Port ${PORT}`);
+    console.log(`========================================`);
+  });
 });

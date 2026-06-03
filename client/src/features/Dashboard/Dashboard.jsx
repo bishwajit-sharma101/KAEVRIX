@@ -98,8 +98,40 @@ export default function Dashboard({
   const savedAnswers = localStorage.getItem(answersKey);
   const answers = savedAnswers ? JSON.parse(savedAnswers) : null;
   
-  const topic = savedRoadmap?.topic || (answers && answers[0] ? answers[0].answer : "");
-  const why = savedRoadmap?.goal || (answers && answers[1] ? answers[1].answer : "");
+  const truncateText = (text, maxLength = 45) => {
+    if (!text) return "";
+    if (text.length <= maxLength) return text;
+    // Attempt to slice cleanly
+    return text.substring(0, maxLength).trim() + "...";
+  };
+
+  let rawTopic = savedRoadmap?.topic || (answers && answers[0] ? answers[0].answer : "");
+  if (rawTopic.length > 35) {
+    // Extract a small relatable title (first 3-4 words) from the massive prompt
+    const words = rawTopic.split(/\s+/);
+    rawTopic = words.length > 3 ? words.slice(0, 4).join(" ") : rawTopic.substring(0, 30);
+  }
+  const topic = truncateText(rawTopic);
+  const why = truncateText(savedRoadmap?.goal || (answers && answers[1] ? answers[1].answer : ""), 80);
+
+  const cleanMilestoneTitle = (title) => {
+    if (!title) return "";
+    const rawAns = answers && answers[0] ? answers[0].answer : "";
+    let cleaned = title;
+    if (rawAns && rawAns.length > 20 && cleaned.includes(rawAns)) {
+      cleaned = cleaned.replace(rawAns, "Module:").trim();
+    }
+    // If it's still weirdly long, just return the last 30 characters (which usually contains the actual subject like "Orientation") or clamp it.
+    if (cleaned.length > 45) {
+      const words = cleaned.split(" ");
+      if (words.length > 4) {
+        cleaned = "..." + words.slice(-4).join(" ");
+      } else {
+        cleaned = cleaned.substring(0, 45) + "...";
+      }
+    }
+    return cleaned;
+  };
 
   // Get active subtopic from roadmap progression
   const getActiveSubtopic = () => {
@@ -321,7 +353,7 @@ export default function Dashboard({
 
   const navItems = [
     { id: "profile", icon: "👤", label: "Profile" },
-    { id: "duels", icon: "🎮", label: "Duel Arena" },
+    { id: "duels", icon: "🎮", label: "Arena" },
     { id: "pathfinder", icon: "🧠", label: "Pathfinder" },
     { id: "rules", icon: "📘", label: "Combat Manual" },
     { id: "rankings", icon: "🏆", label: "Global Rankings" },
@@ -389,85 +421,124 @@ export default function Dashboard({
         {activeTab === "duels" && (
           <div>
             {/* Premium Topic Header */}
-            {/* Premium Topic Header */}
-            {!searchQuery && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "24px" }}>
-                <div>
-                  <div style={{ fontSize: "9px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "2.5px", fontFamily: "var(--font-gamer)", textTransform: "uppercase", marginBottom: "2px" }}>
-                    {topic ? "ACTIVE PATHWAY" : "CLASS ONBOARDING"}
-                  </div>
-                  <h1 style={{ 
-                    fontSize: "26px", 
-                    fontWeight: "900", 
-                    margin: 0, 
-                    color: "var(--text-light)",
-                    lineHeight: "1.2",
-                    fontFamily: "var(--font-outfit)",
-                    letterSpacing: "-0.5px"
-                  }}>
-                    {topic || "TRAINING ARENA"}
-                  </h1>
-                </div>
-                {topic && activeSubtopicObj && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
-                    <span className="hud-tag hud-tag-green" style={{ fontSize: "10px", fontWeight: "800", padding: "4px 10px", borderRadius: "6px" }}>
-                      <span className="hud-pulse-dot" />
-                      TARGET DIRECTIVE // {activeSubtopicObj.subtopic}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Pathfinder Cognitive Profile Offline Alert Banner */}
-            {!searchQuery && !topic && (
+            {/* Main Duels Content Logic */}
+            {!searchQuery && !topic ? (
               <div style={{
-                background: isDarkMode 
-                  ? "rgba(239, 68, 68, 0.08)"
-                  : "linear-gradient(135deg, #fff1f2, #fffbeb)",
-                border: isDarkMode ? "1.5px solid rgba(239, 68, 68, 0.25)" : "1.5px solid #fecdd3",
-                boxShadow: "0 10px 30px rgba(239,68,68,0.03)",
-                borderRadius: "20px",
-                padding: "32px",
-                marginBottom: "36px",
+                width: "100%",
+                minHeight: "60vh",
                 display: "flex",
                 flexDirection: "column",
-                gap: "18px",
                 alignItems: "center",
-                textAlign: "center"
+                justifyContent: "center",
+                padding: "40px",
+                textAlign: "center",
+                background: "transparent"
               }}>
-                <div style={{ fontSize: "40px", animation: "pulse 2s infinite" }}>🧠</div>
-                <div>
-                  <h3 style={{ fontSize: "18px", fontWeight: "900", color: isDarkMode ? "#fca5a5" : "#be123c", margin: "0 0 6px 0", letterSpacing: "0.5px", textTransform: "uppercase" }}>
-                    Pathfinder Cognitive Profile Offline
-                  </h3>
-                  <p style={{ fontSize: "14px", color: isDarkMode ? "rgba(255,255,255,0.6)" : "#475569", margin: 0, lineHeight: "1.5", maxWidth: "580px" }}>
-                    To unlock your personalized training grounds, specialized playlist categories, and custom AI study notes, you must first construct your learning roadmap.
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleTabChange("pathfinder")}
-                  style={{
-                    padding: "12px 28px",
-                    borderRadius: "12px",
-                    border: "none",
-                    background: "linear-gradient(135deg, #ef4444, #f59e0b)",
-                    color: "#fff",
-                    fontWeight: "800",
-                    fontSize: "13.5px",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 15px rgba(239,68,68,0.25)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    transition: "all 0.2s"
-                  }}
-                  onMouseOver={e => e.currentTarget.style.transform = "translateY(-1px)"}
-                  onMouseOut={e => e.currentTarget.style.transform = "none"}
-                >
-                  ⚡ Initialize Pathfinder Onboarding
+                <style>{`
+                  .premium-empty-text {
+                    font-size: 6vw;
+                    max-font-size: 80px;
+                    min-font-size: 40px;
+                    font-weight: 900;
+                    line-height: 1.1;
+                    letter-spacing: 4px;
+                    font-family: var(--font-gamer);
+                    text-transform: uppercase;
+                    color: var(--text-light);
+                    margin-bottom: 24px;
+                    opacity: 0.9;
+                  }
+                  .premium-empty-subtext {
+                    font-size: 20px;
+                    font-weight: 500;
+                    color: var(--text-muted);
+                    max-width: 600px;
+                    line-height: 1.6;
+                    margin-bottom: 48px;
+                    font-family: var(--font-outfit);
+                  }
+                  .premium-text-link {
+                    font-size: 18px;
+                    font-weight: 800;
+                    color: #ea580c;
+                    text-transform: uppercase;
+                    letter-spacing: 2px;
+                    font-family: var(--font-gamer);
+                    cursor: pointer;
+                    position: relative;
+                    padding: 10px 20px;
+                    transition: all 0.3s ease;
+                    background: transparent;
+                    border: none;
+                  }
+                  .premium-text-link::after {
+                    content: '';
+                    position: absolute;
+                    bottom: 0;
+                    left: 50%;
+                    width: 0;
+                    height: 2px;
+                    background: #ea580c;
+                    transition: all 0.3s ease;
+                    transform: translateX(-50%);
+                  }
+                  .premium-text-link:hover {
+                    color: #f97316;
+                    text-shadow: 0 0 20px rgba(234, 88, 12, 0.4);
+                  }
+                  .premium-text-link:hover::after {
+                    width: 80%;
+                  }
+                `}</style>
+                
+                <h2 className="premium-empty-text" style={{ fontSize: "clamp(40px, 6vw, 80px)" }}>
+                  ARENA OFFLINE
+                </h2>
+                
+                <p className="premium-empty-subtext">
+                  You cannot enter the training grounds without a target directive. Engage the Pathfinder to establish your learning roadmap and unlock the Arena.
+                </p>
+
+                <button className="premium-text-link" onClick={() => handleTabChange("pathfinder")}>
+                  Setup Pathfinder →
                 </button>
               </div>
-            )}
+            ) : (
+              <>
+                {/* Premium Topic Header */}
+                {!searchQuery && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "24px" }}>
+                    <div>
+                      <div style={{ fontSize: "9px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "2.5px", fontFamily: "var(--font-gamer)", textTransform: "uppercase", marginBottom: "2px" }}>
+                        {topic ? "ACTIVE PATHWAY" : "CLASS ONBOARDING"}
+                      </div>
+                      <h1 style={{ 
+                        fontSize: "26px", 
+                        fontWeight: "900", 
+                        margin: 0, 
+                        color: "var(--text-light)",
+                        lineHeight: "1.2",
+                        fontFamily: "var(--font-outfit)",
+                        letterSpacing: "-0.5px",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis"
+                      }}>
+                        {topic ? (topic.length > 60 ? topic.substring(0, 60) + "..." : topic) : "TRAINING ARENA"}
+                      </h1>
+                    </div>
+                    {topic && activeSubtopicObj && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+                        <span className="hud-tag hud-tag-green" style={{ fontSize: "10px", fontWeight: "800", padding: "4px 10px", borderRadius: "6px" }}>
+                          <span className="hud-pulse-dot" />
+                          TARGET DIRECTIVE // {activeSubtopicObj.subtopic}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
             {/* Search Results Header */}
             {searchQuery && (
@@ -750,8 +821,10 @@ export default function Dashboard({
                 </div>
               </div>
             )}
-          </div>
+          </>
         )}
+      </div>
+    )}
 
         {activeTab === "rules" && (
           <div style={{ background: "#ffffff", borderRadius: "24px", padding: "40px", boxShadow: "0 10px 40px rgba(0,0,0,0.04)", border: "1px solid #f1f5f9" }}>
@@ -842,7 +915,7 @@ export default function Dashboard({
                         marginBottom: "8px", borderBottom: "1px solid var(--glass-border)",
                         paddingBottom: "4px", fontFamily: "var(--font-gamer)", letterSpacing: "0.5px", textTransform: "uppercase"
                       }}>
-                        {m.title}
+                        {cleanMilestoneTitle(m.title)}
                       </div>
                       
                       {m.keyPoints?.map((pt, i) => {

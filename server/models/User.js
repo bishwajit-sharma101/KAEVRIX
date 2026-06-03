@@ -1,0 +1,67 @@
+import mongoose from "mongoose";
+
+const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true,
+  },
+  salt: {
+    type: String,
+    required: true,
+  },
+  passwordHash: {
+    type: String,
+    required: true,
+  },
+  avatar: {
+    type: String,
+    default: "https://api.dicebear.com/7.x/bottts/svg?seed=newuser",
+  },
+  selectedClass: {
+    type: String,
+    default: "doomscroller",
+  },
+  xp: {
+    type: Number,
+    default: 0,
+  },
+  level: {
+    type: Number,
+    default: 1,
+  },
+  wins: {
+    type: Number,
+    default: 0,
+  },
+  losses: {
+    type: Number,
+    default: 0,
+  },
+  totalVideosWatched: {
+    type: Number,
+    default: 0,
+  },
+  totalWatchTime: {
+    type: Number,
+    default: 0,
+  },
+  watchHistory: {
+    type: Array,
+    default: [],
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  lastSeenDay: {
+    type: Number,
+    default: 1,
+  },
+});
+
+const User = mongoose.model("User", userSchema);
+
+export default User;

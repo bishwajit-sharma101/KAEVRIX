@@ -75,7 +75,12 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
   const answersKey = `kaevrix_roadmap_answers_${username}`;
   const savedAnswers = localStorage.getItem(answersKey);
   const answers = savedAnswers ? JSON.parse(savedAnswers) : [];
-  const topic = savedRoadmap?.topic || (answers && answers[0] ? answers[0].answer : (video.category || "General learning"));
+  let rawTopic = savedRoadmap?.topic || (answers && answers[0] ? answers[0].answer : (video.category || "General learning"));
+  if (rawTopic.length > 35) {
+    const words = rawTopic.split(/\s+/);
+    rawTopic = words.length > 3 ? words.slice(0, 4).join(" ") : rawTopic.substring(0, 30);
+  }
+  const topic = rawTopic;
 
   // Track if unlocked alert has played
   const alertPlayedRef = useRef(false);
@@ -1105,7 +1110,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                       lineHeight: "1.6",
                       textAlign: "center"
                     }}>
-                      Generate a comprehensive guide for <strong style={{ color: "#ff6a00", background: "none", boxShadow: "none", padding: 0 }}>"{topic}"</strong> with syntax comparison matrices, refactoring blueprints, and core interview questions.
+                      Generate a comprehensive guide for <strong style={{ color: "#ff6a00", background: "none", boxShadow: "none", padding: 0 }}>"{topic && topic.length > 40 ? topic.substring(0, 40) + "..." : topic}"</strong> with syntax comparison matrices, refactoring blueprints, and core interview questions.
                     </p>
 
                     {/* Note Style Toggle Switch */}

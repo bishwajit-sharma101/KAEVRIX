@@ -70,17 +70,25 @@ function buildFallbackRoadmap(topic, goal) {
   const t = topic || "Your Subject";
 
   // Smart detailed fallback for any generic subject
-  const milestoneBase = (level, idx, titles, descs) => ({
-    id: `${level}-${idx}`,
-    title: titles[idx] || `${t} Step ${idx + 1}`,
-    description: descs[idx] || `Learn the essential sub-topic under ${titles[idx] || "this milestone"}.`,
-    searchQuery: `${t} ${titles[idx] || "tutorial"}`,
-    keyPoints: ["Understand core concepts", "Practice with examples", "Review common pitfalls", "Check interview questions"],
-    estimatedMinutes: 45,
-    status: level === 1 && idx === 0 ? "unlocked" : "locked",
-    xpReward: 40 + idx * 5,
-    isRevision: false
-  });
+  const milestoneBase = (level, idx, titles, descs) => {
+    const title = titles[idx] || `${t} Step ${idx + 1}`;
+    return {
+      id: `${level}-${idx}`,
+      title,
+      description: descs[idx] || `Learn the essential sub-topic under ${title}.`,
+      searchQuery: `${t} ${title} tutorial`,
+      keyPoints: [
+        `Understand ${title} concepts`,
+        `Practice ${title} with examples`,
+        `Review common pitfalls in ${title}`,
+        `Check interview questions for ${title}`
+      ],
+      estimatedMinutes: 45,
+      status: level === 1 && idx === 0 ? "unlocked" : "locked",
+      xpReward: 40 + idx * 5,
+      isRevision: false
+    };
+  };
 
   const level1Titles = [
     `${t} Orientation`,
@@ -203,9 +211,18 @@ function buildFallbackRoadmap(topic, goal) {
  */
 export async function generateRoadmapFromAnswers(answers, pathfinderMode) {
   const qa = answers.map(a => `Q: ${a.question}\nA: ${a.answer}`).join("\n\n");
-  const userTopic = answers[0]?.answer || "General Learning";
+  const userTopicRaw = answers[0]?.answer || "General Learning";
   const userGoal = answers[1]?.answer || "";
   const userReason = pathfinderMode === 'detailed' ? (answers.find(a => a.question.toLowerCase().includes("dream"))?.answer || "achieve their dream outcome") : (answers.find(a => a.question.toLowerCase().includes("why"))?.answer || "learning");
+
+  // Dynamically extract a short topic from the long prompt to prevent massive text blocks
+  const extractShortTopic = (raw) => {
+    if (raw.length <= 40) return raw;
+    const words = raw.split(/\s+/);
+    if (words.length > 5) return words.slice(0, 5).join(" ") + "...";
+    return raw.substring(0, 40) + "...";
+  };
+  const userTopicShort = extractShortTopic(userTopicRaw);
 
   const prompt = `You are an expert learning path designer for the Kaevrix educational gaming platform.
 A user has completed an onboarding interview. Based on their answers, generate a highly personalized, detailed 3-level learning roadmap.
@@ -217,7 +234,7 @@ ${qa}
 CRITICAL REQUIREMENT:
 1. The generated roadmap MUST cover the fundamental aspects of the topic in extreme, granular detail. Ensure that no essential topic is left out, guaranteeing a complete learning journey.
 2. The 3 levels must be logically connected, starting from absolute basics (Level 1) to intermediate foundations (Level 2), and finally practical application/tests (Level 3), guaranteeing they achieve their goal: "${userReason}".
-3. EXACTLY 12 MILESTONES PER LEVEL: Each level must contain exactly 12 nodes. Node 12 of every level MUST be a comprehensive test, quiz, or practical capstone project verifying the skills of that level.
+3. EXACTLY 12 MILESTONES FOR LEVEL 1: You will generate the detailed milestones for Level 1 ONLY. Leave Level 2 and Level 3 milestones arrays empty.
 
 Generate a JSON roadmap with this EXACT structure:
 {
@@ -236,36 +253,38 @@ Generate a JSON roadmap with this EXACT structure:
         "id": "1-0",
         "title": "specific basic sub-topic title",
         "description": "2-3 sentences describing what this covers and why it matters",
-        "searchQuery": "Highly specific YouTube search query (e.g., '${userTopic} specific sub-topic tutorial', DO NOT use generic queries like 'Learn ${userTopic}')",
+        "searchQuery": "Highly specific YouTube search query (e.g., '${userTopicShort} specific sub-topic tutorial', DO NOT use generic queries like 'Learn ${userTopicShort}')",
         "keyPoints": ["Specific concept 1", "Specific concept 2", "Specific concept 3", "Specific concept 4"],
         "estimatedMinutes": 40,
         "status": "unlocked",
         "xpReward": 30,
         "isRevision": false
       }
+      // ... MUST HAVE EXACTLY 12 MILESTONES HERE
     ]
   },
   "level2": {
     "title": "Level 2 — Core Operations & Logic",
     "subtitle": "Intermediate Foundations & Structural Concepts",
     "color": "#f59e0b",
-    "milestones": [/* same structure, 12 milestones, status: "locked" */]
+    "milestones": []
   },
   "level3": {
     "title": "Level 3 — Basic Applications & Preparation",
     "subtitle": "Foundational practice, common questions and practical tasks",
     "color": "#8b5cf6",
-    "milestones": [/* same structure, 12 milestones, status: "locked" */]
+    "milestones": []
   }
 }
 
 Rules:
-- You MUST generate EXACTLY 12 milestones per level (36 milestones total).
-- The 12th milestone of each level must be a Test or Capstone Project.
-- Do NOT hardcode generic keyPoints like "Understand core concepts". You must generate highly specific, dynamic subtopics for the keyPoints based on the milestone (e.g., if milestone is 'Variables', keyPoints could be 'let vs const', 'block scope', 'memory allocation').
+- You MUST generate EXACTLY 12 milestones for Level 1.
+- DO NOT generate milestones for Level 2 or Level 3 (leave the arrays empty).
+- The 12th milestone of Level 1 must be a Test or Capstone Project.
+- Do NOT hardcode generic keyPoints like "Understand core concepts". You must generate highly specific, dynamic subtopics for the keyPoints based on the milestone.
 - Ensure searchQuery is highly specific so the user gets relevant YouTube videos for that exact subtopic.
 - Level 1 milestone 0 must have status "unlocked", all others "locked".
-- Be extremely detailed, practical, and tailored to the topic "${userTopic}".
+- Be extremely detailed, practical, and tailored to the topic "${userTopicShort}".
 
 Return ONLY valid JSON, no markdown.`;
 
@@ -275,34 +294,115 @@ Return ONLY valid JSON, no markdown.`;
   try {
     let raw;
     if (useGemini) {
-      console.log(`[Pathfinder] Generating roadmap for: "${userTopic}" via Gemini API`);
+      console.log(`[Pathfinder] Generating roadmap for: "${userTopicShort}" via Gemini API`);
       raw = await callGeminiAPI(prompt, "application/json");
     } else {
-      console.log(`[Pathfinder] Generating roadmap for: "${userTopic}" via Ollama ${OLLAMA_MODEL}`);
+      console.log(`[Pathfinder] Generating roadmap for: "${userTopicShort}" via Ollama ${OLLAMA_MODEL}`);
       raw = await ollamaGenerate(prompt, "json");
     }
     const roadmap = JSON.parse(raw);
 
     // Validate structure
-    if (!roadmap.level1?.milestones || !roadmap.level2?.milestones || !roadmap.level3?.milestones) {
+    if (!roadmap.level1?.milestones) {
       throw new Error("Invalid roadmap structure from AI");
     }
 
-    // Enforce unlock rules
-    roadmap.level1.milestones.forEach((m, i) => { m.status = i === 0 ? "unlocked" : "locked"; });
-    roadmap.level2.milestones.forEach(m => { m.status = "locked"; });
-    roadmap.level3.milestones.forEach(m => { m.status = "locked"; });
+    // Use AI's generated topic if reasonable, otherwise use our extracted short topic
+    if (!roadmap.topic || roadmap.topic.length > 50 || roadmap.topic.toLowerCase().includes("short specific topic name")) {
+      roadmap.topic = userTopicShort;
+    }
 
-    console.log(`[Pathfinder] Successfully generated roadmap: "${roadmap.topic}"`);
+    // Inject Encrypted Placeholders for Level 2 and Level 3
+    const createPlaceholders = (levelNum) => {
+      return Array.from({ length: 12 }, (_, i) => ({
+        id: `${levelNum}-${i}`,
+        title: `Encrypted Level ${levelNum} Node`,
+        description: "This advanced topic is currently encrypted. Complete the previous level to establish the neural link and decrypt this curriculum.",
+        searchQuery: "Encrypted Data",
+        keyPoints: ["Classified", "Classified", "Classified", "Classified"],
+        estimatedMinutes: 45,
+        status: "locked",
+        xpReward: 50 * levelNum,
+        isRevision: false,
+        isEncrypted: true
+      }));
+    };
+
+    roadmap.level2 = roadmap.level2 || { title: "Level 2 — Core Operations & Logic", subtitle: "Intermediate Foundations", color: "#f59e0b" };
+    roadmap.level3 = roadmap.level3 || { title: "Level 3 — Advanced Mastery", subtitle: "Preparation & Tests", color: "#8b5cf6" };
+    
+    roadmap.level2.milestones = createPlaceholders(2);
+    roadmap.level3.milestones = createPlaceholders(3);
+
+    // Enforce unlock rules for Level 1
+    roadmap.level1.milestones.forEach((m, i) => { m.status = i === 0 ? "unlocked" : "locked"; });
+
+    console.log(`[Pathfinder] Successfully generated lazy roadmap: "${roadmap.topic}"`);
     return roadmap;
   } catch (err) {
     console.error(`[Pathfinder] AI roadmap generation failed (${err.message}), using fallback template`);
-    return buildFallbackRoadmap(userTopic, userGoal);
+    return buildFallbackRoadmap(userTopicShort, userGoal);
   }
 }
 
 /**
- * Generates AI study notes (markdown) for a specific milestone.
+ * Lazily generates detailed milestones for Level 2 or Level 3 based on prior context.
+ */
+export async function generateLevelMilestones(topic, level, previousMilestonesText) {
+  const prompt = `You are an expert learning path designer for the Kaevrix platform.
+The user is learning "${topic}". They have just completed the previous levels.
+Here are the topics they have ALREADY mastered:
+${previousMilestonesText}
+
+Your task: Generate EXACTLY 12 new, advanced, highly detailed milestones for Level ${level}.
+DO NOT repeat the topics they already learned. Build directly upon their existing knowledge.
+Node 12 MUST be a comprehensive test, quiz, or practical capstone project.
+
+Generate a JSON object with this EXACT structure:
+{
+  "milestones": [
+    {
+      "id": "${level}-0",
+      "title": "advanced sub-topic title",
+      "description": "2-3 sentences describing what this covers",
+      "searchQuery": "Highly specific YouTube search query (e.g., '${topic} specific sub-topic tutorial')",
+      "keyPoints": ["Advanced concept 1", "Advanced concept 2", "Advanced concept 3", "Advanced concept 4"],
+      "estimatedMinutes": 50,
+      "status": "locked",
+      "xpReward": ${level * 40},
+      "isRevision": false
+    }
+    // ... MUST HAVE EXACTLY 12 MILESTONES HERE
+  ]
+}
+
+Return ONLY valid JSON, no markdown.`;
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  const useGemini = apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE";
+
+  let raw;
+  if (useGemini) {
+    console.log(`[Pathfinder] Generating Level ${level} for: "${topic}" via Gemini API`);
+    raw = await callGeminiAPI(prompt, "application/json");
+  } else {
+    console.log(`[Pathfinder] Generating Level ${level} for: "${topic}" via Ollama`);
+    raw = await ollamaGenerate(prompt, "json");
+  }
+
+  const result = JSON.parse(raw);
+  if (!result.milestones || result.milestones.length === 0) {
+    throw new Error("Invalid level structure from AI");
+  }
+  
+  // Ensure the first node is unlocked for them to start
+  result.milestones[0].status = "unlocked";
+
+  return result.milestones;
+}
+
+/**
+ * Generates highly structured, beautiful markdown study notes for a specific roadmap milestone.
  */
 export async function generateStudyNotes(topic, milestone, answers = [], noteStyle = 'smart') {
   const userReason = answers.find(a => a.question.toLowerCase().includes("why"))?.answer || "learning";

@@ -364,15 +364,25 @@ export default function WelcomeScreen({
 
   const startTerminalSequence = async (authPayload) => {
     const activeCls = enhancedClasses.find(c => c.id === selectedClassId) || enhancedClasses[0];
+    
+    // Check if user skipped pathfinder (topic is empty)
+    const skippedPathfinder = !onboardingAnswers[0]?.trim();
+
     const initialLogs = [
       `>>> INITIATING NEURAL CONNECT v2.5...`,
       `>>> SHIELD PROTOCOLS ACTIVE.`,
       `>>> SYNTHESIZING CLASS LINK: [${activeCls.name.toUpperCase()}]... SUCCESS.`,
       `>>> REGISTERING GAMER TAG [${authPayload.user.username.toUpperCase()}]... SUCCESS.`,
-      `>>> CONNECTING TO PATHFINDER ENGINE...`,
-      `>>> ANALYZING PROFILE GOALS...`,
-      `>>> GENERATING CUSTOM SKILL ROADMAP...`
     ];
+
+    if (!skippedPathfinder) {
+      initialLogs.push(`>>> CONNECTING TO PATHFINDER ENGINE...`);
+      initialLogs.push(`>>> ANALYZING PROFILE GOALS...`);
+      initialLogs.push(`>>> GENERATING CUSTOM SKILL ROADMAP...`);
+    } else {
+      initialLogs.push(`>>> PATHFINDER SKIPPED.`);
+      initialLogs.push(`>>> DIRECT DEPLOYMENT TO ARENA AUTHORIZED.`);
+    }
 
     setTerminalLogs([]);
     
@@ -381,6 +391,29 @@ export default function WelcomeScreen({
       sound.playClockTick(true);
       setTerminalLogs(prev => [...prev, initialLogs[i]]);
       await new Promise(r => setTimeout(r, 400));
+    }
+
+    if (skippedPathfinder) {
+      // Don't call API, just clear/set a skipped state
+      localStorage.setItem(`kaevrix_roadmap_progress_${authPayload.user.username}`, JSON.stringify({ skipped: true }));
+      localStorage.setItem(`kaevrix_roadmap_answers_${authPayload.user.username}`, JSON.stringify([]));
+      
+      const successLogs = [
+        `>>> CALIBRATING AVATAR MEMORY CORE... LOGGED.`,
+        `>>> SYSTEM READY. ENTERING KAEVRIX ARENA...`
+      ];
+
+      for (let i = 0; i < successLogs.length; i++) {
+        sound.playClockTick(true);
+        setTerminalLogs(prev => [...prev, successLogs[i]]);
+        await new Promise(r => setTimeout(r, 400));
+      }
+
+      setTimeout(() => {
+        sound.playMatchFound();
+        onAuthSuccess(authPayload.user, authPayload.token);
+      }, 600);
+      return;
     }
 
     try {
@@ -423,7 +456,7 @@ export default function WelcomeScreen({
       console.error("Roadmap generation error:", err);
       const errorLogs = [
         `>>> PATHFINDER ERROR: GENERATION FAILED.`,
-        `>>> COMPILING COMPACT CORE ROADMAP AS FALLBACK... SUCCESS.`,
+        `>>> DIRECT DEPLOYMENT TO ARENA AUTHORIZED...`,
         `>>> SYSTEM READY. ENTERING KAEVRIX ARENA...`
       ];
 
@@ -433,20 +466,7 @@ export default function WelcomeScreen({
         await new Promise(r => setTimeout(r, 450));
       }
 
-      // Build local fallback roadmap and save
-      const fallbackRoadmap = {
-        topic: onboardingAnswers[0] || "General Learning",
-        goal: onboardingAnswers[1] || "Master the topic",
-        summary: `Personalized basic learning path for ${onboardingAnswers[0] || "General Learning"}.`,
-        totalVideosEstimated: 36,
-        totalEstimatedHours: 27,
-        dailyGoal: "Complete 1 node and watch 1 video daily",
-        level1: { title: "Level 1 — Foundations", subtitle: "Basic Syntax & Setups", color: "#10b981", milestones: [] },
-        level2: { title: "Level 2 — Intermediate Basics", subtitle: "Data, Tools & Practical Logic", color: "#f59e0b", milestones: [] },
-        level3: { title: "Level 3 — Interview Prep & Mastery", subtitle: "Advanced Foundations & Mock Tests", color: "#8b5cf6", milestones: [] }
-      };
-      
-      localStorage.setItem(`kaevrix_roadmap_progress_${authPayload.user.username}`, JSON.stringify(fallbackRoadmap));
+      localStorage.setItem(`kaevrix_roadmap_progress_${authPayload.user.username}`, JSON.stringify({ skipped: true }));
       localStorage.setItem(`kaevrix_roadmap_answers_${authPayload.user.username}`, JSON.stringify([]));
 
       setTimeout(() => {
