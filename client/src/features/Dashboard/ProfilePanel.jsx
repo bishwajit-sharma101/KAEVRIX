@@ -17,6 +17,17 @@ const PRESET_COSMETICS = [
   { banner: "none", avatarFrame: "sakura-bunny", profileEffect: "sakura-dream" },
   { banner: "none", avatarFrame: "synth-ring", profileEffect: "cyberpunk-neon" },
   { banner: "none", avatarFrame: "vinyl-glow", profileEffect: "lofi-study" },
+  
+  // 8 New Archetype Presets
+  { banner: "none", avatarFrame: "pixel-crown", profileEffect: "pixel-retro" },
+  { banner: "none", avatarFrame: "vine-wreath", profileEffect: "cottagecore-forest" },
+  { banner: "none", avatarFrame: "boba-ears", profileEffect: "boba-cafe" },
+  { banner: "none", avatarFrame: "event-horizon", profileEffect: "blackhole" },
+  { banner: "none", avatarFrame: "jelly-pulse", profileEffect: "abyssal-glow" },
+  { banner: "none", avatarFrame: "clockwork-gears", profileEffect: "steampunk-gear" },
+  { banner: "none", avatarFrame: "bat-wings", profileEffect: "crimson-moon" },
+  { banner: "none", avatarFrame: "cyber-visor", profileEffect: "vapor-glitch" },
+  
   { banner: "https://images.unsplash.com/photo-1620802051772-52055660890c?w=800", avatarFrame: "kawaii-clouds", profileEffect: "magical-girl" },
   { banner: "https://images.unsplash.com/photo-1561485132-59468cd0b553?w=800", avatarFrame: "lightning-strike", profileEffect: "thunder-storm" },
   { banner: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800", avatarFrame: "hologram-ring", profileEffect: "matrix-glitch" },
@@ -85,7 +96,7 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
       return;
     }
 
-    if (["rage", "void", "inferno", "matrix-glitch", "blizzard", "thunder-storm", "cyberpunk-neon"].includes(profileEffect)) {
+    if (["rage", "void", "inferno", "matrix-glitch", "blizzard", "thunder-storm", "cyberpunk-neon", "blackhole", "abyssal-glow", "steampunk-gear", "crimson-moon", "vapor-glitch"].includes(profileEffect)) {
       document.body.style.setProperty("--text-light", "#ffffff");
       document.body.style.setProperty("--text-muted", "rgba(255, 255, 255, 0.6)");
       document.body.style.setProperty("--bg-dark-base", "rgba(0, 0, 0, 0.5)");
@@ -105,6 +116,21 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
       document.body.style.setProperty("--text-muted", "#a89f91");
       document.body.style.setProperty("--bg-dark-base", "rgba(0, 0, 0, 0.4)");
       document.body.style.setProperty("--bg-dark-surface", "rgba(0, 0, 0, 0.4)");
+    } else if (profileEffect === "pixel-retro") {
+      document.body.style.setProperty("--text-light", "#ffeb3b");
+      document.body.style.setProperty("--text-muted", "#80deea");
+      document.body.style.setProperty("--bg-dark-base", "#120a2a");
+      document.body.style.setProperty("--bg-dark-surface", "#1e113a");
+    } else if (profileEffect === "cottagecore-forest") {
+      document.body.style.setProperty("--text-light", "#f5f5dc");
+      document.body.style.setProperty("--text-muted", "#aed581");
+      document.body.style.setProperty("--bg-dark-base", "#0f140f");
+      document.body.style.setProperty("--bg-dark-surface", "#161f16");
+    } else if (profileEffect === "boba-cafe") {
+      document.body.style.setProperty("--text-light", "#5c3a21");
+      document.body.style.setProperty("--text-muted", "#a87c5b");
+      document.body.style.setProperty("--bg-dark-base", "#fbf3e6");
+      document.body.style.setProperty("--bg-dark-surface", "#fffdfa");
     }
 
     if (profileEffect === "rage") {
@@ -130,6 +156,30 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
       document.body.style.setProperty("--text-muted", "#ff00ff");
     } else if (profileEffect === "lofi-study") {
       document.body.style.background = "linear-gradient(135deg, #131110 0%, #0b0a09 100%)";
+    } else if (profileEffect === "pixel-retro") {
+      document.body.style.background = "linear-gradient(135deg, #160c2e 0%, #080313 100%)";
+    } else if (profileEffect === "cottagecore-forest") {
+      document.body.style.background = "linear-gradient(135deg, #0e140e 0%, #050805 100%)";
+    } else if (profileEffect === "boba-cafe") {
+      document.body.style.background = "linear-gradient(135deg, #fdf5e6 0%, #f5deb3 100%)";
+    } else if (profileEffect === "blackhole") {
+      document.body.style.background = "radial-gradient(circle at center, #0c0014 0%, #000000 100%)";
+    } else if (profileEffect === "abyssal-glow") {
+      document.body.style.background = "linear-gradient(135deg, #030a18 0%, #010308 100%)";
+      document.body.style.setProperty("--text-light", "#00ffff");
+      document.body.style.setProperty("--text-muted", "#00b0ff");
+    } else if (profileEffect === "steampunk-gear") {
+      document.body.style.background = "linear-gradient(135deg, #17100e 0%, #0a0706 100%)";
+      document.body.style.setProperty("--text-light", "#ffd54f");
+      document.body.style.setProperty("--text-muted", "#ffb74d");
+    } else if (profileEffect === "crimson-moon") {
+      document.body.style.background = "linear-gradient(135deg, #120508 0%, #060203 100%)";
+      document.body.style.setProperty("--text-light", "#ff1744");
+      document.body.style.setProperty("--text-muted", "#b0bec5");
+    } else if (profileEffect === "vapor-glitch") {
+      document.body.style.background = "linear-gradient(135deg, #10061e 0%, #05020a 100%)";
+      document.body.style.setProperty("--text-light", "#ff007f");
+      document.body.style.setProperty("--text-muted", "#00e5ff");
     }
 
     return () => {
@@ -338,6 +388,124 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
           0%, 100% { opacity: 0.08; transform: rotate(-12deg) scaleX(1); }
           50% { opacity: 0.20; transform: rotate(-10deg) scaleX(1.05); }
         }
+
+        /* ============================ */
+        /* 7. PIXEL RETRO               */
+        /* ============================ */
+        @keyframes pixelFloat {
+          0% { transform: translateY(0) scale(1); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translateY(-300px) scale(1); opacity: 0; }
+        }
+        @keyframes pixelSpinStep {
+          0% { transform: rotate(0deg); }
+          12.5% { transform: rotate(45deg); }
+          25% { transform: rotate(90deg); }
+          37.5% { transform: rotate(135deg); }
+          50% { transform: rotate(180deg); }
+          62.5% { transform: rotate(225deg); }
+          75% { transform: rotate(270deg); }
+          87.5% { transform: rotate(315deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        /* ============================ */
+        /* 8. COTTAGECORE FOREST        */
+        /* ============================ */
+        @keyframes leafFall {
+          0% { transform: translateY(-50px) translateX(0) rotate(0deg); opacity: 0; }
+          15% { opacity: 0.85; }
+          85% { opacity: 0.85; }
+          100% { transform: translateY(500px) translateX(80px) rotate(180deg); opacity: 0; }
+        }
+        @keyframes fireflyFloat {
+          0%, 100% { transform: translate(0, 0); opacity: 0.4; }
+          50% { transform: translate(10px, -20px); opacity: 0.95; }
+        }
+
+        /* ============================ */
+        /* 9. BOBA CAFE                 */
+        /* ============================ */
+        @keyframes bobaRise {
+          0% { transform: translateY(100px) scale(0.6); opacity: 0; }
+          20% { opacity: 0.85; }
+          80% { opacity: 0.85; }
+          100% { transform: translateY(-300px) scale(1.1); opacity: 0; }
+        }
+        @keyframes catEarTwitch {
+          0%, 90%, 100% { transform: rotate(0deg); }
+          92%, 96% { transform: rotate(-5deg); }
+          94%, 98% { transform: rotate(5deg); }
+        }
+
+        /* ============================ */
+        /* 10. BLACKHOLE                */
+        /* ============================ */
+        @keyframes singularitySwirl {
+          0% { transform: rotate(0deg) scale(1); }
+          50% { transform: rotate(180deg) scale(0.95); }
+          100% { transform: rotate(360deg) scale(1); }
+        }
+
+        /* ============================ */
+        /* 11. ABYSSAL GLOW             */
+        /* ============================ */
+        @keyframes jellyPulse {
+          0%, 100% { transform: scaleY(1) scaleX(1); }
+          50% { transform: scaleY(0.85) scaleX(1.1); }
+        }
+        @keyframes abyssRay {
+          0%, 100% { opacity: 0.08; transform: rotate(15deg) scaleY(1); }
+          50% { opacity: 0.20; transform: rotate(20deg) scaleY(1.1); }
+        }
+
+        /* ============================ */
+        /* 12. STEAMPUNK GEAR           */
+        /* ============================ */
+        @keyframes gearSpinClockwise {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes gearSpinCounter {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(-360deg); }
+        }
+        @keyframes steamRise {
+          0% { transform: translateY(0) scale(0.8); opacity: 0; }
+          10% { opacity: 0.45; }
+          90% { opacity: 0.45; }
+          100% { transform: translateY(-200px) scale(1.5); opacity: 0; }
+        }
+
+        /* ============================ */
+        /* 13. CRIMSON MOON             */
+        /* ============================ */
+        @keyframes batWingsFlutter {
+          0%, 100% { transform: scaleX(1) rotate(0deg); }
+          50% { transform: scaleX(0.8) rotate(-5deg); }
+        }
+        @keyframes batWingsFlutterRight {
+          0%, 100% { transform: scaleX(1) rotate(0deg); }
+          50% { transform: scaleX(0.8) rotate(5deg); }
+        }
+        @keyframes eclipseGlow {
+          0%, 100% { box-shadow: 0 0 20px #ff1744; }
+          50% { box-shadow: 0 0 35px #ff1744, 0 0 15px #ff5252; }
+        }
+
+        /* ============================ */
+        /* 14. VAPOR GLITCH             */
+        /* ============================ */
+        @keyframes scrollVaporGrid {
+          0% { background-position: 0 0; }
+          100% { background-position: 0 40px; }
+        }
+        @keyframes glitchSlice {
+          0%, 95%, 100% { clip-path: inset(0 0 0 0); transform: translateX(0); }
+          96% { clip-path: inset(20% 0 50% 0); transform: translateX(-5px); }
+          98% { clip-path: inset(60% 0 10% 0); transform: translateX(5px); }
+        }
       `}</style>
 
       {/* --- BACKGROUND PROFILE EFFECTS --- */}
@@ -541,6 +709,202 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
         </div>
       )}
 
+      {/* Pixel Retro Effect */}
+      {profileEffect === "pixel-retro" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          {/* Floating pixel coins and hearts */}
+          {[...Array(12)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", bottom: "-20px", left: (10 + Math.random() * 80) + "%", 
+              fontSize: "20px",
+              animation: "pixelFloat " + (3 + Math.random() * 3) + "s linear " + (Math.random() * 4) + "s infinite",
+              fontFamily: "monospace"
+            }}>{i % 2 === 0 ? "🪙" : "❤️"}</div>
+          ))}
+          {/* Pixel grid scan overlay */}
+          <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(18, 10, 42, 0.15) 2px, transparent 2px)", backgroundSize: "100% 4px", zIndex: 2 }} />
+        </div>
+      )}
+
+      {/* Cottagecore Forest Effect */}
+      {profileEffect === "cottagecore-forest" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          {/* Falling Autumn Leaves */}
+          {[...Array(16)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", top: "-20px", left: (Math.random() * 100) + "%", 
+              fontSize: (16 + Math.random() * 10) + "px",
+              animation: "leafFall " + (5 + Math.random() * 5) + "s linear " + (Math.random() * 5) + "s infinite",
+              opacity: 0.75
+            }}>{i % 2 === 0 ? "🍁" : "🍂"}</div>
+          ))}
+          {/* Fireflies floating around */}
+          {[...Array(12)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", 
+              top: (20 + Math.random() * 70) + "%", left: (Math.random() * 100) + "%", 
+              width: "6px", height: "6px", borderRadius: "50%", background: "#d4e157",
+              boxShadow: "0 0 12px #d4e157",
+              animation: "fireflyFloat " + (4 + Math.random() * 3) + "s ease-in-out " + (Math.random() * 2) + "s infinite",
+            }} />
+          ))}
+        </div>
+      )}
+
+      {/* Boba Cafe Effect */}
+      {profileEffect === "boba-cafe" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          {/* Floating Boba Bubbles */}
+          {[...Array(16)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", bottom: "-30px", left: (5 + Math.random() * 90) + "%", 
+              width: (12 + Math.random() * 12) + "px", height: (12 + Math.random() * 12) + "px", 
+              background: "rgba(92, 58, 33, 0.65)", borderRadius: "50%",
+              border: "1px solid rgba(255,255,255,0.4)",
+              boxShadow: "inset -2px -2px 6px rgba(0,0,0,0.4)",
+              animation: "bobaRise " + (4 + Math.random() * 3) + "s ease-in " + (Math.random() * 4) + "s infinite"
+            }} />
+          ))}
+          {/* Cute floating sparkles */}
+          {[...Array(10)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", top: (20 + Math.random() * 70) + "%", left: (Math.random() * 100) + "%", 
+              fontSize: "16px", color: "#ffd54f", animation: "kawaiiFloat " + (2 + Math.random() * 2) + "s ease-in-out infinite"
+            }}>✨</div>
+          ))}
+        </div>
+      )}
+
+      {/* Blackhole Effect */}
+      {profileEffect === "blackhole" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
+          {/* Gravity pulls (stardust streams towards avatar center) */}
+          {[...Array(30)].map((_, i) => {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 250 + Math.random() * 350;
+            const startX = Math.cos(angle) * distance;
+            const startY = Math.sin(angle) * distance;
+            return (
+              <div key={i} style={{ 
+                position: "absolute", 
+                top: "40%", left: "30%", 
+                width: "4px", height: "4px", background: "cyan", borderRadius: "50%",
+                boxShadow: "0 0 10px cyan",
+                animation: "gravityPull " + (1.5 + Math.random() * 1.5) + "s linear " + (Math.random() * 2) + "s infinite",
+                "--startX": startX + "px",
+                "--startY": startY + "px"
+              }} />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Abyssal Glow Effect */}
+      {profileEffect === "abyssal-glow" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          {/* Deep marine rays */}
+          <div style={{ 
+            position: "absolute", top: "-10%", left: "20%", width: "50%", height: "120%", 
+            background: "linear-gradient(105deg, rgba(0, 229, 255, 0.06) 0%, transparent 60%)",
+            transformOrigin: "top left",
+            animation: "abyssRay 9s ease-in-out infinite",
+            zIndex: -1
+          }} />
+          {/* Bioluminescent rising bubbles */}
+          {[...Array(18)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", bottom: "-20px", left: (5 + Math.random() * 90) + "%", 
+              width: (6 + Math.random() * 10) + "px", height: (6 + Math.random() * 10) + "px", 
+              background: "transparent", border: "1.5px solid rgba(0, 255, 255, 0.3)", borderRadius: "50%",
+              boxShadow: "0 0 8px rgba(0, 255, 255, 0.2)",
+              animation: "bobaRise " + (6 + Math.random() * 4) + "s ease-in-out " + (Math.random() * 4) + "s infinite"
+            }} />
+          ))}
+        </div>
+      )}
+
+      {/* Steampunk Airship Effect */}
+      {profileEffect === "steampunk-gear" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          {/* Floating Clockwork gears */}
+          {[...Array(6)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", 
+              top: (10 + Math.random() * 80) + "%", left: (5 + Math.random() * 90) + "%", 
+              fontSize: (20 + Math.random() * 20) + "px", color: "rgba(255, 183, 77, 0.25)",
+              animation: (i % 2 === 0 ? "gearSpinClockwise" : "gearSpinCounter") + " 10s linear infinite"
+            }}>⚙️</div>
+          ))}
+          {/* Rising puffs of steam */}
+          {[...Array(8)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", bottom: "-30px", left: (10 + Math.random() * 80) + "%", 
+              width: "40px", height: "40px", background: "rgba(255,255,255,0.06)", borderRadius: "50%",
+              filter: "blur(12px)",
+              animation: "steamRise " + (4 + Math.random() * 3) + "s ease-out " + (Math.random() * 3) + "s infinite"
+            }} />
+          ))}
+        </div>
+      )}
+
+      {/* Crimson Moon Effect */}
+      {profileEffect === "crimson-moon" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
+          {/* Red Eclipse Moon Glow */}
+          <div style={{ 
+            position: "absolute", top: "50px", right: "120px", 
+            width: "100px", height: "100px", borderRadius: "50%", 
+            background: "#080304", 
+            border: "2px solid #ff1744",
+            animation: "eclipseGlow 4s ease-in-out infinite",
+            zIndex: -1
+          }} />
+          {/* Falling dark red rose petals */}
+          {[...Array(15)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", top: "-20px", left: (Math.random() * 100) + "%", 
+              fontSize: "18px",
+              animation: "sakuraPetalFall " + (5 + Math.random() * 4) + "s linear " + (Math.random() * 4) + "s infinite",
+              opacity: 0.65
+            }}>🌹</div>
+          ))}
+          {/* Small flying bat silhouettes */}
+          {[...Array(5)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", top: (20 + Math.random() * 50) + "%", left: "-50px",
+              fontSize: "20px", color: "rgba(0,0,0,0.65)",
+              animation: "rainFall 6s linear " + (i * 2) + "s infinite",
+              transform: "rotate(-75deg)"
+            }}>🦇</div>
+          ))}
+        </div>
+      )}
+
+      {/* Vapor Glitch Effect */}
+      {profileEffect === "vapor-glitch" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
+          {/* Horizontal glitch scanner line */}
+          <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "2px", background: "#ff007f", boxShadow: "0 0 10px #ff007f", animation: "matrixScan 4s linear infinite" }} />
+          {/* Scrolling horizontal grid background */}
+          <div style={{ 
+            position: "absolute", inset: 0, 
+            backgroundImage: "linear-gradient(rgba(0, 229, 255, 0.08) 1px, transparent 1px)",
+            backgroundSize: "100% 30px",
+            animation: "scrollVaporGrid 3s linear infinite",
+            zIndex: -1
+          }} />
+          {/* Floating retro neon items */}
+          {[...Array(8)].map((_, i) => (
+            <div key={i} style={{ 
+              position: "absolute", bottom: "-20px", left: (15 + Math.random() * 70) + "%", 
+              fontSize: "24px",
+              animation: "pixelFloat " + (4 + Math.random() * 4) + "s linear " + (Math.random() * 5) + "s infinite",
+              opacity: 0.55
+            }}>{i % 2 === 0 ? "💾" : "🌴"}</div>
+          ))}
+        </div>
+      )}
+
       {/* 1. CUSTOMIZABLE BANNER SECTION */}
       <div style={{ 
         width: "100%", height: "240px", 
@@ -710,11 +1074,93 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
               </>
             )}
 
+            {avatarFrame === "pixel-crown" && (
+              <>
+                {/* 8-bit gold Crown floating */}
+                <div style={{ position: "absolute", top: "-32px", left: "50%", transform: "translateX(-50%) scale(0.9)", animation: "kawaiiFloat 3s ease-in-out infinite", zIndex: 11, fontSize: "40px" }}>👑</div>
+                <div style={{ position: "absolute", inset: "-12px", border: "4px dotted #ffeb3b", borderRadius: "50%", animation: "pixelSpinStep 8s steps(8) infinite" }} />
+              </>
+            )}
+
+            {avatarFrame === "vine-wreath" && (
+              <>
+                {/* Mossy, leaf-woven border */}
+                <div style={{ position: "absolute", inset: "-15px", border: "4px double #aed581", borderRadius: "50%", filter: "drop-shadow(0 0 5px rgba(174,213,129,0.5))", animation: "vinylSpin 25s linear infinite" }} />
+                <div style={{ position: "absolute", top: "-14px", left: "50%", transform: "translateX(-50%)", fontSize: "18px" }}>🌿</div>
+                <div style={{ position: "absolute", bottom: "-14px", left: "50%", transform: "translateX(-50%)", fontSize: "18px" }}>🌿</div>
+                <div style={{ position: "absolute", left: "-14px", top: "50%", transform: "translateY(-50%) rotate(90deg)", fontSize: "18px" }}>🌿</div>
+                <div style={{ position: "absolute", right: "-14px", top: "50%", transform: "translateY(-50%) rotate(-90deg)", fontSize: "18px" }}>🌿</div>
+                {/* Glowing fireflies */}
+                <div style={{ position: "absolute", top: "10px", left: "-5px", width: "5px", height: "5px", borderRadius: "50%", background: "#ffd54f", boxShadow: "0 0 8px #ffd54f", animation: "fireflyFloat 3s ease-in-out infinite" }} />
+                <div style={{ position: "absolute", bottom: "10px", right: "-5px", width: "5px", height: "5px", borderRadius: "50%", background: "#ffd54f", boxShadow: "0 0 8px #ffd54f", animation: "fireflyFloat 4s ease-in-out 1s infinite" }} />
+              </>
+            )}
+
+            {avatarFrame === "boba-ears" && (
+              <>
+                {/* Wiggling Cat ears */}
+                <div style={{ position: "absolute", top: "-15px", left: "15px", width: "40px", height: "40px", background: "#fbf3e6", border: "4px solid #5c3a21", borderRightWidth: 0, borderBottomWidth: 0, borderRadius: "20px 0 0 0", transform: "skewY(-30deg) rotate(-15deg)", transformOrigin: "bottom right", animation: "catEarTwitch 5s ease-in-out infinite", zIndex: 1 }}>
+                  <div style={{ position: "absolute", inset: "6px", background: "#ff80ab", borderRadius: "10px 0 0 0" }} />
+                </div>
+                <div style={{ position: "absolute", top: "-15px", right: "15px", width: "40px", height: "40px", background: "#fbf3e6", border: "4px solid #5c3a21", borderLeftWidth: 0, borderBottomWidth: 0, borderRadius: "0 20px 0 0", transform: "skewY(30deg) rotate(15deg)", transformOrigin: "bottom left", animation: "catEarTwitch 5s ease-in-out 0.2s infinite", zIndex: 1 }}>
+                  <div style={{ position: "absolute", inset: "6px", background: "#ff80ab", borderRadius: "0 10px 0 0" }} />
+                </div>
+                <div style={{ position: "absolute", inset: "-10px", border: "4px dashed #5c3a21", borderRadius: "50%" }} />
+                <div style={{ position: "absolute", bottom: "-10px", left: "0px", fontSize: "24px" }}>🧋</div>
+                <div style={{ position: "absolute", bottom: "-10px", right: "0px", fontSize: "24px" }}>🧋</div>
+              </>
+            )}
+
+            {avatarFrame === "event-horizon" && (
+              <>
+                {/* Swirling gravity vortex */}
+                <div style={{ position: "absolute", inset: "-25px", background: "conic-gradient(from 0deg, #d500f9, #00e5ff, transparent 50%, #00e5ff, #d500f9)", borderRadius: "50%", filter: "blur(4px)", animation: "vinylSpin 3s linear infinite", zIndex: -1 }} />
+                <div style={{ position: "absolute", inset: "-5px", border: "3px solid #000", borderRadius: "50%", boxShadow: "0 0 15px rgba(213,0,249,0.8)", zIndex: 1 }} />
+              </>
+            )}
+
+            {avatarFrame === "jelly-pulse" && (
+              <>
+                {/* Bioluminescent pulse border */}
+                <div style={{ position: "absolute", inset: "-15px", border: "4px solid #00ffff", borderRadius: "50%", animation: "jellyPulse 4s ease-in-out infinite", boxShadow: "0 0 15px rgba(0, 255, 255, 0.4)", zIndex: 1 }} />
+                {/* Floating bioluminescent tentacles */}
+                <div style={{ position: "absolute", bottom: "-25px", left: "20px", fontSize: "24px", color: "#00ffff", opacity: 0.8, filter: "blur(0.5px)", animation: "kawaiiFloat 3s ease-in-out infinite" }}>🎐</div>
+                <div style={{ position: "absolute", bottom: "-25px", right: "20px", fontSize: "24px", color: "#00ffff", opacity: 0.8, filter: "blur(0.5px)", animation: "kawaiiFloat 3s ease-in-out 0.5s infinite" }}>🎐</div>
+              </>
+            )}
+
+            {avatarFrame === "clockwork-gears" && (
+              <>
+                {/* Interlocking Gears */}
+                <div style={{ position: "absolute", top: "-20px", left: "-20px", fontSize: "32px", color: "#ffd54f", animation: "gearSpinClockwise 12s linear infinite" }}>⚙️</div>
+                <div style={{ position: "absolute", bottom: "-20px", right: "-20px", fontSize: "28px", color: "#ffb74d", animation: "gearSpinCounter 8s linear infinite" }}>⚙️</div>
+                <div style={{ position: "absolute", inset: "-10px", border: "4px solid #8d6e63", borderRadius: "50%", boxShadow: "inset 0 0 10px rgba(0,0,0,0.5), 0 0 10px rgba(255,213,79,0.3)" }} />
+              </>
+            )}
+
+            {avatarFrame === "bat-wings" && (
+              <>
+                {/* Bat wings flanking */}
+                <div style={{ position: "absolute", top: "35%", left: "-45px", fontSize: "35px", transformOrigin: "right center", animation: "batWingsFlutter 2.5s ease-in-out infinite", zIndex: 1 }}>🦇</div>
+                <div style={{ position: "absolute", top: "35%", right: "-45px", fontSize: "35px", transformOrigin: "left center", transform: "scaleX(-1)", animation: "batWingsFlutterRight 2.5s ease-in-out 0.2s infinite", zIndex: 1 }}>🦇</div>
+                <div style={{ position: "absolute", inset: "-12px", border: "3px solid #ff1744", borderRadius: "50%", boxShadow: "0 0 15px #ff1744", animation: "eclipseGlow 3s infinite" }} />
+              </>
+            )}
+
+            {avatarFrame === "cyber-visor" && (
+              <>
+                {/* Cyber visor bar */}
+                <div style={{ position: "absolute", inset: "-12px", border: "2px solid #00e5ff", borderRadius: "50%", zIndex: 1 }} />
+                <div style={{ position: "absolute", top: "45%", left: "-15px", right: "-15px", height: "16px", background: "rgba(255, 0, 127, 0.8)", border: "1.5px solid #ff007f", borderRadius: "4px", boxShadow: "0 0 10px #ff007f", transform: "translateY(-50%)", animation: "glitchSlice 4s infinite", zIndex: 11 }} />
+                <div style={{ position: "absolute", inset: "-20px", border: "2px dashed #ff007f", borderRadius: "50%", animation: "vinylSpin 20s linear infinite", opacity: 0.6 }} />
+              </>
+            )}
+
             <div style={{ 
               width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden",
               background: "var(--bg-dark-surface)", display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: "60px", position: "relative", zIndex: 5,
-              ...(!["lightning-strike", "inferno-aura", "rage-aura", "void-aura", "kawaii-clouds", "hologram-ring", "frost-ring", "sakura-bunny", "synth-ring", "vinyl-glow"].includes(avatarFrame) ? getAvatarFrameStyle(avatarFrame) : { border: "2px solid transparent" })
+              ...(!["lightning-strike", "inferno-aura", "rage-aura", "void-aura", "kawaii-clouds", "hologram-ring", "frost-ring", "sakura-bunny", "synth-ring", "vinyl-glow", "pixel-crown", "vine-wreath", "boba-ears", "event-horizon", "jelly-pulse", "clockwork-gears", "bat-wings", "cyber-visor"].includes(avatarFrame) ? getAvatarFrameStyle(avatarFrame) : { border: "2px solid transparent" })
             }}>
               {profile?.avatar ? (
                 profile.avatar.includes('http') ? <img src={profile.avatar} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : profile.avatar
