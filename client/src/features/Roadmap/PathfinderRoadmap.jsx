@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import * as sound from "../../utils/audio";
 import { parseMarkdownToHTML } from "../../utils/markdown";
+import BossBattleModal from "./BossBattleModal";
 
 const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
 
@@ -707,7 +708,7 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
   );
 }
 
-function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, onSearchDuel, onMarkComplete, onUpdateMilestoneData, onOpenNotes, onSelectVideo, isDarkMode, username }) {
+function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, onSearchDuel, onMarkComplete, onUpdateMilestoneData, onOpenNotes, onSelectVideo, isDarkMode, username, onChallengeBoss }) {
   const cfg = getStatusConfig(isDarkMode)[milestone.status] || getStatusConfig(isDarkMode).locked;
   const hasNotes = !!milestone.studyNotes;
 
@@ -971,6 +972,24 @@ function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, on
               }}
             >
               ⚔️ Duel Topic
+            </button>
+          )}
+
+          {milestone.status === "unlocked" && onChallengeBoss && (
+            <button
+              onClick={() => { sound.playClockTick(); onChallengeBoss(milestone); onClose(); }}
+              style={{
+                flex: 1, padding: "12px 20px", borderRadius: "10px",
+                border: "none",
+                background: `linear-gradient(135deg, ${levelColor}, ${levelColor}dd)`,
+                color: "#ffffff",
+                fontWeight: "900", fontSize: "13.5px",
+                cursor: "pointer", display: "flex", alignItems: "center",
+                justifyContent: "center", gap: "6px",
+                boxShadow: `0 4px 15px ${levelColor}35`
+              }}
+            >
+              ⚔️ Challenge Boss
             </button>
           )}
 
@@ -1466,6 +1485,7 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
   const [expandedLevel, setExpandedLevel] = useState(1);
   const [viewingNotes, setViewingNotes] = useState(false);
   const [activeVideo, setActiveVideo] = useState(null);
+  const [bossBattleMilestone, setBossBattleMilestone] = useState(null);
   
   const [decryptingLevel, setDecryptingLevel] = useState(null);
   const [decryptError, setDecryptError] = useState(null);
@@ -1620,6 +1640,20 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
 
       return next;
     });
+  };
+
+  const handleBossVictory = (m, xpEarned) => {
+    fetch(`${BACKEND_URL}/api/solo-xp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username,
+        xpEarned,
+        videoTitle: `Milestone Boss Defeated: ${m.title}`
+      })
+    }).catch(err => console.error("XP Award Error:", err));
+
+    markComplete(m);
   };
 
   const getLevelData = (levelKey, levelNum) => {
@@ -2216,6 +2250,7 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
           }}
           isDarkMode={isDarkMode}
           username={username}
+          onChallengeBoss={(m) => setBossBattleMilestone(m)}
         />
       )}
 
@@ -2250,6 +2285,17 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
           onMarkComplete={(m) => { markComplete(m); setViewingNotes(false); setSelectedMilestone(null); }}
           onSaveNotes={saveStudyNotes}
           isDarkMode={isDarkMode}
+        />
+      )}
+
+      {/* Kaevrix Boss Battle Modal */}
+      {bossBattleMilestone && (
+        <BossBattleModal
+          topic={roadmap.topic}
+          milestone={bossBattleMilestone}
+          username={username}
+          onClose={() => setBossBattleMilestone(null)}
+          onVictory={(xpEarned) => handleBossVictory(bossBattleMilestone, xpEarned)}
         />
       )}
     </div>

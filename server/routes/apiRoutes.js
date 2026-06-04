@@ -17,7 +17,8 @@ import {
   generateRoadmapFromAnswers, 
   generateStudyNotes,
   generateQuizForVideo,
-  generateLevelMilestones
+  generateLevelMilestones,
+  generateBossQuestions
 } from "../geminiService.js";
 import {
   registerUser,
@@ -227,6 +228,24 @@ router.post("/quiz/generate", async (req, res) => {
   } catch (err) {
     console.error("[Quiz] Quiz generation failed:", err.message);
     res.status(500).json({ error: "Quiz generation failed", details: err.message });
+  }
+});
+
+// POST Generate Boss Questions
+router.post("/boss/generate", async (req, res) => {
+  req.setTimeout(600000);
+  res.setTimeout(600000);
+  const { topic, milestone } = req.body;
+  if (!topic || !milestone) {
+    return res.status(400).json({ error: "topic and milestone are required" });
+  }
+
+  try {
+    const bossData = await generateBossQuestions(topic, milestone);
+    res.json(bossData);
+  } catch (err) {
+    console.error("[Boss] Boss generation failed:", err.message);
+    res.status(500).json({ error: "Boss generation failed", details: err.message });
   }
 });
 

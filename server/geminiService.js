@@ -941,3 +941,168 @@ Format specification:
     captions: transcriptList
   };
 }
+
+/**
+ * Generates custom Boss Battle questions, boss type, and intro dialog JIT.
+ * Prioritizes local Ollama gemma4:e4b, falling back to Gemini API or a high-quality template.
+ */
+export async function generateBossQuestions(topic, milestone) {
+  const mTitle = milestone?.title || "Core Concepts";
+  const mPoints = (milestone?.keyPoints || []).join(", ");
+  const mDesc = milestone?.description || "";
+  
+  const prompt = `You are a game systems designer for the Kaevrix platform.
+The user is challenging a Milestone Boss in the topic "${topic}".
+Milestone: "${mTitle}"
+Description: "${mDesc}"
+Key Subtopics: ${mPoints}
+
+Your task: Generate an epic boss battle setup. Choose one fitting boss type from this list:
+- "Callback Demon" (for async, callbacks, network, promises, threads)
+- "Scope Warden" (for variables, memory, closures, references, parameters)
+- "DOM Destroyer" (for UI, HTML, CSS, frontend, DOM, events)
+- "Syntax Sentinel" (for basics, loops, conditionals, parsing, basic syntax)
+- "Garbage Collector" (for memory management, object lifecycle, OOP, class internals)
+
+Generate exactly 5 advanced, conceptual multiple-choice questions about the key subtopics of this milestone. The questions should be challenging but fair.
+
+Return ONLY a valid JSON object matching the format below. Do not include markdown code blocks, backticks, or any conversational text.
+
+Format specification:
+{
+  "bossType": "Callback Demon", // One of: Callback Demon | Scope Warden | DOM Destroyer | Syntax Sentinel | Garbage Collector
+  "bossIntro": "A short, epic, retro-style fighting game boss threat/quote tailored to the topic (e.g. 'I will garbage-collect your soul!')",
+  "questions": [
+    {
+      "question": "The advanced conceptual question text here?",
+      "options": ["Option 0", "Option 1", "Option 2", "Option 3"],
+      "answerIndex": 0,
+      "damageExplanation": "A short, punchy 1-2 sentence explanation of the correct mechanism to teach the user if they miss."
+    }
+  ]
+}
+`;
+
+  const validateBossData = (data) => {
+    if (!data || typeof data !== "object") {
+      throw new Error("Returned content is not a valid boss object");
+    }
+    const qList = Array.isArray(data.questions) ? data.questions : [];
+    if (qList.length !== 5) {
+      throw new Error(`Expected exactly 5 questions, got ${qList.length}`);
+    }
+    const validBossTypes = ["Callback Demon", "Scope Warden", "DOM Destroyer", "Syntax Sentinel", "Garbage Collector"];
+    const bossType = validBossTypes.includes(data.bossType) ? data.bossType : "Syntax Sentinel";
+    const bossIntro = data.bossIntro || "Foolish mortal! You think your code compiles here?";
+    
+    const validatedQuestions = qList.map((q) => ({
+      question: q.question || "Conceptual Challenge Question",
+      options: Array.isArray(q.options) && q.options.length === 4 ? q.options : ["Option A", "Option B", "Option C", "Option D"],
+      answerIndex: typeof q.answerIndex === "number" && q.answerIndex >= 0 && q.answerIndex <= 3 ? q.answerIndex : 0,
+      damageExplanation: q.damageExplanation || "Make sure to review the core rules of this node."
+    }));
+    
+    return { bossType, bossIntro, questions: validatedQuestions };
+  };
+
+  // 1. Try Ollama (gemma4:e4b) primary generator
+  try {
+    console.log(`[Ollama Boss Generator] Generating boss questions via Ollama ${OLLAMA_MODEL} for milestone: "${mTitle}"`);
+    const responseText = await ollamaGenerate(prompt, "json");
+    const bossData = JSON.parse(responseText.trim());
+    return validateBossData(bossData);
+  } catch (ollamaErr) {
+    console.warn(`[Ollama Boss Generator] Ollama failed: ${ollamaErr.message}. Trying Gemini API as fallback...`);
+  }
+
+  // 2. Try Gemini API fallback
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE") {
+    try {
+      console.log(`[Gemini Boss Generator] Generating boss questions via Gemini API for milestone: "${mTitle}"`);
+      const responseText = await callGeminiAPI(prompt, "application/json");
+      const bossData = JSON.parse(responseText.trim());
+      return validateBossData(bossData);
+    } catch (geminiErr) {
+      console.warn(`[Gemini Boss Generator] Gemini API failed: ${geminiErr.message}. Using default template fallback...`);
+    }
+  }
+
+  // 3. Fallback to pre-defined questions
+  console.log(`[Boss Generator Fallback] Using fallback boss questions for: "${mTitle}"`);
+  
+  // Choose boss type based on title keywords
+  let bossType = "Syntax Sentinel";
+  const lowerTitle = mTitle.toLowerCase();
+  if (lowerTitle.includes("async") || lowerTitle.includes("callback") || lowerTitle.includes("promise") || lowerTitle.includes("network") || lowerTitle.includes("http")) {
+    bossType = "Callback Demon";
+  } else if (lowerTitle.includes("scope") || lowerTitle.includes("variable") || lowerTitle.includes("closure") || lowerTitle.includes("parameter")) {
+    bossType = "Scope Warden";
+  } else if (lowerTitle.includes("dom") || lowerTitle.includes("css") || lowerTitle.includes("html") || lowerTitle.includes("ui") || lowerTitle.includes("event")) {
+    bossType = "DOM Destroyer";
+  } else if (lowerTitle.includes("memory") || lowerTitle.includes("object") || lowerTitle.includes("oop") || lowerTitle.includes("class")) {
+    bossType = "Garbage Collector";
+  }
+
+  const fallbackIntro = `You challenge the ${bossType}! Prepare to have your logic tested!`;
+
+  const fallbackQuestions = [
+    {
+      question: `What is the primary concern when organizing topics under "${mTitle}"?`,
+      options: [
+        "Ensuring correct syntax and logical flow",
+        "Decreasing font size to speed up loading",
+        "Writing all code in a single line of text",
+        "Ignoring errors and assuming they self-heal"
+      ],
+      answerIndex: 0,
+      damageExplanation: "Logical structure and syntax rules are paramount to functional compilation."
+    },
+    {
+      question: `Which of the following represents a major failure mode in "${mTitle}"?`,
+      options: [
+        "Unchecked variables leading to runtime reference exceptions",
+        "Writing too many descriptive comments in the source file",
+        "Using camelCase naming conventions instead of snake_case",
+        "Formatting text using double quotes instead of single quotes"
+      ],
+      answerIndex: 0,
+      damageExplanation: "Unchecked reference states or variables are the most common source of system crashes."
+    },
+    {
+      question: `Why is deep understanding of "${mTitle}" critical for junior developers?`,
+      options: [
+        "It prevents common memory leaks and scoping issues",
+        "It allows them to skip unit tests entirely",
+        "It speeds up internet connection bandwidth",
+        "It increases the screen refresh rate of the browser"
+      ],
+      answerIndex: 0,
+      damageExplanation: "Proper structural habits eliminate logic errors, memory leaks, and scope pollution."
+    },
+    {
+      question: `In production environments, what is the best practice for "${mTitle}"?`,
+      options: [
+        "Thorough validation, error containment, and structural checks",
+        "Hardcoding values to save computation overhead",
+        "Disabling console logging globally so errors go unnoticed",
+        "Deleting the git history before every deployment"
+      ],
+      answerIndex: 0,
+      damageExplanation: "Robust validation and error isolation ensure production builds remain resilient."
+    },
+    {
+      question: `Which tool is standard for maintaining constraints in "${mTitle}"?`,
+      options: [
+        "Linter checks and code compilers/transpilers",
+        "Image optimization compressors",
+        "Browser history clean utilities",
+        "Sound player controls"
+      ],
+      answerIndex: 0,
+      damageExplanation: "Linters and strict compilers automatically catch formatting, scope, and validation issues."
+    }
+  ];
+
+  return { bossType, bossIntro: fallbackIntro, questions: fallbackQuestions };
+}
