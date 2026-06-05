@@ -107,9 +107,11 @@ The core esports engine where raw speed, high-fidelity focus, and real-time exec
 * **Real-Time Matchmaking:** Powered by a backend Socket.IO state machine, victory is governed by who can track the playback queue faster, manage high-stakes risk/reward multipliers, and deploy rapid-fire correct answers to maximize combo damage parameters.
 
 <div align="center">
-  <img width="100%" src="https://github.com/user-attachments/assets/73ca3aac-0a8d-4b9e-a896-d7072cc4475b" alt="Competitive Duel Arena Live Evaluation" />
 
   <img width="1920" height="1078" alt="Image" src="https://github.com/user-attachments/assets/c41a542f-8da7-440a-9a3d-764a45dd0a66" />
+
+  <img width="100%" src="https://github.com/user-attachments/assets/73ca3aac-0a8d-4b9e-a896-d7072cc4475b" alt="Competitive Duel Arena Live Evaluation" />
+ 
 </div>
 
 ---
@@ -119,12 +121,33 @@ The core esports engine where raw speed, high-fidelity focus, and real-time exec
 At the terminal junction of any major PathFinder level block, standard multiple-choice testing is replaced by a turn-based **Ascension Boss Confrontation**. 
 
 The UI transitions into an ominous dark-fantasy encounter matrix where players face specialized domain guardians, such as **Scorpio (The Syntax Sentinel)**.
-* **Combat State Machine:** The evaluation operates on active game loop rules. Answering an algorithmic question correctly triggers a player attack animation and deals damage to the boss's health pool. 
-* **Integrity System:** Inputting an incorrect answer costs the player one of their **3 Integrity Hearts** as the boss counter-attacks. 
-* **Pedagogical Correction:** When the boss lands a hit, his victory dialogue string functions as an automated learning feedback loop, detailing the exact computer science theory required to solve the logic trap.
 
 <div align="center">
-  <img width="100%" src="https://github.com/user-attachments/assets/afc16039-fc2a-4323-8db6-cf322667d8eb" alt="Elden-Style Milestone Boss Battle Interface" />
+
+  <img width="1919" height="1079" alt="Image" src="https://github.com/user-attachments/assets/9a427e78-d510-4274-9b79-91b51d46724a" />
+ 
+</div>
+
+* **Combat State Machine:** The evaluation operates on active game loop rules. Answering an algorithmic question correctly triggers a player attack animation and deals damage to the boss's health pool. 
+
+<div align="center">
+
+  <img width="1919" height="1079" alt="Image" src="https://github.com/user-attachments/assets/a7b09af1-9542-4c88-a0e9-472aea30628f" />
+ 
+</div>
+
+* **Integrity System:** Inputting an incorrect answer costs the player one of their **3 Integrity Hearts** as the boss counter-attacks. 
+
+  <div align="center">
+
+  <img width="1919" height="1079" alt="Image" src="https://github.com/user-attachments/assets/b480190f-012a-40f5-b65b-b96e40682ba4" />
+ 
+</div>
+
+* **winner/looser:** if you get it wrong 3 times its game over or if you are able to atleast answer 4 of the question correctly its your win.
+
+<div align="center">
+  <img width="1919" height="1079" alt="Image" src="https://github.com/user-attachments/assets/14888864-1021-48c4-9c9c-857b2c4b2514" />
 </div>
 
 ---
@@ -144,10 +167,6 @@ To incentivize discipline over erratic binging, the rarest visual profile modifi
 * 🟨 **Yellow Glow:** Unlocked via basic daily consistency milestones.
 * 🟥 **Red Glow:** Earned by extending learning streaks into deep competitive domains.
 * 🟪 **Purple Glow:** The apex halo, reserved for users displaying exceptional long-term learning discipline.
-
-<div align="center">
-  <img width="100%" src="https://github.com/user-attachments/assets/99ceadf3-5087-4204-a915-da1e86d2de82" alt="Central Player Profile and Dynamic Metrics Hub" />
-</div>
 
 <br/>
 
