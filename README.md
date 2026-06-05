@@ -192,6 +192,8 @@ Learning software engineering is a solitary experience; Kaevrix fixes this by pr
 
 <div align="center">
   <img width="1919" height="866" alt="Image" src="https://github.com/user-attachments/assets/e91c387c-be3d-4352-820d-bca816c00eb1" />
+  
+  <img width="1919" height="865" alt="Image" src="https://github.com/user-attachments/assets/811ccc89-21fd-4019-b284-24cadf631dbc" />
 </div>
 
 
