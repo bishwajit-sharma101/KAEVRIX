@@ -5,22 +5,24 @@
 <br/>
 
 # ⚔️ Kaevrix
-### Educational Esports: Real-Time Competitive Learning
+### Educational Esports: Real-Time Competitive Learning & RPG Progression
 
 <p align="center">
-  <strong>What if mastering a new skill felt like climbing the ranks in your favorite competitive game?</strong><br/>
-  Kaevrix transforms passive video tutorials into high-stakes, synchronized multiplayer battles powered by real-time WebSockets and generative AI.
+  <strong>What if mastering computer science felt like climbing the ranks in a competitive MMORPG?</strong><br/>
+  Kaevrix eliminates tutorial purgatory by transforming passive video tutorials into a structured campaign path, feature-rich solo training chambers, and high-stakes real-time multiplayer duels.
 </p>
 
 <p align="center">
-  <a href="#-the-vision">Vision</a> •
-  <a href="#-the-core-loop-duel-arena">Gameplay Loop</a> •
-  <a href="#-pathfinder-ai-neural-roadmaps">PathFinder</a> •
-  <a href="#-rpg-progression--meta-game">Progression</a> •
-  <a href="#-engineering-architecture">Under the Hood</a>
+  <a href="#-the-onboarding--on-demand-search">Onboarding</a> •
+  <a href="#-cognitive-pathfinder--quest-tracker">PathFinder</a> •
+  <a href="#-the-arena-workspace-solo-vs-competitive">Workspaces</a> •
+  <a href="#-milestone-boss-battles">Boss Battles</a> •
+  <a href="#-dynamic-skills-engine--prestige-cosmetics">Progression & Profiles</a> •
+  <a href="#-social-fabric--squad-ecosystem">Community</a> •
+  <a href="#-engineering-architecture">Architecture</a>
 </p>
 
-<img src="https://img.shields.io/badge/STATUS-IN%20DEVELOPMENT-FF5722?style=for-the-badge&logo=github" alt="Status">
+<img src="https://img.shields.io/badge/STATUS-PRODUCTION%20READY-00E676?style=for-the-badge&logo=github" alt="Status">
 <img src="https://img.shields.io/badge/ARCHITECTURE-Socket.io%20%7C%20Real--Time-000000?style=for-the-badge&logo=socket.io" alt="Architecture">
 <img src="https://img.shields.io/badge/AI_INTEGRATION-Google%20Gemini-4285F4?style=for-the-badge&logo=google" alt="AI">
 
@@ -30,98 +32,120 @@
 
 ## 🌍 The Vision
 
-Online learning suffers from low engagement and high distraction. **Kaevrix** solves this by injecting esports-inspired psychological pressure, RPG mechanics, and cognitive gameplay into standard educational content. 
+Traditional online learning platforms fail due to decision paralysis, infinite scrolling distractions, and a total lack of motivation. **Kaevrix** counters this by introducing a closed-loop token economy for learning. 
 
-**Learn. Compete. Ascend.** Knowledge becomes power, learning becomes combat, and skill becomes social status.
+By layering esports psychology, modular RPG skill tracks, and dynamic visual status indicators on top of raw educational content, Kaevrix turns the lonely chore of studying into a multiplayer quest for status and technical mastery.
+
+---
+
+## 🚀 The Onboarding & On-Demand Search
+
+When a user initializes a **"NEW GAME"** and logs into the central Arena dashboard, they are greeted by an intentional cold-start state. Because choice paralysis is a core learning bottleneck, the dashboard remains completely clear of random, algorithmic video clutter. 
+
+Users are immediately guided to launch the PathFinder system to establish their educational vector. However, for open-ended study, a global search utility bridges directly to the YouTube API, allowing users to pull any engineering resource into the custom Kaevrix engine framework on demand.
 
 <div align="center">
-  <img width="100%" src="https://github.com/user-attachments/assets/0d9a6674-354e-4b81-91d7-8852ccff391a" alt="Platform Vision" />
+  <img width="100%" src="https://github.com/user-attachments/assets/295efa3a-85a6-4788-ba77-c4bd5c30a148" alt="Arena Dashboard Portal Setup" />
 </div>
 
 ---
 
-## ⚔️ The Core Loop: Duel Arena
+## 🧭 Cognitive PathFinder & Quest Tracker
 
-The Duel Arena is the heart of Kaevrix. This is where players queue up, sync up, and face off in real-time learning battles.
+The **PathFinder System** acts as the macro-campaign director. Once a user inputs their target field, the system maps out a progressively challenging, node-based roadmap partitioned into distinct operational tiers (e.g., *Level 1: Foundations*, *Level 2: Core Operations*).
 
-<div align="center">
-  <img width="100%" src="https://github.com/user-attachments/assets/ba1cc3b2-52b9-4021-8b5d-eb6dc585a2fd" alt="Gameplay Loop Overview"/>
-</div>
-
-### 1. Target Acquisition & Matchmaking
-> Search for any educational topic directly within the platform. Once a target video is selected, the engine matchmakes you with an opponent entering the same knowledge domain.
+* **The One-Video Rule:** To protect focus, Kaevrix rejects overwhelming playlist queues. The system feeds the user **exactly one high-signal video at a time** corresponding directly to their current position on the track.
+* **Dynamic Quest Tracking:** The dashboard's **Quest Tracker** tracks subtopic objectives. The main dashboard updates dynamically only when the prior subtopic node is structurally completed, keeping the user entirely locked into a linear progression line.
 
 <div align="center">
-  <img width="70%" src="https://github.com/user-attachments/assets/2c6c7b72-6c8b-4b86-a1eb-76853d1658bc" alt="Video Search" />
+  <img width="100%" src="https://github.com/user-attachments/assets/ba1cc3b2-52b9-4021-8b5d-eb6dc585a2fd" alt="Cognitive PathFinder Map UI" />
 </div>
-<br/>
-<img width="100%" src="https://github.com/user-attachments/assets/eab456f7-b736-4aa3-8336-28fd5fe8b21b" alt="Matchmaking" />
-
-### 2. Synchronized Watch Battles
-> Both players are locked into a synchronized playback session. During the watch phase, players must maintain focus to earn tactical energy, deploy power-ups, and manage high-stakes risk/reward multipliers.
-
-<img width="100%" src="https://github.com/user-attachments/assets/d1258fdc-4d89-4c05-9d18-1d566a9d2b74" alt="Watch Battle" />
-
-### 3. AI-Forged Quiz Phase
-> Powered by the Google Gemini API, the platform dynamically generates context-aware, multiple-choice quizzes on the fly. Compete for accuracy, speed, and combo multipliers.
-
-<img width="100%" src="https://github.com/user-attachments/assets/73ca3aac-0a8d-4b9e-a896-d7072cc4475b" alt="Quiz Phase" />
-
-### 4. Aftermath & Global Rankings
-> Review detailed post-match analytics. Compare your solving speed, accuracy, and risk multipliers against your opponent while earning XP to climb the global leaderboards.
-
-<img width="100%" src="https://github.com/user-attachments/assets/20c4a08c-8f68-400d-8c84-97f4f486e241" alt="Match Results" />
-<img width="100%" src="https://github.com/user-attachments/assets/d136b6d6-3cc2-4a54-9f66-288778b55dd0" alt="Global Rankings" />
 
 ---
 
-## 🎮 The Arena Dashboard & Profiles
+## 🎮 The Arena Workspace: Solo vs. Competitive
 
-The central hub provides players with quick access to active matchmaking queues, featured training videos, and their personal performance metrics.
+When launching a video node, players choose between two diametrically opposed environment configurations based on their current learning directive:
 
-### Main Arena Interface
-<img width="100%" src="https://github.com/user-attachments/assets/295efa3a-85a6-4788-ba77-c4bd5c30a148" alt="Arena Dashboard" />
-
-### Player Combat Profiles
-Track your battle history, win rates, total watch time, and current rank progression directly from your profile.
+### 🧘 Option A: The Solo Training Theatre (The Sanctum)
+Designed for deep ingestion, conceptual absorption, and systematic cognitive pacing.
+* **The AI Study Codex:** While watching, students do not take messy notes. The Codex parses metadata to generate clean, syntax-comparison matrices, conceptual analogies, and targeted logic exercises (e.g., *Memory Tracers* or *Pointer Manipulators*) in the side panel.
+* **Focus Soundscapes:** Toggling Focus Mode seamlessly initializes an integrated, low-stress ambient audio track directly inside the browser session.
+* **Pomodoro State Machine:** To prevent mental burnout, a hard-coded timer tracks cognitive load. At the interval, the interface triggers a full-screen override (**Chill, Energize, Aura**), locking the workstation down for a 5-minute Vibe Break paired with lo-fi tracks.
+* **Watch Gating:** To enforce academic integrity, the subtopic **Quest Quiz** remains strictly locked until the backend tracks a verified 90% video playback threshold.
 
 <div align="center">
-  <img width="100%" src="https://github.com/user-attachments/assets/99ceadf3-5087-4204-a915-da1e86d2de82" alt="Player Profiles" />
+  <img width="100%" src="https://github.com/user-attachments/assets/d1258fdc-4d89-4c05-9d18-1d566a9d2b74" alt="Solo Training Theatre and AI Codex UI" />
+</div>
+
+### ⚔️ Option B: The Competitive Duel Arena (The Clash)
+The core esports engine where raw speed, high-fidelity focus, and real-time execution are tested.
+* **The Workspace Strip:** Side-notes, ambient lo-fi music tracks, and Pomodoro rest intervals are completely stripped from the viewport. 
+* **Synchronized Watch Battles:** Both players are locked into a real-time, synchronized video stream. Players must process information instantly under high competitive pressure.
+* **Real-Time Matchmaking:** Powered by a backend Socket.IO state machine, victory is governed by who can track the playback queue faster, manage high-stakes risk/reward multipliers, and deploy rapid-fire correct answers to maximize combo damage parameters.
+
+<div align="center">
+  <img width="100%" src="https://github.com/user-attachments/assets/73ca3aac-0a8d-4b9e-a896-d7072cc4475b" alt="Competitive Duel Arena Live Evaluation" />
+</div>
+
+---
+
+## 👹 Milestone Boss Battles
+
+At the terminal junction of any major PathFinder level block, standard multiple-choice testing is replaced by a turn-based **Ascension Boss Confrontation**. 
+
+The UI transitions into an ominous dark-fantasy encounter matrix where players face specialized domain guardians, such as **Scorpio (The Syntax Sentinel)**.
+* **Combat State Machine:** The evaluation operates on active game loop rules. Answering an algorithmic question correctly triggers a player attack animation and deals damage to the boss's health pool. 
+* **Integrity System:** Inputting an incorrect answer costs the player one of their **3 Integrity Hearts** as the boss counter-attacks. 
+* **Pedagogical Correction:** When the boss lands a hit, his victory dialogue string functions as an automated learning feedback loop, detailing the exact computer science theory required to solve the logic trap.
+
+<div align="center">
+  <img width="100%" src="https://github.com/user-attachments/assets/afc16039-fc2a-4323-8db6-cf322667d8eb" alt="Elden-Style Milestone Boss Battle Interface" />
+</div>
+
+---
+
+## 🧬 Dynamic Skills Engine & Prestige Cosmetics
+
+Kaevrix implements a dual-layered leveling framework designed to map out long-term prestige and technical identity.
+
+### Dynamic Skill Tracking
+A player’s profile populates dynamically based on verified tracking metadata. If a user begins watching a Data Structures sequence, the `Algorithms` skill line materializes on their profile at rank **Novice**. Passing related subtopic quizzes and completing watch milestones channels localized XP directly into that module, leveling it up to **Apprentice**, **Adept**, and master tiers over time. 
+
+### Centralized Leveling & Cosmetics Store
+While skill tracks fluctuate, all accumulated player experience points ($XP$) stream into a permanent database registry that drives overall Character Level. This XP balance serves as capital to unlock custom static profiles and background aesthetics.
+
+### Consistency Glows (The Continuity Engine)
+To incentivize discipline over erratic binging, the rarest visual profile modifications—**Dynamic Aura Glows**—cannot be bought with standard XP. They are hard-gated behind daily continuity metrics:
+* 🟨 **Yellow Glow:** Unlocked via basic daily consistency milestones.
+* 🟥 **Red Glow:** Earned by extending learning streaks into deep competitive domains.
+* 🟪 **Purple Glow:** The apex halo, reserved for users displaying exceptional long-term learning discipline.
+
+<div align="center">
+  <img width="100%" src="https://github.com/user-attachments/assets/99ceadf3-5087-4204-a915-da1e86d2de82" alt="Central Player Profile and Dynamic Metrics Hub" />
 </div>
 
 <br/>
 
 <div align="center">
-  <p align="center"><strong>📺 Watch the Cosmetics System in Action</strong></p>
+  <p align="center"><strong>🎨 Watch the Cosmetics System & Particle Engines in Action</strong></p>
   
   [![Kaevrix Cosmetics System](https://img.youtube.com/vi/sgzADaLMgT4/maxresdefault.jpg)](https://www.youtube.com/watch?v=sgzADaLMgT4)
 </div>
 
 ---
 
-## 🧭 PathFinder: AI Neural Roadmaps
+## 👥 Social Fabric & Squad Ecosystem
 
-Don't know where to start? The **PathFinder System** generates personalized, node-based learning roadmaps. Tell the AI your end goal and available time, and it will construct a progressively challenging path of curated content and generated notes.
+Learning software engineering is a solitary experience; Kaevrix fixes this by providing an active social fabric layer.
+
+* **Live Telemetry:** The global sidebar renders real-time platform metrics, broadcasting active duels, online players, and videos currently processing in the queue.
+* **The Squad Engine:** Users can safely inspect another player's custom combat profile, review their mastery matrices, and issue immediate friend requests. 
+* **Alliances & Channels:** Accepting an invitation merges users into unified **Squad Alliances**, unlocking low-latency messaging rooms to let teammates coordinate study sessions, monitor group rankings, and track peer progression.
 
 <div align="center">
-  <video src="https://github.com/user-attachments/assets/813f7226-f49b-482e-844a-7063a80d59a2" controls="controls" muted="muted" style="max-width:100%;"></video>
+  <img width="100%" src="https://github.com/user-attachments/assets/d136b6d6-3cc2-4a54-9f66-288778b55dd0" alt="Global Leaderboards and Squad Discovery Interface" />
 </div>
-
----
-
-## 🛡️ RPG Progression & Meta-Game
-
-Kaevrix isn't just match-by-match; it's a long-term progression ecosystem designed to build tactical identity and expertise.
-
-### Classes & Skill Trees
-Players define their legacy by choosing distinct combat subclasses (e.g., *The Speedrunner*, *The Edgelord*). Winning duels grants XP to unlock devastating abilities, passive combo enhancements, and rule-bending ultimate perks.
-
-<img width="100%" src="https://github.com/user-attachments/assets/63897647-b125-422a-beb1-351d6700c683" alt="Character Classes" />
-
-### 👑 Domain Bosses & Ascension
-Elite players can conquer specific knowledge territories (e.g., the "JavaScript Arena"). Challengers must risk all their accumulated XP in cinematic Ascension Battles to dethrone the reigning Domain Boss and claim the territory.
-
-<img width="100%" src="https://github.com/user-attachments/assets/afc16039-fc2a-4323-8db6-cf322667d8eb" alt="Domain Bosses" />
 
 ---
 
@@ -164,6 +188,7 @@ kaevrix/
 ### 👤 Author
 
 **Bishwajit Sharma**  
+
 *Full-Stack Developer focused on real-time systems, performance, and scalable web architecture.*
 
 <p align="center">
