@@ -181,6 +181,12 @@
   <img src="https://github.com/user-attachments/assets/14888864-1021-48c4-9c9c-857b2c4b2514" width="100%" alt="Victory State Screen Asset"/>
 </div>
 
+<div align="center">
+  <p align="center"><strong>📺 Watch the Gameplay / Feature in Action</strong></p>
+  
+  [![Kaevrix Feature Demonstration](https://img.youtube.com/vi/b4I1EoCh5p0/maxresdefault.jpg)](https://www.youtube.com/watch?v=b4I1EoCh5p0)
+</div>
+
 ---
 
 ## 🧬 Dynamic Skills Engine & Prestige Cosmetics
