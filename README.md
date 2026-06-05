@@ -50,6 +50,7 @@
 </div>
 
 > 
+<br/>
 > Users are immediately guided toward the PathFinder node matrix to construct their curated campaign path. However, for spontaneous training, a global search utility interfaces directly with the YouTube API, allowing users to safely query and capture any software engineering asset directly into the custom Kaevrix focus player runtime.
 
 <br/>
