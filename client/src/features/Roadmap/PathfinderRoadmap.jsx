@@ -2141,7 +2141,7 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
                   {(() => {
                     if (data.completedInLevel !== data.milestones.length) return null;
                     
-                    const nextLevelNum = levelNum + 1;
+                    const nextLevelNum = data.levelNum + 1;
                     const nextLevelKey = `level${nextLevelNum}`;
                     const nextLevelData = roadmap[nextLevelKey];
                     const isNextEncrypted = nextLevelData?.milestones?.[0]?.isEncrypted;
@@ -2160,7 +2160,7 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
                             Neural Link Established
                           </div>
                           <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "16px" }}>
-                            You have mastered Level {levelNum}. Level {nextLevelNum} is currently encrypted.
+                            You have mastered Level {data.levelNum}. Level {nextLevelNum} is currently encrypted.
                           </div>
                           
                           {decryptError && decryptingLevel === nextLevelNum && (

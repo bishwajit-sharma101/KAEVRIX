@@ -2,210 +2,566 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import * as sound from "../../utils/audio";
 
-// SVG Boss Sprite Components (Premium Ethereal Dark Fantasy)
-function CallbackDemonSVG({ isHurt }) {
+// Detailed 32x32 Pixel Art SVG Components
+function PlayerKnightSVG({ isHurt }) {
   return (
-    <svg width="140" height="140" viewBox="0 0 100 100" style={{ animation: "bossFloat 4s ease-in-out infinite", filter: isHurt ? "drop-shadow(0 0 50px #ff0000) brightness(1.5)" : "drop-shadow(0 0 35px rgba(168,85,247,0.8))" }}>
+    <svg width="90" height="90" viewBox="0 0 32 32" style={{ imageRendering: "pixelated", overflow: "visible", filter: isHurt ? "drop-shadow(0 0 15px #c8102e) brightness(1.8)" : "none" }}>
       <defs>
-        <radialGradient id="demonCore" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#fff"/>
-          <stop offset="30%" stopColor="#ff007f"/>
-          <stop offset="100%" stopColor="#4a154b" stopOpacity="0"/>
-        </radialGradient>
+        <filter id="playerGlow">
+          <feGaussianBlur stdDeviation="1" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
-      <polygon points="50,10 65,40 90,50 65,60 50,90 35,60 10,50 35,40" fill="rgba(10,0,15,0.6)" stroke="#ff007f" strokeWidth="1" style={{animation: "spinSlowReverse 20s linear infinite", transformOrigin: "50px 50px"}}/>
-      <polygon points="50,20 60,45 80,50 60,55 50,80 40,55 20,50 40,45" fill="url(#demonCore)" style={{animation: "spinSlow 15s linear infinite", transformOrigin: "50px 50px"}}/>
-      <circle cx="50" cy="50" r="15" fill="#110022" />
-      <circle cx="50" cy="50" r="8" fill="#ff007f" style={{animation: "pulseOpacity 2s infinite alternate"}}/>
-      <path d="M 50 10 C 70 30 70 70 50 90 C 30 70 30 30 50 10 Z" fill="none" stroke="#a855f7" strokeWidth="0.5"/>
+      {/* Cape (glowing crimson/purple, waving) */}
+      <g className="pixel-player-cape">
+        <path d="M 8,14 Q 3,18 2,26 Q 7,28 11,25 Q 10,19 9,14 Z" fill="#580000" />
+        <path d="M 9,14 Q 5,17 4,25 Q 8,27 11,25 Q 11,20 10,14 Z" fill="#c8102e" />
+        <path d="M 10,14 Q 7,17 6,23 Q 9,25 11,24 Q 11,20 10,14 Z" fill="#ff4d4d" />
+      </g>
+      
+      {/* Legs & Boots */}
+      <g className="pixel-player-legs">
+        <rect x="11" y="23" width="3" height="5" fill="#2d3748" />
+        <rect x="16" y="23" width="3" height="5" fill="#2d3748" />
+        <rect x="10" y="26" width="4" height="2" fill="#1a202c" />
+        <rect x="16" y="26" width="4" height="2" fill="#1a202c" />
+      </g>
+
+      {/* Torso & Armor */}
+      <g className="pixel-player-torso">
+        <rect x="10" y="13" width="10" height="11" fill="#4a5568" rx="1" />
+        <rect x="11" y="14" width="8" height="9" fill="#718096" />
+        {/* Chest Crest */}
+        <rect x="14" y="15" width="2" height="6" fill="#c8102e" />
+        <rect x="13" y="17" width="4" height="2" fill="#c8102e" />
+        {/* Belt */}
+        <rect x="10" y="22" width="10" height="1" fill="#111" />
+        <rect x="14" y="21" width="2" height="2" fill="#e2e8f0" />
+      </g>
+
+      {/* Head & Helmet */}
+      <g className="pixel-player-head">
+        <rect x="11" y="5" width="8" height="9" fill="#718096" rx="1" />
+        <rect x="12" y="6" width="6" height="7" fill="#a0aec0" />
+        {/* Visor slit */}
+        <rect x="12" y="8" width="6" height="2" fill="#1a202c" />
+        {/* Glowing Eyes */}
+        <rect x="13" y="8.5" width="1.5" height="1" fill="#00e5ff" style={{ animation: "pulseOpacity 1.5s infinite alternate" }} />
+        <rect x="16.5" y="8.5" width="1.5" height="1" fill="#00e5ff" style={{ animation: "pulseOpacity 1.5s infinite alternate" }} />
+        {/* Crest Plume */}
+        <path d="M 12,5 Q 9,1 14,0 Q 17,1 16,5 Z" fill="#c8102e" />
+        <path d="M 13,4 Q 11,2 14,1 Q 16,2 15,4 Z" fill="#ff4d4d" />
+      </g>
+
+      {/* Shield (Left arm / Foreground block) */}
+      <g className="pixel-player-shield">
+        <path d="M 7,14 h 5 v 6 l -2.5,4 l -2.5,-4 z" fill="#1a202c" />
+        <path d="M 8,15 h 3 v 4 l -1.5,3 l -1.5,-3 z" fill="#4a5568" />
+        <path d="M 9.5,15 v 5" stroke="#c8102e" strokeWidth="1" />
+        <rect x="7" y="16" width="1" height="1" fill="#cbd5e0" />
+        <rect x="12" y="16" width="1" height="1" fill="#cbd5e0" />
+      </g>
+
+      {/* Sword (Right arm, with glowing blade) */}
+      <g className="pixel-player-sword" style={{ transformOrigin: "19px 18px" }}>
+        {/* Right shoulder & arm */}
+        <rect x="19" y="15" width="3" height="3" fill="#4a5568" />
+        {/* Guard */}
+        <rect x="21" y="11" width="2" height="8" fill="#a0aec0" transform="rotate(-20 22 15)" />
+        {/* Hilt */}
+        <rect x="20" y="14" width="2" height="2" fill="#1a202c" />
+        {/* Blade (glowing) */}
+        <rect x="23" y="13" width="11" height="3" fill="#e2e8f0" transform="rotate(-20 22 15)" />
+        <rect x="23" y="14" width="11" height="1" fill="#ffffff" transform="rotate(-20 22 15)" />
+        {/* Aura energy glow around blade */}
+        <rect x="23" y="12" width="12" height="5" fill="rgba(0, 229, 255, 0.45)" filter="url(#playerGlow)" transform="rotate(-20 22 15)" className="pixel-player-sword-glow" />
+      </g>
     </svg>
   );
 }
 
-function ScopeWardenSVG({ isHurt }) {
+function PixelCallbackDemonSVG({ isHurt }) {
   return (
-    <svg width="140" height="140" viewBox="0 0 100 100" style={{ animation: "bossBreathe 5s ease-in-out infinite", filter: isHurt ? "drop-shadow(0 0 50px #ff0000) brightness(1.5)" : "drop-shadow(0 0 35px rgba(200,16,46,0.7))" }}>
+    <svg width="100" height="100" viewBox="0 0 32 32" style={{ imageRendering: "pixelated", overflow: "visible", filter: isHurt ? "drop-shadow(0 0 25px #c8102e) brightness(1.8)" : "drop-shadow(0 0 15px rgba(168,85,247,0.4))" }}>
       <defs>
-        <radialGradient id="wardenGlow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#ffffff"/>
-          <stop offset="40%" stopColor="#c8102e"/>
-          <stop offset="100%" stopColor="#1a1403" stopOpacity="0"/>
-        </radialGradient>
+        <filter id="demonGlow">
+          <feGaussianBlur stdDeviation="1" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
       </defs>
-      <circle cx="50" cy="50" r="45" fill="none" stroke="#c8102e" strokeWidth="0.5" strokeDasharray="2 6" style={{ animation: "spinSlow 30s linear infinite", transformOrigin: "50px 50px" }}/>
-      <circle cx="50" cy="50" r="38" fill="none" stroke="#c8102e" strokeWidth="1" strokeDasharray="20 15 5 15" style={{ animation: "spinSlowReverse 25s linear infinite", transformOrigin: "50px 50px" }}/>
-      <polygon points="50,15 70,50 50,85 30,50" fill="url(#wardenGlow)" style={{ animation: "pulseOpacity 3s infinite alternate" }} />
-      <polygon points="50,25 60,50 50,75 40,50" fill="#fff" />
-      <path d="M 50 15 C 80 0 90 40 50 50" fill="none" stroke="#c8102e" strokeWidth="1" />
-      <path d="M 50 85 C 20 100 10 60 50 50" fill="none" stroke="#c8102e" strokeWidth="1" />
+      
+      {/* Flapping Wings */}
+      <g className="pixel-boss-wings">
+        <path d="M 12,12 Q 2,2 1,14 Q 5,16 11,15 Z" fill="#2d004d" />
+        <path d="M 11,13 Q 4,5 3,13 Q 6,15 10,14 Z" fill="#ff007f" opacity="0.8" />
+        <path d="M 20,12 Q 30,2 31,14 Q 27,16 21,15 Z" fill="#2d004d" />
+        <path d="M 21,13 Q 28,5 29,13 Q 26,15 22,14 Z" fill="#ff007f" opacity="0.8" />
+      </g>
+
+      {/* Legs & Tail */}
+      <g>
+        <path d="M 16,22 Q 13,29 9,29 Q 12,31 16,27 Q 20,31 23,29 Q 19,29 16,22 Z" fill="#1a0033" />
+        <rect x="11" y="27" width="2" height="2" fill="#ff007f" />
+        <rect x="19" y="27" width="2" height="2" fill="#ff007f" />
+      </g>
+
+      {/* Torso */}
+      <g>
+        <rect x="11" y="12" width="10" height="11" fill="#1a0033" rx="1" />
+        <rect x="12" y="13" width="8" height="9" fill="#2d004d" />
+        <polygon points="16,14 18,17 16,20 14,17" fill="#ff007f" style={{ animation: "pulseOpacity 1.5s infinite alternate" }} />
+      </g>
+
+      {/* Horned Head */}
+      <g>
+        <rect x="12" y="5" width="8" height="8" fill="#1a0033" rx="1" />
+        <rect x="13" y="8" width="1.5" height="1" fill="#ff007f" />
+        <rect x="17.5" y="8" width="1.5" height="1" fill="#ff007f" />
+        <path d="M 12,5 Q 9,0 8,3 L 11,6 Z" fill="#ff007f" />
+        <path d="M 20,5 Q 23,0 24,3 L 21,6 Z" fill="#ff007f" />
+      </g>
+
+      {/* Trident Weapon */}
+      <g className="pixel-boss-weapon" style={{ transformOrigin: "12px 17px" }}>
+        <line x1="8" y1="26" x2="15" y2="10" stroke="#111827" strokeWidth="1.5" />
+        <path d="M 13,12 L 18,5 L 14,11 L 16,9 Z" fill="#ff007f" filter="url(#demonGlow)" />
+        <path d="M 14,11 L 11,7 L 13,12 Z" fill="#ff007f" filter="url(#demonGlow)" />
+        <path d="M 13,12 L 15,10" stroke="#ffffff" strokeWidth="1" />
+      </g>
     </svg>
   );
 }
 
-function DOMDestroyerSVG({ isHurt }) {
+function PixelScopeWardenSVG({ isHurt }) {
   return (
-    <svg width="140" height="140" viewBox="0 0 100 100" style={{ animation: "bossGlitch 2.5s steps(2) infinite", filter: isHurt ? "drop-shadow(0 0 50px #ff0000) brightness(1.5)" : "drop-shadow(0 0 40px rgba(34,197,94,0.6))" }}>
+    <svg width="100" height="100" viewBox="0 0 32 32" style={{ imageRendering: "pixelated", overflow: "visible", filter: isHurt ? "drop-shadow(0 0 25px #c8102e) brightness(1.8)" : "drop-shadow(0 0 15px rgba(56,189,248,0.4))" }}>
       <defs>
-        <radialGradient id="domCore" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#ffffff"/>
-          <stop offset="30%" stopColor="#22c55e"/>
-          <stop offset="100%" stopColor="#081c0b" stopOpacity="0"/>
-        </radialGradient>
+        <filter id="wardenGlow">
+          <feGaussianBlur stdDeviation="1" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
-      <rect x="25" y="25" width="50" height="50" fill="url(#domCore)" style={{animation: "spinSlow 10s linear infinite", transformOrigin: "50px 50px"}}/>
-      <polygon points="50,10 90,30 90,70 50,90 10,70 10,30" fill="none" stroke="#22c55e" strokeWidth="1" style={{animation: "spinSlowReverse 15s linear infinite", transformOrigin: "50px 50px"}}/>
-      <path d="M 10 30 L 90 70 M 10 70 L 90 30 M 50 10 L 50 90" stroke="#06b6d4" strokeWidth="0.5" strokeDasharray="2 4"/>
-      <polygon points="50,35 60,50 50,65 40,50" fill="#000" />
-      <circle cx="50" cy="50" r="5" fill="#fff" />
+      
+      {/* Floating Shards (Lexical scopes orbiting) */}
+      <g className="pixel-boss-shards">
+        <rect x="4" y="6" width="2" height="2" fill="#38bdf8" filter="url(#wardenGlow)" style={{ animation: "pixelIdle 2s infinite alternate" }} />
+        <rect x="26" y="8" width="2" height="2" fill="#38bdf8" filter="url(#wardenGlow)" style={{ animation: "pixelIdle 2.5s infinite alternate-reverse" }} />
+        <rect x="6" y="22" width="2" height="2" fill="#38bdf8" filter="url(#wardenGlow)" style={{ animation: "pixelIdle 1.8s infinite alternate" }} />
+      </g>
+
+      {/* Robes */}
+      <g>
+        <path d="M 11,14 L 21,14 L 25,28 L 7,28 Z" fill="#0f172a" />
+        <path d="M 13,14 L 19,14 L 22,28 L 10,28 Z" fill="#1e293b" />
+        <path d="M 15,14 L 17,14 L 18,28 L 14,28 Z" fill="#38bdf8" opacity="0.6" />
+      </g>
+
+      {/* Pauldrons (Silver/Ice) */}
+      <g>
+        <rect x="9" y="13" width="4" height="3" fill="#cbd5e1" rx="1" />
+        <rect x="19" y="13" width="4" height="3" fill="#cbd5e1" rx="1" />
+      </g>
+
+      {/* Hooded Head */}
+      <g>
+        <rect x="12" y="5" width="8" height="9" fill="#0f172a" rx="1" />
+        <rect x="13" y="6" width="6" height="7" fill="#020617" />
+        <rect x="14" y="8.5" width="1" height="1" fill="#38bdf8" filter="url(#wardenGlow)" />
+        <rect x="17" y="8.5" width="1" height="1" fill="#38bdf8" filter="url(#wardenGlow)" />
+      </g>
+
+      {/* Lexical Crystal Staff */}
+      <g className="pixel-boss-weapon" style={{ transformOrigin: "23px 20px" }}>
+        <rect x="22" y="6" width="2" height="23" fill="#64748b" />
+        <circle cx="23" cy="4" r="2.5" fill="#38bdf8" filter="url(#wardenGlow)" />
+        <circle cx="23" cy="4" r="1" fill="#ffffff" />
+        <path d="M 20,4 C 20,2 26,2 26,4 C 26,6 20,6 20,4 Z" fill="none" stroke="#e2e8f0" strokeWidth="0.5" strokeDasharray="1 1" />
+      </g>
     </svg>
   );
 }
 
-function SyntaxSentinelSVG({ isHurt }) {
+function PixelDOMDestroyerSVG({ isHurt }) {
   return (
-    <svg width="140" height="140" viewBox="0 0 100 100" style={{ animation: "bossFloat 5s ease-in-out infinite", filter: isHurt ? "drop-shadow(0 0 50px #ff0000) brightness(1.5)" : "drop-shadow(0 0 40px rgba(255,106,0,0.6))" }}>
+    <svg width="100" height="100" viewBox="0 0 32 32" style={{ imageRendering: "pixelated", overflow: "visible", filter: isHurt ? "drop-shadow(0 0 25px #c8102e) brightness(1.8)" : "drop-shadow(0 0 15px rgba(34,197,94,0.4))" }}>
       <defs>
-        <radialGradient id="sentinelCore" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#ffffff"/>
-          <stop offset="40%" stopColor="#ff6a00"/>
-          <stop offset="100%" stopColor="#261004" stopOpacity="0"/>
-        </radialGradient>
+        <filter id="domGlow">
+          <feGaussianBlur stdDeviation="1" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
-      <circle cx="50" cy="50" r="48" fill="none" stroke="#ff6a00" strokeWidth="0.5" strokeDasharray="1 10"/>
-      <rect x="35" y="35" width="30" height="30" fill="url(#sentinelCore)" transform="rotate(45 50 50)" style={{animation: "pulseOpacity 2.5s infinite alternate"}}/>
-      <rect x="40" y="40" width="20" height="20" fill="none" stroke="#fff" strokeWidth="1" transform="rotate(45 50 50)"/>
-      <path d="M 50 5 L 50 95 M 5 50 L 95 50" stroke="#ff6a00" strokeWidth="0.5"/>
-      <circle cx="50" cy="50" r="8" fill="#000" />
-      <circle cx="50" cy="50" r="3" fill="#00e5ff" />
+
+      {/* Segmented Spider-Like Legs */}
+      <g className="pixel-boss-legs">
+        <path d="M 10,16 L 3,18 L 1,28" stroke="#14532d" strokeWidth="1.5" fill="none" />
+        <path d="M 10,19 L 4,22 L 3,29" stroke="#14532d" strokeWidth="1.5" fill="none" />
+        <path d="M 22,16 L 29,18 L 31,28" stroke="#14532d" strokeWidth="1.5" fill="none" />
+        <path d="M 22,19 L 28,22 L 29,29" stroke="#14532d" strokeWidth="1.5" fill="none" />
+      </g>
+
+      {/* Glitchy Matrix Torso */}
+      <g>
+        <rect x="9" y="11" width="14" height="11" fill="#022c22" rx="1" />
+        <rect x="10" y="12" width="12" height="9" fill="#064e3b" />
+        <rect x="13" y="14" width="2" height="2" fill="#10b981" style={{ animation: "pulseOpacity 0.8s infinite alternate" }} />
+        <rect x="17" y="16" width="2" height="2" fill="#06b6d4" style={{ animation: "pulseOpacity 1.2s infinite alternate" }} />
+        <rect x="15" y="13" width="1.5" height="1.5" fill="#10b981" />
+      </g>
+
+      {/* Mechanical Glitch Head */}
+      <g>
+        <rect x="12" y="4" width="8" height="7" fill="#022c22" rx="1" />
+        <rect x="13" y="5" width="6" height="5" fill="#10b981" />
+        <rect x="14" y="6" width="1" height="1" fill="#ffffff" />
+        <rect x="17" y="6" width="1" height="1" fill="#ffffff" />
+        <rect x="15.5" y="8" width="1" height="1" fill="#06b6d4" />
+      </g>
+
+      {/* Energy Slicers */}
+      <g className="pixel-boss-weapon" style={{ transformOrigin: "12px 18px" }}>
+        <path d="M 7,16 L 1,12" stroke="#10b981" strokeWidth="2" filter="url(#domGlow)" />
+        <path d="M 25,16 L 31,12" stroke="#10b981" strokeWidth="2" filter="url(#domGlow)" />
+      </g>
     </svg>
   );
 }
 
-function GarbageCollectorSVG({ isHurt }) {
+function PixelSyntaxSentinelSVG({ isHurt }) {
   return (
-    <svg width="140" height="140" viewBox="0 0 100 100" style={{ animation: "bossBreathe 3s ease-in-out infinite", filter: isHurt ? "drop-shadow(0 0 50px #ff0000) brightness(1.5)" : "drop-shadow(0 0 40px rgba(239,68,68,0.7))" }}>
+    <svg width="100" height="100" viewBox="0 0 32 32" style={{ imageRendering: "pixelated", overflow: "visible", filter: isHurt ? "drop-shadow(0 0 25px #c8102e) brightness(1.8)" : "drop-shadow(0 0 15px rgba(234,88,12,0.4))" }}>
       <defs>
-        <radialGradient id="garbageCore" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#ffffff"/>
-          <stop offset="20%" stopColor="#ef4444"/>
-          <stop offset="80%" stopColor="#240808"/>
-          <stop offset="100%" stopColor="#000" stopOpacity="0"/>
-        </radialGradient>
+        <filter id="sentinelGlow">
+          <feGaussianBlur stdDeviation="1" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
-      <circle cx="50" cy="50" r="45" fill="none" stroke="#ef4444" strokeWidth="1" strokeDasharray="5 10" style={{ animation: "spinSlow 10s linear infinite", transformOrigin: "50px 50px" }}/>
-      <circle cx="50" cy="50" r="35" fill="none" stroke="#f97316" strokeWidth="2" strokeDasharray="15 20" style={{ animation: "spinSlowReverse 8s linear infinite", transformOrigin: "50px 50px" }}/>
-      <circle cx="50" cy="50" r="25" fill="url(#garbageCore)" />
-      <circle cx="50" cy="50" r="10" fill="#000" />
-      <path d="M 50 25 C 70 25 70 50 50 50 C 30 50 30 25 50 25 Z" fill="#ef4444" style={{ animation: "pulseOpacity 1.5s infinite alternate" }}/>
+
+      {/* Outer Rotating Gears */}
+      <g className="pixel-boss-gears" style={{ transformOrigin: "16px 16px" }}>
+        <circle cx="16" cy="16" r="13" fill="none" stroke="#7c2d12" strokeWidth="1" strokeDasharray="3 5" />
+        <circle cx="16" cy="16" r="15" fill="none" stroke="#ea580c" strokeWidth="0.5" strokeDasharray="6 8" />
+      </g>
+
+      {/* Floating Rune Shards */}
+      <g>
+        <rect x="15" y="1" width="2" height="2" fill="#ea580c" filter="url(#sentinelGlow)" style={{ animation: "pixelIdle 1.5s infinite alternate" }} />
+        <rect x="15" y="29" width="2" height="2" fill="#ea580c" filter="url(#sentinelGlow)" style={{ animation: "pixelIdle 1.5s infinite alternate-reverse" }} />
+      </g>
+
+      {/* Main Runic Core Orb */}
+      <g>
+        <circle cx="16" cy="16" r="8" fill="#431407" />
+        <circle cx="16" cy="16" r="7" fill="#9a3412" />
+        <circle cx="16" cy="16" r="5" fill="#ea580c" />
+        <rect x="14" y="14" width="4" height="1" fill="#ff6a00" />
+        <rect x="15" y="17" width="2" height="1" fill="#ff6a00" />
+      </g>
+
+      {/* Central Laser Eye */}
+      <g>
+        <circle cx="16" cy="16" r="2.5" fill="#ffffff" filter="url(#sentinelGlow)" />
+        <circle cx="16" cy="16" r="1" fill="#00e5ff" />
+      </g>
     </svg>
   );
 }
 
-function renderBossSprite(bossType, isHurt) {
-  if (bossType === "Callback Demon") return <CallbackDemonSVG isHurt={isHurt} />;
-  if (bossType === "Scope Warden") return <ScopeWardenSVG isHurt={isHurt} />;
-  if (bossType === "DOM Destroyer") return <DOMDestroyerSVG isHurt={isHurt} />;
-  if (bossType === "Syntax Sentinel") return <SyntaxSentinelSVG isHurt={isHurt} />;
-  if (bossType === "Garbage Collector") return <GarbageCollectorSVG isHurt={isHurt} />;
-  return <SyntaxSentinelSVG isHurt={isHurt} />;
+function PixelGarbageCollectorSVG({ isHurt }) {
+  return (
+    <svg width="100" height="100" viewBox="0 0 32 32" style={{ imageRendering: "pixelated", overflow: "visible", filter: isHurt ? "drop-shadow(0 0 25px #c8102e) brightness(1.8)" : "drop-shadow(0 0 15px rgba(239,68,68,0.4))" }}>
+      <defs>
+        <filter id="garbageGlow">
+          <feGaussianBlur stdDeviation="1" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      {/* Exhaust Pipes & Smoke */}
+      <g className="pixel-boss-vents">
+        <rect x="8" y="6" width="2" height="4" fill="#27272a" />
+        <circle cx="7" cy="4" r="1.5" fill="#71717a" opacity="0.6" style={{ animation: "pixelIdle 1.2s infinite alternate" }} />
+        <rect x="22" y="6" width="2" height="4" fill="#27272a" />
+        <circle cx="25" cy="3" r="2" fill="#71717a" opacity="0.6" style={{ animation: "pixelIdle 1.4s infinite alternate-reverse" }} />
+      </g>
+
+      {/* Legs & Platform */}
+      <g>
+        <rect x="11" y="24" width="4" height="4" fill="#18181b" />
+        <rect x="17" y="24" width="4" height="4" fill="#18181b" />
+        <rect x="9" y="27" width="14" height="2" fill="#991b1b" />
+      </g>
+
+      {/* Rusted Bulky Torso */}
+      <g>
+        <rect x="8" y="10" width="16" height="14" fill="#18181b" rx="1" />
+        <rect x="9" y="11" width="14" height="12" fill="#27272a" />
+        <rect x="10" y="12" width="2" height="2" fill="#7c2d12" />
+        <rect x="20" y="18" width="2" height="2" fill="#7c2d12" />
+        <rect x="11" y="20" width="3" height="1" fill="#7c2d12" />
+        <rect x="14" y="14" width="4" height="4" fill="#7f1d1d" />
+        <rect x="15" y="15" width="2" height="2" fill="#ea580c" style={{ animation: "pulseOpacity 1s infinite alternate" }} />
+      </g>
+
+      {/* Head */}
+      <g>
+        <rect x="13" y="6" width="6" height="5" fill="#18181b" />
+        <rect x="14" y="8" width="4" height="1" fill="#ef4444" filter="url(#garbageGlow)" />
+      </g>
+
+      {/* Massive Trash Hook */}
+      <g className="pixel-boss-weapon" style={{ transformOrigin: "9px 15px" }}>
+        <rect x="4" y="12" width="2" height="9" fill="#18181b" />
+        <path d="M 2,21 Q 2,27 8,27 L 8,24 Q 4,24 4,21 Z" fill="#7c2d12" />
+        <rect x="7" y="27" width="1" height="2" fill="#22c55e" style={{ animation: "pulseOpacity 1.5s infinite alternate" }} />
+      </g>
+    </svg>
+  );
 }
+
+// Enemy Configuration list containing all 6 boss sprite sheets and their details
+const ENEMY_LIST = [
+  { folder: "1 Snake", name: "Snake", idleFrames: 4, attackFrames: 6, hurtFrames: 2, deathFrames: 4, attackType: "melee" },
+  { folder: "2 Hyena", name: "Hyena", idleFrames: 4, attackFrames: 6, hurtFrames: 2, deathFrames: 6, attackType: "melee" },
+  { folder: "3 Scorpio", name: "Scorpio", idleFrames: 4, attackFrames: 4, hurtFrames: 2, deathFrames: 4, attackType: "melee" },
+  { folder: "4 Vulture", name: "Vulture", idleFrames: 4, attackFrames: 4, hurtFrames: 2, deathFrames: 4, attackType: "projectile" },
+  { folder: "5 Mummy", name: "Mummy", idleFrames: 4, attackFrames: 6, hurtFrames: 2, deathFrames: 6, attackType: "spell" },
+  { folder: "6 Deceased", name: "Deceased", idleFrames: 4, attackFrames: 4, hurtFrames: 2, deathFrames: 6, attackType: "projectile" },
+];
+
+// Knight sprite animator — cycles individual frame PNGs
+function KnightSprite({ action, isHurt, playerHP }) {
+  // action: 'idle' | 'attack' | 'hurt'
+  const [frame, setFrame] = useState(1);
+  const frameRef = useRef(null);
+  
+  const isDead = playerHP <= 0;
+  // If hurt but alive, play normal idle frames to avoid awkward mid-air floating frames of Dead sheet,
+  // letting CSS recoil animations handle visual feedback. If dead, run full Dead falling sheet.
+  const prefix = action === "attack" ? "Attack" : action === "jumpAttack" ? "JumpAttack" : (action === "hurt" && isDead) ? "Dead" : "Idle";
+  const totalFrames = 10;
+  const fps = (action === "attack" || action === "jumpAttack") ? 14 : (action === "hurt" && isDead) ? 8 : 8;
+
+  useEffect(() => {
+    setFrame(1);
+    frameRef.current = setInterval(() => {
+      setFrame(f => {
+        if (action !== "idle" && (action === "attack" || action === "jumpAttack" || isDead) && f >= totalFrames) return totalFrames; // hold last frame
+        return f >= totalFrames ? 1 : f + 1;
+      });
+    }, 1000 / fps);
+    return () => clearInterval(frameRef.current);
+  }, [action, fps, totalFrames, isDead]);
+
+  const filterStyle = isHurt
+    ? "drop-shadow(0 0 20px #c8102e) drop-shadow(0 0 40px #ff0000) brightness(1.8)"
+    : "drop-shadow(0 0 6px rgba(0,229,255,0.3))";
+
+  return (
+    <img
+      src={`/knight/png/${prefix} (${frame}).png`}
+      alt="Knight"
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "contain",
+        imageRendering: "auto",
+        filter: filterStyle,
+      }}
+    />
+  );
+}
+
+// Enemy sprite sheet animator — steps through sprite sheet using background-position
+function EnemySprite({ enemyConfig, action, isHurt }) {
+  const [frame, setFrame] = useState(0);
+  const frameRef = useRef(null);
+  const config = enemyConfig || ENEMY_LIST[0];
+
+  let sheetSuffix = "_idle";
+  let totalFrames = config.idleFrames;
+  if (action === "attack") { sheetSuffix = "_attack"; totalFrames = config.attackFrames; }
+  else if (action === "hurt") { sheetSuffix = "_hurt"; totalFrames = config.hurtFrames; }
+  else if (action === "death") { sheetSuffix = "_death"; totalFrames = config.deathFrames; }
+
+  const fps = action === "attack" ? 12 : action === "hurt" ? 8 : (action === "death" ? 8 : 6);
+
+  useEffect(() => {
+    setFrame(0);
+    frameRef.current = setInterval(() => {
+      setFrame(f => {
+        if (action !== "idle" && f >= totalFrames - 1) return totalFrames - 1; // hold last
+        return f >= totalFrames - 1 ? 0 : f + 1;
+      });
+    }, 1000 / fps);
+    return () => clearInterval(frameRef.current);
+  }, [action, fps, totalFrames]);
+
+  const sheetUrl = `/enemies/${config.folder}/${config.name}${sheetSuffix}.png`;
+  const bgWidth = totalFrames * 100;
+  const xPos = totalFrames <= 1 ? 0 : (frame / (totalFrames - 1)) * 100;
+
+  const filterStyle = isHurt
+    ? "drop-shadow(0 0 25px #c8102e) brightness(1.8)"
+    : "drop-shadow(0 0 10px rgba(168,85,247,0.4))";
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        backgroundImage: `url("${sheetUrl}")`,
+        backgroundPosition: `${xPos}% 0%`,
+        backgroundSize: `${bgWidth}% 100%`,
+        backgroundRepeat: "no-repeat",
+        imageRendering: "pixelated",
+        filter: filterStyle,
+      }}
+    />
+  );
+}
+
+const getEnemyIndexForMilestone = (milestone) => {
+  if (!milestone) return 0;
+  const str = milestone.title || milestone.id || "";
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash) % ENEMY_LIST.length;
+};
 
 // Helper to define RPG Script dialogues for Elden Ring / Dark Souls storytelling
-const getDialogueScript = (bossType, topic) => {
+const getDialogueScript = (enemyName, topic) => {
   const scripts = {
-    "Callback Demon": {
-      greeting: `HAHAHA! Another lost scholar enters my domain. You think your little scripts can master the Erdtree of ${topic}? You'll be trapped in my callback hell forever!`,
+    "Snake": {
+      greeting: `Sssss... Another mortal dares step into the code garden of ${topic}? I am the Python of these domains. My venom will corrupt your syntax!`,
       responses1: [
-        "My closures are airtight. I'll execute you without delay!",
-        "Your gargoyle wings are looking a bit deprecated. Time for garbage collection.",
-        "I only seek to master this milestone. Let me pass."
+        "Your fangs don't scare me. I will run a clean parse!",
+        "A snake? I'll just write a script to sweep you away.",
+        "I seek to pass this milestone. Stand aside!"
       ],
       reactions1: [
-        `Airtight closures? *cackles* I will overflow your call stack before your first event tick! Hahaha!`,
-        `Deprecated? Deprecated?! I was here before your first npm install, child! You will burn! *howls*`,
-        `Quick? Quick?! Death is instantaneous in my runtime! Prepare to be rejected! *screeches*`
+        `Parse? *hisses* You will syntax error before you can even indent!`,
+        `Sweep me? *hisses* My venom runs deeper than your library paths!`,
+        `Pass? *cackles* No one passes my bite! Prepare to be poisoned!`
       ],
       responses2: [
-        "[Draw weapon] Enough talk. Draw your blade!",
-        "[Brace yourself] I will compile whatever errors you throw."
+        "[Draw weapon] Enough talk. Let's see your bite!",
+        "[Brace yourself] My shields will block your venom."
       ],
-      finalThreat: `*cackles* DIE, FOOLISH TRAVELER! Let the heap overflow!`
+      finalThreat: `*hisses* FEEL MY SYNTAX VENOM! DIE!`
     },
-    "Scope Warden": {
-      greeting: `Intruder! You dare step into the lexical scopes of the Erdtree? I am the Scope Warden. Your variables are undefined here!`,
+    "Hyena": {
+      greeting: `Aha-ha-ha! Look at this juicy allocation! A fresh programmer to scavenge in the garbage heap of ${topic}! *cackles hysterically*`,
       responses1: [
-        "I will bind myself to this scope and override your status!",
-        "Lexical scope? Looks like a tiny prison. I'll break it down.",
-        "Please, Warden. I only seek knowledge of this milestone."
+        "I am not garbage to be collected. Draw your claws!",
+        "Go back to the wild. I compile in clean runtimes.",
+        "Just let me pass this milestone."
       ],
       reactions1: [
-        `Bind? *guffaws* You are out of scope! I will throw a ReferenceError that tears your code apart!`,
-        `A prison? *growls* This prison is your grave! Let us see if your references survive my sweep!`,
-        `Knowledge is a curse for the unworthy! Your access token is REVOKED! *cackles*`
+        `Claws? *guffaws* I scavenge the heap! I will strip your memory allocation to zero!`,
+        `Clean runtimes? *cackles* There is nothing clean about what I'll do to your code block!`,
+        `Pass? *wheezes* The only way out is through the garbage collector!`
       ],
       responses2: [
         "[Draw weapon] Enough talk. Draw your blade!",
         "[Brace yourself] I will compile whatever errors you throw."
       ],
-      finalThreat: `Silence, out-of-scope worm! DIE!`
+      finalThreat: `HEAP OVERFLOW! SCAVENGE THE REMAINS! *howls*`
     },
-    "DOM Destroyer": {
-      greeting: `SKRRRZT! The DOM is mine! I have shattered the virtual tree! You think you can render anything in my domain? I will tear your nodes apart!`,
+    "Scorpio": {
+      greeting: `CLANK-CLANK! Intruder detected in the nesting grounds of ${topic}! My sting contains a lethal layout thrashing payload!`,
       responses1: [
-        "I will append my logic to your core and force a clean re-render!",
-        "Virtual tree? Looks like you have a memory leak. Let me patch you.",
-        "I just want to mount my components and pass. No need to destroy."
+        "I will force-render my way past you. Draw your stinger!",
+        "Your claws look like unclosed tags. Let me close them.",
+        "Please let me pass the milestone."
       ],
       reactions1: [
-        `Re-render?! *screeches* I will paint your screen in layout thumps! Paint flashing begins now!`,
-        `Patch me? *cackles* You can't even querySelector your own soul! Prepare for detachment!`,
-        `No need? Component mount? *guffaws* Everything you render is immediately unmounted and GC'd! DIE!`
+        `Stinger? *snaps* One strike and your render tree is detached forever!`,
+        `Unclosed tags? *hisses* I will truncate your soul from the DOM tree!`,
+        `Pass? *clanks* Access is denied. Initiate layout thrashing!`
       ],
       responses2: [
         "[Draw weapon] Enough talk. Draw your blade!",
-        "[Brace yourself] I will compile whatever errors you throw."
+        "[Brace yourself] My shields will absorb the layout flash."
       ],
-      finalThreat: `Layout thrashing starts NOW! DIE!`
+      finalThreat: `STING OF THE DETACHED DOM! DIE!`
     },
-    "Syntax Sentinel": {
-      greeting: `TICK-TOCK. I am the Syntax Sentinel. I enforce the sacred compile rules of ${topic}. Your code contains fatal compiler errors, traveler!`,
+    "Vulture": {
+      greeting: `*screeches* A lost coder wandering the barren wastes of ${topic}! I will pick your bones clean of variables and scopes!`,
       responses1: [
-        "My syntax is clean. My linters are strict. Draw your gears!",
-        "Tick-tock? Your gears sound like they need some oil. Let me break them.",
-        "I'll correct any errors. Just let me master this milestone."
+        "My variables are globally protected. Try and take them!",
+        "I'll shoot you down from the sky with custom events.",
+        "Just let me pass this milestone."
       ],
       reactions1: [
-        `Strict linters? *clanks* I will insert an unexpected token at line 1 and watch you fail! Hahaha!`,
-        `Break my gears?! *screeches* I compile in assembly, worm! You compile in dust! Clank-clank!`,
-        `Correct them? *guffaws* You cannot correct the fundamental flaws in your logic! Let parsing fail!`
+        `Globally protected? *screeches* I will garbage collect your global window!`,
+        `Shoot me down? *flaps* I fly above your compiler! You cannot reach me!`,
+        `Pass? *caws* The desert takes all who fail! Prepare to be cleaned!`
       ],
       responses2: [
         "[Draw weapon] Enough talk. Draw your blade!",
         "[Brace yourself] I will compile whatever errors you throw."
       ],
-      finalThreat: `UNEXPECTED TOKEN DETECTED! TERMINATING VISITOR!`
+      finalThreat: `*screeches* WIND BLADES OF REFRACTORING! DIE!`
     },
-    "Garbage Collector": {
-      greeting: `BZZZT! Scrap metal, scrap code, scrap souls! I collect the garbage of the Erdtree. And you, traveler... look like garbage! *laughs wheezily*`,
+    "Mummy": {
+      greeting: `WHO GURGLES IN MY ANCIENT TOMB OF ${topic}? I have been asleep since ES1. Your modern frameworks cannot save you from my sand traps!`,
       responses1: [
-        "I am a persistent reference. You cannot collect me!",
-        "Look in the mirror, metal bucket. You're the one leaking memory.",
-        "I am not garbage. I'm just here to study."
+        "Your ancient code is legacy. I run modern runtimes!",
+        "I'll wrap you in your own callback bandages.",
+        "Just let me pass this milestone."
       ],
       reactions1: [
-        `Persistent reference? *wheezes* I will nullify your parent scope and sweep you into the void!`,
-        `Leaking memory?! *roars* I am memory optimization incarnate! You are just a heap allocation waiting to be freed!`,
-        `Study? *guffaws* The only thing you will study is the garbage heap! Let's free your references!`
+        `Legacy? *groans* My legacy rules the core stack! You are but a temporary branch!`,
+        `Bandages? *hisses* My callbacks will wrap your main thread in an infinite loop!`,
+        `Pass? *rumbles* None escape the lexical tomb!`
       ],
       responses2: [
         "[Draw weapon] Enough talk. Draw your blade!",
         "[Brace yourself] I will compile whatever errors you throw."
       ],
-      finalThreat: `INITIATING GARBAGE SWEEP! SWEEPING YOU OUT!`
+      finalThreat: `SAND STORM OF CALLBACK HELL! DIE!`
+    },
+    "Deceased": {
+      greeting: `I am the ghost of compiled projects past. You think you can master ${topic}? You will join the graveyard of unfinished code!`,
+      responses1: [
+        "My project is live and robust. You cannot defeat me!",
+        "I'll exorcise you with a clean refactor.",
+        "I only seek to master this milestone."
+      ],
+      reactions1: [
+        `Live? *wails* Every project dies at the first deprecation warning!`,
+        `Refactor? *laughs hollowly* You cannot refactor what is already dead!`,
+        `Master? *screeches* Death is the only mastery here!`
+      ],
+      responses2: [
+        "[Draw weapon] Enough talk. Draw your blade!",
+        "[Brace yourself] I will compile whatever errors you throw."
+      ],
+      finalThreat: `DARK FIRE OF THE DEPRECATED STACK! DIE!`
     }
   };
-  
-  return scripts[bossType] || scripts["Syntax Sentinel"];
+
+  return scripts[enemyName] || scripts["Snake"];
 };
 
 export default function BossBattleModal({ topic, milestone, username, onClose, onVictory }) {
@@ -229,6 +585,14 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
   const [displayedBossText, setDisplayedBossText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [chosenResponse, setChosenResponse] = useState(0);
+
+  // Combat animation state: 'idle' | 'player-strike' | 'boss-strike'
+  const [combatAnim, setCombatAnim] = useState("idle");
+  const [screenFlash, setScreenFlash] = useState(null); // null, 'white', 'red'
+  const [playerAttackStyle, setPlayerAttackStyle] = useState("lunge"); // 'lunge' | 'jump'
+
+  const bossEnemyIndex = getEnemyIndexForMilestone(milestone);
+  const currentEnemyConfig = ENEMY_LIST[bossEnemyIndex];
 
   // loading screen logs
   const [summonLogs, setSummonLogs] = useState([]);
@@ -267,26 +631,30 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
       let duration = 0.05;
       let filterFreq = 1000;
       
-      if (bossType === "Callback Demon") {
+      if (bossType === "Deceased") {
         baseFreq = 80;
         type = "sawtooth";
         filterFreq = 500;
-      } else if (bossType === "Scope Warden") {
+      } else if (bossType === "Mummy") {
         baseFreq = 180;
         type = "sine";
         filterFreq = 1500;
-      } else if (bossType === "DOM Destroyer") {
+      } else if (bossType === "Scorpio") {
         baseFreq = 130;
         type = "square";
         filterFreq = 950;
-      } else if (bossType === "Syntax Sentinel") {
+      } else if (bossType === "Snake") {
         baseFreq = 200;
         type = "triangle";
         filterFreq = 1800;
-      } else if (bossType === "Garbage Collector") {
+      } else if (bossType === "Hyena") {
         baseFreq = 95;
         type = "sawtooth";
         filterFreq = 750;
+      } else if (bossType === "Vulture") {
+        baseFreq = 160;
+        type = "sine";
+        filterFreq = 1200;
       }
       
       const code = char.charCodeAt(0) || 65;
@@ -324,7 +692,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
   };
 
   // Tickers typing text word-by-word/char-by-char with speaking sound effects
-  const typeText = (text, onFinish) => {
+  const typeText = (text, onFinish, speed = 28) => {
     setIsTyping(true);
     setDisplayedBossText("");
     let i = 0;
@@ -335,7 +703,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
         const char = text[i];
         setDisplayedBossText((prev) => prev + char);
         if (char !== " " && i % 2 === 0) {
-          playSpeechSound(char, bossData?.bossType || "Syntax Sentinel");
+          playSpeechSound(char, currentEnemyConfig.name);
         }
         i++;
       } else {
@@ -343,7 +711,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
         setIsTyping(false);
         if (onFinish) onFinish();
       }
-    }, 28);
+    }, speed);
   };
 
   // 1. Fetch boss questions
@@ -478,11 +846,11 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
   // Dialogue Tree Hook (Triggers typing greeting and plays profile music)
   useEffect(() => {
     if (stage === "intro" && bossData && dialogueStep === 0) {
-      const colors = getThemeColors();
+      const colors = getThemeColors(currentEnemyConfig.name);
       sound.startBackgroundMusic(colors.musicProfile);
       
-      const script = getDialogueScript(bossData.bossType, topic);
-      typeText(script.greeting);
+      const script = getDialogueScript(currentEnemyConfig.name, topic);
+      typeText(script.greeting, null, 24);
     }
   }, [stage, bossData, dialogueStep]);
 
@@ -525,33 +893,43 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
 
   const handleTimeout = () => {
     setIsAnswering(true);
-    setPlayerHurt(true);
-    setPlayerHP((h) => {
-      const next = h - 1;
-      if (next <= 0) {
-        setTimeout(() => {
-          setStage("defeat");
-          sound.stopBackgroundMusic();
-          sound.playDefeat();
-        }, 1000);
-      } else {
-        typeText("TIME IS UP! Face my wrath!", () => {
+    setCombatAnim("boss-strike");
+    sound.playClockTick();
+
+    setTimeout(() => {
+      setPlayerHurt(true);
+      sound.playIncorrect();
+      setScreenFlash("red");
+      setTimeout(() => setScreenFlash(null), 150);
+
+      setPlayerHP((h) => {
+        const next = h - 1;
+        if (next <= 0) {
           setTimeout(() => {
-            setPlayerHurt(false);
-            setIsAnswering(false);
-            if (currentIdx < bossData.questions.length - 1) {
-              setCurrentIdx((idx) => idx + 1);
-            } else {
-              setStage("defeat");
-              sound.stopBackgroundMusic();
-              sound.playDefeat();
-            }
+            setStage("defeat");
+            sound.stopBackgroundMusic();
+            sound.playDefeat();
           }, 1000);
-        });
-        sound.playIncorrect();
-      }
-      return next;
-    });
+        } else {
+          typeText("TIME IS UP! Face my wrath!", () => {
+            setTimeout(() => {
+              setPlayerHurt(false);
+              setCombatAnim("idle");
+              setIsAnswering(false);
+              setSelectedAns(null);
+              if (currentIdx < bossData.questions.length - 1) {
+                setCurrentIdx((idx) => idx + 1);
+              } else {
+                setStage("defeat");
+                sound.stopBackgroundMusic();
+                sound.playDefeat();
+              }
+            }, 400);
+          }, 6);
+        }
+        return next;
+      });
+    }, 500);
   };
 
   const handleAnswerSelect = (optIdx) => {
@@ -564,67 +942,88 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
     const isCorrect = optIdx === question.answerIndex;
 
     if (isCorrect) {
-      setBossHurt(true);
-      setFloatingDamage("-25 HP");
-      sound.playCorrect();
-      setBossHP((hp) => {
-        const next = hp - 25;
-        if (next <= 0) {
-          setTimeout(() => {
-            setStage("victory");
-            sound.stopBackgroundMusic();
-            sound.playVictory();
-            if (onVictory) onVictory(milestone.xpReward * 2);
-          }, 1200);
-        } else {
-          typeText("Agh! That script... it compiles!", () => {
+      const isJump = Math.random() > 0.5;
+      setPlayerAttackStyle(isJump ? "jump" : "lunge");
+      setCombatAnim("player-strike");
+      sound.playClockTick();
+
+      setTimeout(() => {
+        setBossHurt(true);
+        setFloatingDamage("-25 HP");
+        sound.playCorrect();
+        setScreenFlash("white");
+        setTimeout(() => setScreenFlash(null), 150);
+
+        setBossHP((hp) => {
+          const next = hp - 25;
+          if (next <= 0) {
             setTimeout(() => {
-              setBossHurt(false);
-              setFloatingDamage(null);
-              setIsAnswering(false);
-              setSelectedAns(null);
-              if (currentIdx < bossData.questions.length - 1) {
-                setCurrentIdx((idx) => idx + 1);
-              } else {
-                setStage("victory");
-                sound.stopBackgroundMusic();
-                sound.playVictory();
-                if (onVictory) onVictory(milestone.xpReward * 2);
-              }
+              setStage("victory");
+              sound.stopBackgroundMusic();
+              sound.playVictory();
+              if (onVictory) onVictory(milestone.xpReward * 2);
             }, 1000);
-          });
-        }
-        return next;
-      });
+          } else {
+            typeText("Agh! That script... it compiles!", () => {
+              setTimeout(() => {
+                setBossHurt(false);
+                setFloatingDamage(null);
+                setCombatAnim("idle");
+                setIsAnswering(false);
+                setSelectedAns(null);
+                if (currentIdx < bossData.questions.length - 1) {
+                  setCurrentIdx((idx) => idx + 1);
+                } else {
+                  setStage("victory");
+                  sound.stopBackgroundMusic();
+                  sound.playVictory();
+                  if (onVictory) onVictory(milestone.xpReward * 2);
+                }
+              }, 400);
+            }, 6);
+          }
+          return next;
+        });
+      }, 500);
+
     } else {
-      setPlayerHurt(true);
-      sound.playIncorrect();
-      setPlayerHP((h) => {
-        const next = h - 1;
-        if (next <= 0) {
-          setTimeout(() => {
-            setStage("defeat");
-            sound.stopBackgroundMusic();
-            sound.playDefeat();
-          }, 1200);
-        } else {
-          typeText(`INCORRECT! ${question.damageExplanation}`, () => {
+      setCombatAnim("boss-strike");
+      sound.playClockTick();
+
+      setTimeout(() => {
+        setPlayerHurt(true);
+        sound.playIncorrect();
+        setScreenFlash("red");
+        setTimeout(() => setScreenFlash(null), 150);
+
+        setPlayerHP((h) => {
+          const next = h - 1;
+          if (next <= 0) {
             setTimeout(() => {
-              setPlayerHurt(false);
-              setIsAnswering(false);
-              setSelectedAns(null);
-              if (currentIdx < bossData.questions.length - 1) {
-                setCurrentIdx((idx) => idx + 1);
-              } else {
-                setStage("defeat");
-                sound.stopBackgroundMusic();
-                sound.playDefeat();
-              }
-            }, 2000);
-          });
-        }
-        return next;
-      });
+              setStage("defeat");
+              sound.stopBackgroundMusic();
+              sound.playDefeat();
+            }, 1000);
+          } else {
+            typeText(`INCORRECT! ${question.damageExplanation}`, () => {
+              setTimeout(() => {
+                setPlayerHurt(false);
+                setCombatAnim("idle");
+                setIsAnswering(false);
+                setSelectedAns(null);
+                if (currentIdx < bossData.questions.length - 1) {
+                  setCurrentIdx((idx) => idx + 1);
+                } else {
+                  setStage("defeat");
+                  sound.stopBackgroundMusic();
+                  sound.playDefeat();
+                }
+              }, 800);
+            }, 6);
+          }
+          return next;
+        });
+      }, 500);
     }
   };
 
@@ -652,50 +1051,67 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
     if (dialogueStep === 0) {
       setChosenResponse(choiceIdx);
       setDialogueStep(1);
-      const script = getDialogueScript(bossData.bossType, topic);
+      const script = getDialogueScript(currentEnemyConfig.name, topic);
       typeText(script.reactions1[choiceIdx]);
     } else if (dialogueStep === 1) {
       setDialogueStep(2);
-      const script = getDialogueScript(bossData.bossType, topic);
+      const script = getDialogueScript(currentEnemyConfig.name, topic);
       typeText(script.finalThreat);
     }
   };
 
-  const getThemeColors = () => {
-    const type = bossData?.bossType || "Syntax Sentinel";
-    if (type === "Callback Demon") {
+  const getThemeColors = (enemyName) => {
+    if (enemyName === "Snake") {
       return {
-        primary: "#a855f7",
-        secondary: "#ff007f",
-        glow: "rgba(168,85,247,0.4)",
-        gradient: "radial-gradient(circle at 50% 35%, #180924 0%, #040206 100%)",
-        musicProfile: 7
-      };
-    }
-    if (type === "Scope Warden") {
-      return {
-        primary: "#eab308",
-        secondary: "#38bdf8",
-        glow: "rgba(234,179,8,0.4)",
-        gradient: "radial-gradient(circle at 50% 35%, #241d08 0%, #050402 100%)",
+        primary: "#10b981", // green
+        secondary: "#00e5ff", // cyan
+        glow: "rgba(16,185,129,0.4)",
+        gradient: "radial-gradient(circle at 50% 35%, #082015 0%, #020604 100%)",
         musicProfile: 1
       };
     }
-    if (type === "DOM Destroyer") {
+    if (enemyName === "Hyena") {
       return {
-        primary: "#22c55e",
-        secondary: "#06b6d4",
-        glow: "rgba(34,197,94,0.4)",
-        gradient: "radial-gradient(circle at 50% 35%, #081c0b 0%, #020502 100%)",
+        primary: "#f97316", // orange
+        secondary: "#ef4444", // red
+        glow: "rgba(249,115,22,0.4)",
+        gradient: "radial-gradient(circle at 50% 35%, #240f04 0%, #060201 100%)",
+        musicProfile: 7
+      };
+    }
+    if (enemyName === "Scorpio") {
+      return {
+        primary: "#8b5cf6", // purple
+        secondary: "#10b981", // green
+        glow: "rgba(139,92,246,0.4)",
+        gradient: "radial-gradient(circle at 50% 35%, #1c0e2b 0%, #050208 100%)",
         musicProfile: 8
       };
     }
-    if (type === "Garbage Collector") {
+    if (enemyName === "Vulture") {
       return {
-        primary: "#ef4444",
-        secondary: "#f97316",
+        primary: "#38bdf8", // light blue
+        secondary: "#e2e8f0", // silver
+        glow: "rgba(56,189,248,0.4)",
+        gradient: "radial-gradient(circle at 50% 35%, #081a24 0%, #02070a 100%)",
+        musicProfile: 1
+      };
+    }
+    if (enemyName === "Mummy") {
+      return {
+        primary: "#eab308", // gold
+        secondary: "#f97316", // orange
+        glow: "rgba(234,179,8,0.4)",
+        gradient: "radial-gradient(circle at 50% 35%, #241c04 0%, #060401 100%)",
+        musicProfile: 1
+      };
+    }
+    if (enemyName === "Deceased") {
+      return {
+        primary: "#ef4444", // dark crimson
+        secondary: "#a855f7", // purple
         glow: "rgba(239,68,68,0.4)",
-        gradient: "radial-gradient(circle at 50% 35%, #240808 0%, #060202 100%)",
+        gradient: "radial-gradient(circle at 50% 35%, #280808 0%, #0a0101 100%)",
         musicProfile: 7
       };
     }
@@ -708,7 +1124,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
     };
   };
 
-  const colors = getThemeColors();
+  const colors = getThemeColors(currentEnemyConfig.name);
 
   // Render Hearts for Player Health
   const renderHearts = () => {
@@ -784,21 +1200,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
           50% { transform: translate(6px, -6px) rotate(4deg); filter: brightness(1.8) invert(0.1); }
         }
 
-        .player-hurt { animation: screenShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) 1; box-shadow: inset 0 0 100px rgba(200, 16, 46, 0.4); }
-        @keyframes screenShake {
-          0%, 100% { transform: translate(0, 0); }
-          20% { transform: translate(-8px, 8px); }
-          40% { transform: translate(8px, -8px); }
-          60% { transform: translate(-8px, -8px); }
-          80% { transform: translate(8px, 8px); }
-        }
-
-        .slash-beam {
-          position: absolute; width: 250%; height: 10px; background: #fff;
-          box-shadow: 0 0 20px #ff007f, 0 0 35px #d4af37; transform: rotate(-30deg);
-          top: 45%; left: -70%; animation: slashCut 0.3s cubic-bezier(0.19, 1, 0.22, 1) forwards; z-index: 100;
-        }
-        @keyframes slashCut { 0% { transform: scaleX(0) rotate(-30deg); opacity: 0; } 50% { opacity: 1; } 100% { transform: scaleX(1) rotate(-30deg); opacity: 0; } }
+        /* (old player-hurt/screenShake/slash-beam removed — see enhanced heavyShake below) */
 
         .float-dmg {
           position: absolute; font-family: 'Cinzel', serif; font-size: 38px; color: #ef4444; font-weight: 900;
@@ -819,7 +1221,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
         .er-option-btn-premium {
           position: relative; width: 100%; background: rgba(15, 15, 15, 0.7); backdrop-filter: blur(10px);
           border: 1px solid rgba(255, 255, 255, 0.1); color: #cccccc; font-family: 'Cormorant Garamond', serif;
-          font-size: 19px; padding: 12px 20px; text-align: left; cursor: pointer; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          font-size: 18px; padding: 10px 16px; text-align: left; cursor: pointer; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
           display: flex; align-items: center; overflow: hidden; outline: none;
         }
         .er-option-btn-premium::before {
@@ -851,7 +1253,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
 
         .er-pedestal { width: 300px; height: 12px; background: radial-gradient(ellipse, rgba(255,255,255,0.25) 0%, transparent 80%); border-radius: 50%; margin: -10px auto 0; pointer-events: none; }
 
-        .er-boss-hp-wrapper { width: 100%; max-width: 650px; margin: 20px auto; text-align: center; }
+        .er-boss-hp-wrapper { width: 100%; max-width: 650px; margin: 10px auto; text-align: center; }
         .er-boss-hp-label { font-family: 'Cinzel', serif; font-size: 16px; letter-spacing: 4px; color: #dfd5be; margin-bottom: 6px; text-shadow: 0 2px 5px #000; font-weight: bold; }
         .er-boss-hp-track { height: 4px; background: rgba(0, 0, 0, 0.85); border-left: 2px solid #8a0303; border-right: 2px solid #8a0303; position: relative; box-shadow: 0 0 10px rgba(138,3,3,0.4); }
         .er-boss-hp-fill { height: 100%; background: #800000; box-shadow: 0 0 12px #ff0000; transition: width 0.3s cubic-bezier(0.19, 1, 0.22, 1); }
@@ -863,6 +1265,484 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
         @keyframes screenFadeRed { 0% { background: transparent; } 100% { background: rgba(15, 2, 4, 0.98); } }
         .defeat-text-glow { font-family: 'Cinzel', serif; font-size: 80px; font-weight: 700; letter-spacing: 15px; color: #c80000; text-shadow: 0 0 40px rgba(200, 0, 0, 0.8); animation: deathStretch 5s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
         @keyframes deathStretch { 0% { transform: scaleX(0.8) scaleY(1); opacity: 0; letter-spacing: 4px; } 20% { opacity: 1; } 100% { transform: scaleX(1.05) scaleY(1); opacity: 1; letter-spacing: 15px; } }
+
+        /* === Pixel Combat Arena === */
+
+        /* Secondary animations inside SVGs */
+        .pixel-player-cape {
+          animation: capeWave 1.8s ease-in-out infinite alternate;
+          transform-origin: 10px 14px;
+        }
+        @keyframes capeWave {
+          0% { transform: skewY(-2deg) scaleX(1); }
+          100% { transform: skewY(3deg) scaleX(0.95); }
+        }
+        .pixel-boss-wings {
+          animation: wingFlap 1.4s ease-in-out infinite;
+          transform-origin: 16px 14px;
+        }
+        @keyframes wingFlap {
+          0%, 100% { transform: scaleY(1); }
+          50% { transform: scaleY(0.7) skewX(2deg); }
+        }
+        .pixel-boss-gears {
+          animation: gearSpin 14s linear infinite;
+          transform-origin: 16px 16px;
+        }
+        @keyframes gearSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .pixel-boss-shards {
+          animation: shardsFloat 3s ease-in-out infinite alternate;
+        }
+        @keyframes shardsFloat { 0% { transform: translateY(0); } 100% { transform: translateY(-4px); } }
+        .pixel-boss-vents {
+          animation: ventsBreathe 2s ease-in-out infinite alternate;
+          transform-origin: 16px 12px;
+        }
+        @keyframes ventsBreathe { 0% { transform: scaleY(1); } 100% { transform: scaleY(1.05); } }
+
+        /* ========= COMBAT ARENA LAYOUT ========= */
+        .pixel-arena {
+          position: relative;
+          width: 100%;
+          max-width: 600px;
+          height: 220px;
+          margin: 8px auto;
+          image-rendering: pixelated;
+          background: transparent;
+          border: none;
+          box-shadow: none;
+          overflow: visible;
+        }
+
+        /* Ground line */
+        .pixel-ground {
+          position: absolute;
+          bottom: 0; left: 0; right: 0; height: 3px;
+          background: linear-gradient(90deg, transparent 5%, rgba(200, 16, 46, 0.5) 50%, transparent 95%);
+          z-index: 1;
+          box-shadow: 0 0 12px rgba(200,16,46,0.3), 0 2px 20px rgba(200,16,46,0.15);
+        }
+
+        /* Ground shadow puddle under characters */
+        .pixel-char-shadow {
+          position: absolute;
+          bottom: -2px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 80%;
+          height: 8px;
+          background: radial-gradient(ellipse, rgba(0,0,0,0.6) 0%, transparent 70%);
+          border-radius: 50%;
+          z-index: 0;
+        }
+
+        .pixel-char-img {
+          width: 100%;
+          height: 100%;
+          max-width: 130px;
+          max-height: 140px;
+          object-fit: contain;
+          image-rendering: pixelated;
+          image-rendering: crisp-edges;
+        }
+
+        /* ========= CHARACTER WRAPPERS ========= */
+        .pixel-fighter {
+          position: absolute;
+          bottom: 6px;
+          left: 10%;
+          width: 120px;
+          height: 130px;
+          z-index: 5;
+        }
+        .pixel-boss-fighter {
+          position: absolute;
+          bottom: 6px;
+          right: 10%;
+          width: 130px;
+          height: 140px;
+          z-index: 5;
+        }
+
+        /* ========= IDLE: Multi-frame breathing ========= */
+        .pixel-fighter.fighting-loop {
+          animation: playerIdle 2.4s ease-in-out infinite;
+        }
+        @keyframes playerIdle {
+          0%   { transform: translateY(0px) scaleY(1) scaleX(1); }
+          15%  { transform: translateY(-4px) scaleY(1.02) scaleX(0.98); }
+          30%  { transform: translateY(-7px) scaleY(1.01) scaleX(1); }
+          50%  { transform: translateY(-4px) scaleY(0.98) scaleX(1.01); }
+          70%  { transform: translateY(-1px) scaleY(1) scaleX(1); }
+          85%  { transform: translateY(1px) scaleY(0.99) scaleX(1.01); }
+          100% { transform: translateY(0px) scaleY(1) scaleX(1); }
+        }
+
+        .pixel-boss-fighter.fighting-loop {
+          animation: bossIdle 2.8s ease-in-out infinite;
+        }
+        @keyframes bossIdle {
+          0%   { transform: translateY(0px) scaleY(1) rotate(0deg); }
+          20%  { transform: translateY(-5px) scaleY(1.02) rotate(-0.5deg); }
+          40%  { transform: translateY(-8px) scaleY(1.01) rotate(0.3deg); }
+          60%  { transform: translateY(-4px) scaleY(0.98) rotate(-0.2deg); }
+          80%  { transform: translateY(-1px) scaleY(1) rotate(0.1deg); }
+          100% { transform: translateY(0px) scaleY(1) rotate(0deg); }
+        }
+
+        /* ========= PLAYER STRIKE: Lunge forward attack ========= */
+        .pixel-fighter.striking-lunge {
+          animation: playerLunge 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          z-index: 10;
+        }
+        @keyframes playerLunge {
+          0%   { transform: translateX(0) translateY(0) scaleX(1) rotate(0deg); }
+          12%  { transform: translateX(-20px) translateY(3px) scaleX(0.9) rotate(-8deg); }
+          25%  { transform: translateX(180px) translateY(-10px) scaleX(1.1) rotate(5deg); }
+          40%  { transform: translateX(285px) translateY(0) scaleX(1.15) rotate(10deg); }
+          60%  { transform: translateX(275px) translateY(0) scaleX(1.05) rotate(5deg); }
+          85%  { transform: translateX(20px) translateY(0) scaleX(1) rotate(1deg); }
+          100% { transform: translateX(0) translateY(0) scaleX(1) rotate(0deg); }
+        }
+
+        /* ========= PLAYER JUMP STRIKE ========= */
+        .pixel-fighter.striking-jump {
+          animation: playerJumpStrike 1.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          z-index: 10;
+        }
+        @keyframes playerJumpStrike {
+          0%   { transform: translateX(0) translateY(0) scaleX(1) rotate(0deg); }
+          15%  { transform: translateX(-15px) translateY(10px) scaleX(0.9) scaleY(0.8) rotate(-10deg); }
+          35%  { transform: translateX(120px) translateY(-90px) scaleX(1.1) scaleY(1.1) rotate(-20deg); }
+          50%  { transform: translateX(240px) translateY(-80px) scaleX(1.1) scaleY(1.1) rotate(15deg); }
+          65%  { transform: translateX(285px) translateY(0px) scaleX(1.2) scaleY(0.9) rotate(35deg); }
+          80%  { transform: translateX(265px) translateY(-10px) scaleX(1.0) rotate(10deg); }
+          90%  { transform: translateX(80px) translateY(-5px) scaleX(1) rotate(2deg); }
+          100% { transform: translateX(0) translateY(0) scaleX(1) rotate(0deg); }
+        }
+
+        /* ========= BOSS STRIKE: Charge forward attack (Melee bosses) ========= */
+        .pixel-boss-fighter.striking-melee {
+          animation: bossAttackMelee 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          z-index: 10;
+        }
+        @keyframes bossAttackMelee {
+          0%   { transform: translateX(0) translateY(0) rotate(0deg); }
+          15%  { transform: translateX(20px) translateY(2px) scaleY(1.06) rotate(-3deg); }
+          30%  { transform: translateX(-180px) translateY(-10px) scaleY(0.96) rotate(6deg); }
+          45%  { transform: translateX(-285px) translateY(-5px) scaleY(0.94) rotate(10deg); }
+          65%  { transform: translateX(-265px) translateY(-3px) rotate(6deg); }
+          90%  { transform: translateX(-20px) translateY(0) rotate(1deg); }
+          100% { transform: translateX(0) translateY(0) rotate(0deg); }
+        }
+
+        /* ========= BOSS STRIKE: In-place charge (Projectiles/Spell bosses) ========= */
+        .pixel-boss-fighter.striking-projectile,
+        .pixel-boss-fighter.striking-spell {
+          animation: bossAttackInPlace 1.2s ease-in-out forwards;
+          z-index: 10;
+        }
+        @keyframes bossAttackInPlace {
+          0%   { transform: translateX(0) translateY(0) rotate(0deg); }
+          15%  { transform: translateX(15px) translateY(5px) rotate(-6deg); }
+          35%  { transform: translateX(-15px) translateY(-2px) scale(1.08) rotate(6deg); }
+          70%  { transform: translateX(-10px) translateY(0) rotate(3deg); }
+          100% { transform: translateX(0) translateY(0) rotate(0deg); }
+        }
+
+        /* ========= RECOIL: Getting hit ========= */
+        .pixel-fighter.recoiling {
+          animation: playerRecoil 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+        }
+        @keyframes playerRecoil {
+          0%   { transform: translateX(0) translateY(0) rotate(0deg); filter: brightness(1); }
+          15%  { transform: translateX(-25px) translateY(-8px) rotate(-12deg); filter: brightness(2.5) saturate(0.3); }
+          30%  { transform: translateX(-18px) translateY(-3px) rotate(-8deg); filter: brightness(1.6); }
+          50%  { transform: translateX(-12px) translateY(2px) rotate(-4deg); filter: brightness(1.2); }
+          75%  { transform: translateX(-3px) translateY(0) rotate(-1deg); filter: brightness(1); }
+          100% { transform: translateX(0) translateY(0) rotate(0deg); filter: brightness(1); }
+        }
+
+        .pixel-boss-fighter.recoiling {
+          animation: bossRecoil 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+        }
+        @keyframes bossRecoil {
+          0%   { transform: translateX(0) translateY(0) rotate(0deg); filter: brightness(1); }
+          15%  { transform: translateX(25px) translateY(-10px) rotate(12deg); filter: brightness(2.5) saturate(0.3); }
+          30%  { transform: translateX(18px) translateY(-4px) rotate(8deg); filter: brightness(1.6); }
+          50%  { transform: translateX(10px) translateY(2px) rotate(4deg); filter: brightness(1.2); }
+          75%  { transform: translateX(3px) translateY(0) rotate(1deg); filter: brightness(1); }
+          100% { transform: translateX(0) translateY(0) rotate(0deg); filter: brightness(1); }
+        }
+
+        /* ========= AMBIENT ARENA GLOWS ========= */
+        .pixel-arena::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          z-index: 0;
+          transition: background 0.5s ease;
+        }
+        .pixel-arena.action-player-strike::after {
+          background: radial-gradient(circle at 25% 60%, rgba(0, 229, 255, 0.2) 0%, transparent 50%),
+                      radial-gradient(circle at 75% 50%, rgba(0, 229, 255, 0.08) 0%, transparent 40%);
+        }
+        .pixel-arena.action-boss-strike::after {
+          background: radial-gradient(circle at 75% 60%, rgba(255, 0, 80, 0.2) 0%, transparent 50%),
+                      radial-gradient(circle at 25% 50%, rgba(255, 0, 80, 0.08) 0%, transparent 40%);
+        }
+
+        /* ========= PLAYER AURA SLASH — travels left→right from player to boss ========= */
+        .player-aura-slash-container {
+          position: absolute;
+          /* Start at the player's sword tip position */
+          left: calc(10% + 95px);
+          top: 30px;
+          /* Width spans from player to boss */
+          width: calc(90% - 10% - 95px - 130px);
+          height: 160px;
+          pointer-events: none;
+          z-index: 20;
+        }
+
+        /* The actual slash crescent — spawns at left, flies to right */
+        .aura-slash-projectile {
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 80px;
+          height: 140px;
+          animation: auraSlashFly 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+          filter: drop-shadow(0 0 12px rgba(0,229,255,0.8)) drop-shadow(0 0 25px rgba(0,100,255,0.5));
+        }
+        @keyframes auraSlashFly {
+          0%   { left: -10%; opacity: 0; transform: translateY(-50%) scale(0.3) rotate(-20deg); }
+          12%  { opacity: 1; transform: translateY(-50%) scale(1.3) rotate(-5deg); }
+          35%  { left: 35%; opacity: 1; transform: translateY(-50%) scale(1.1) rotate(2deg); }
+          65%  { left: 70%; opacity: 1; transform: translateY(-50%) scale(1.0) rotate(5deg); }
+          85%  { left: 95%; opacity: 0.7; transform: translateY(-50%) scale(0.9) rotate(8deg); }
+          100% { left: 110%; opacity: 0; transform: translateY(-50%) scale(0.5) rotate(12deg); }
+        }
+
+        /* Flash at sword tip when slash begins */
+        .player-strike-flash {
+          position: absolute;
+          left: calc(10% + 100px);
+          top: 70px;
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          background: radial-gradient(circle, #ffffff 0%, rgba(0,229,255,0.8) 40%, transparent 70%);
+          box-shadow: 0 0 30px #00e5ff, 0 0 60px rgba(0,229,255,0.5), 0 0 90px rgba(0,100,255,0.3);
+          animation: swordFlash 0.5s ease-out forwards;
+          z-index: 25;
+          pointer-events: none;
+        }
+        @keyframes swordFlash {
+          0%   { transform: scale(0) rotate(0deg); opacity: 0; }
+          30%  { transform: scale(2.2) rotate(30deg); opacity: 1; }
+          60%  { transform: scale(1.8) rotate(60deg); opacity: 0.6; }
+          100% { transform: scale(0) rotate(90deg); opacity: 0; }
+        }
+
+        /* Sword trail streaks during slash */
+        .sword-trail {
+          position: absolute;
+          left: calc(10% + 80px);
+          top: 40px;
+          width: 120px;
+          height: 140px;
+          pointer-events: none;
+          z-index: 15;
+        }
+        .sword-trail-arc {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          border: 3px solid transparent;
+          border-top-color: rgba(0, 229, 255, 0.6);
+          border-radius: 50%;
+          animation: trailSweep 0.5s ease-out forwards;
+          filter: blur(1px);
+        }
+        .sword-trail-arc:nth-child(2) {
+          animation-delay: 0.05s;
+          border-top-color: rgba(255,255,255,0.4);
+          transform: scale(0.85);
+        }
+        .sword-trail-arc:nth-child(3) {
+          animation-delay: 0.1s;
+          border-top-color: rgba(0,100,255,0.3);
+          transform: scale(0.7);
+        }
+        @keyframes trailSweep {
+          0%   { transform: rotate(-90deg) scale(0.3); opacity: 0; }
+          30%  { opacity: 1; }
+          100% { transform: rotate(90deg) scale(1.2); opacity: 0; }
+        }
+
+        /* Hit sparks at boss position on slash impact */
+        .hit-sparks {
+          position: absolute;
+          right: calc(10% + 40px);
+          top: 50%;
+          transform: translateY(-50%);
+          width: 80px;
+          height: 80px;
+          pointer-events: none;
+          z-index: 30;
+          animation: sparkBurst 0.6s ease-out forwards;
+        }
+        .hit-spark {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background: #ffffff;
+          box-shadow: 0 0 6px #00e5ff, 0 0 12px #ffffff;
+        }
+        .hit-spark:nth-child(1) { animation: sparkFly1 0.5s ease-out 0.3s forwards; }
+        .hit-spark:nth-child(2) { animation: sparkFly2 0.5s ease-out 0.3s forwards; }
+        .hit-spark:nth-child(3) { animation: sparkFly3 0.5s ease-out 0.32s forwards; }
+        .hit-spark:nth-child(4) { animation: sparkFly4 0.5s ease-out 0.32s forwards; }
+        .hit-spark:nth-child(5) { animation: sparkFly5 0.5s ease-out 0.34s forwards; }
+        .hit-spark:nth-child(6) { animation: sparkFly6 0.5s ease-out 0.34s forwards; }
+        @keyframes sparkFly1 { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(30px,-25px) scale(0); opacity: 0; } }
+        @keyframes sparkFly2 { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(-20px,-30px) scale(0); opacity: 0; } }
+        @keyframes sparkFly3 { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(25px,20px) scale(0); opacity: 0; } }
+        @keyframes sparkFly4 { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(-15px,25px) scale(0); opacity: 0; } }
+        @keyframes sparkFly5 { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(35px,5px) scale(0); opacity: 0; } }
+        @keyframes sparkFly6 { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(-25px,-10px) scale(0); opacity: 0; } }
+        @keyframes sparkBurst {
+          0% { opacity: 0; }
+          20% { opacity: 1; }
+          100% { opacity: 0; }
+        }
+
+        /* ========= BOSS PROJECTILES & SPELLS ========= */
+        .pixel-projectile {
+          position: absolute;
+          right: calc(10% + 50px);
+          top: 60px;
+          width: 64px;
+          height: 32px;
+          z-index: 20;
+          pointer-events: none;
+          animation: bossProjectileFly 0.8s linear forwards;
+        }
+        @keyframes bossProjectileFly {
+          0%   { right: calc(10% + 50px); opacity: 0; transform: scale(0.6); }
+          15%  { opacity: 1; transform: scale(1.2); }
+          80%  { right: calc(90% - 100px); opacity: 1; transform: scale(1); }
+          100% { right: calc(90% - 130px); opacity: 0; transform: scale(0.6); }
+        }
+
+        .pixel-spell-pillar {
+          position: absolute;
+          left: calc(10% + 40px);
+          bottom: 3px;
+          width: 40px;
+          height: 100px;
+          z-index: 20;
+          pointer-events: none;
+          transform-origin: bottom center;
+          animation: spellPillarRise 1.0s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+          filter: drop-shadow(0 0 10px rgba(56,189,248,0.7));
+        }
+        @keyframes spellPillarRise {
+          0%   { transform: scaleY(0); opacity: 0; }
+          25%  { transform: scaleY(1); opacity: 1; }
+          75%  { transform: scaleY(1); opacity: 1; }
+          100% { transform: scaleY(0); opacity: 0; }
+        }
+
+        /* Impact flash on player when boss hit connects */
+        .beam-impact-flash {
+          position: absolute;
+          left: calc(10% + 20px);
+          top: 50px;
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          background: radial-gradient(circle, #ffffff 0%, #ff0055 40%, transparent 70%);
+          box-shadow: 0 0 25px #ff0055, 0 0 50px #ff0055;
+          animation: impactFlash 0.6s ease-out 0.35s forwards;
+          opacity: 0;
+          z-index: 26;
+        }
+        @keyframes impactFlash {
+          0%   { transform: scale(0); opacity: 0; }
+          30%  { transform: scale(2); opacity: 1; }
+          60%  { transform: scale(1.5); opacity: 0.5; }
+          100% { transform: scale(0); opacity: 0; }
+        }
+
+        /* Boss beam hit sparks at player */
+        .beam-hit-sparks {
+          position: absolute;
+          left: calc(10% + 40px);
+          top: 50%;
+          transform: translateY(-50%);
+          width: 60px;
+          height: 60px;
+          pointer-events: none;
+          z-index: 30;
+          animation: sparkBurst 0.6s ease-out 0.35s forwards;
+          opacity: 0;
+        }
+        .beam-hit-spark {
+          position: absolute;
+          top: 50%; left: 50%;
+          width: 3px; height: 3px;
+          border-radius: 50%;
+          background: #ffffff;
+          box-shadow: 0 0 4px #ff0055, 0 0 8px #ffffff;
+        }
+        .beam-hit-spark:nth-child(1) { animation: sparkFly1 0.4s ease-out 0.35s forwards; }
+        .beam-hit-spark:nth-child(2) { animation: sparkFly2 0.4s ease-out 0.37s forwards; }
+        .beam-hit-spark:nth-child(3) { animation: sparkFly3 0.4s ease-out 0.36s forwards; }
+        .beam-hit-spark:nth-child(4) { animation: sparkFly4 0.4s ease-out 0.38s forwards; }
+
+        /* ========= SCREEN FLASH OVERLAY ========= */
+        .screen-flash-overlay {
+          position: absolute; inset: 0; pointer-events: none; z-index: 99;
+          transition: background-color 0.05s ease;
+        }
+        .screen-flash-overlay.flash-white {
+          background-color: rgba(255, 255, 255, 0.75);
+          animation: flashPulse 0.2s ease-out;
+        }
+        .screen-flash-overlay.flash-red {
+          background-color: rgba(239, 68, 68, 0.55);
+          animation: flashPulse 0.2s ease-out;
+        }
+        @keyframes flashPulse {
+          0%   { opacity: 1; }
+          100% { opacity: 0; }
+        }
+
+        /* ========= ENHANCED SCREEN SHAKE ========= */
+        .player-hurt {
+          animation: heavyShake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) 1;
+          box-shadow: inset 0 0 120px rgba(200, 16, 46, 0.5);
+        }
+        @keyframes heavyShake {
+          0%, 100% { transform: translate(0, 0) rotate(0); }
+          10% { transform: translate(-10px, 6px) rotate(-0.5deg); }
+          20% { transform: translate(10px, -8px) rotate(0.5deg); }
+          30% { transform: translate(-8px, -6px) rotate(-0.3deg); }
+          40% { transform: translate(8px, 8px) rotate(0.3deg); }
+          50% { transform: translate(-6px, -4px) rotate(-0.2deg); }
+          60% { transform: translate(6px, 4px) rotate(0.2deg); }
+          70% { transform: translate(-4px, -2px) rotate(-0.1deg); }
+          80% { transform: translate(3px, 2px) rotate(0.1deg); }
+          90% { transform: translate(-1px, 0) rotate(0); }
+        }
+
       `}</style>
 
       {/* Ash/Embers Particles */}
@@ -1007,19 +1887,19 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
           </div>
 
           {/* Boss Sprite and Altar */}
-          <div style={{ height: "140px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", marginBottom: "12px" }}>
-            <div className={bossHurt ? "boss-hurt" : ""}>
-              {renderBossSprite(bossData.bossType, false)}
+          <div style={{ width: "150px", height: "150px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", marginBottom: "12px" }}>
+            <div className={bossHurt ? "boss-hurt" : ""} style={{ width: "130px", height: "130px" }}>
+              <EnemySprite enemyConfig={currentEnemyConfig} action="idle" isHurt={false} />
             </div>
             <div className="er-pedestal" />
           </div>
 
           {/* Boss Name */}
           <h1 className="er-title" style={{ fontSize: "38px", margin: "0 0 4px 0", color: "#fff" }}>
-            {bossData.bossType}
+            {currentEnemyConfig.name.toUpperCase()}
           </h1>
           <div style={{ fontSize: "14px", color: "#ffffff", fontWeight: "600", textTransform: "uppercase", letterSpacing: "3px", marginBottom: "20px" }}>
-            Guardian of "{milestone.title}"
+            Guardian of "{milestone.title}" ({bossData.bossType})
           </div>
 
           <div className="er-divider" />
@@ -1087,7 +1967,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
           position: "relative", width: "100%"
         }}>
           {/* Top HUD Row */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
             {/* Player HP */}
             <div>
               <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.5)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "4px" }}>
@@ -1119,31 +1999,135 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
             </div>
           </div>
 
-          {/* Combat arena (Middle) */}
-          <div style={{
-            display: "flex", flexDirection: "column",
-            alignItems: "center", justifyContent: "center", position: "relative",
-            margin: "5px 0"
-          }}>
-            {/* Visual slash overlay */}
-            {bossHurt && <div className="slash-beam" />}
+          {/* Pixel Combat Arena */}
+          <div className={`pixel-arena ${combatAnim === "player-strike" ? "action-player-strike" : combatAnim === "boss-strike" ? "action-boss-strike" : ""}`}>
+            <div className="pixel-ground" />
             
+            {/* Screen Flash Overlay */}
+            <div className={`screen-flash-overlay ${screenFlash === "white" ? "flash-white" : screenFlash === "red" ? "flash-red" : ""}`} />
+
+            {/* === PLAYER PIXEL SLASH — travels left→right from player to boss === */}
+            {combatAnim === "player-strike" && (
+              <>
+                {/* Flash burst at sword tip */}
+                <div className="player-strike-flash" />
+                
+                {/* Sword trail arcs */}
+                <div className="sword-trail">
+                  <div className="sword-trail-arc" />
+                  <div className="sword-trail-arc" />
+                  <div className="sword-trail-arc" />
+                </div>
+
+                {/* Aura slash crescent projectile — flies from player to boss */}
+                <div className="player-aura-slash-container">
+                  <svg className="aura-slash-projectile" viewBox="0 0 16 28" shapeRendering="crispEdges">
+                    <rect x="0" y="6" width="2" height="16" fill="#00e5ff" />
+                    <rect x="2" y="3" width="2" height="22" fill="#ffffff" />
+                    <rect x="4" y="1" width="2" height="26" fill="#ffffff" />
+                    <rect x="6" y="0" width="2" height="28" fill="#ffffff" />
+                    <rect x="8" y="2" width="2" height="24" fill="#00e5ff" />
+                    <rect x="10" y="4" width="2" height="20" fill="#00e5ff" />
+                    <rect x="12" y="8" width="2" height="12" fill="#0066ff" />
+                    <rect x="14" y="11" width="2" height="6" fill="#0022aa" />
+                  </svg>
+                </div>
+
+                {/* Hit sparks at boss position */}
+                <div className="hit-sparks">
+                  <div className="hit-spark" />
+                  <div className="hit-spark" />
+                  <div className="hit-spark" />
+                  <div className="hit-spark" />
+                  <div className="hit-spark" />
+                  <div className="hit-spark" />
+                </div>
+              </>
+            )}
+            
+            {/* === BOSS ATTACKS (Melee / Projectile / Spell) === */}
+            {combatAnim === "boss-strike" && (
+              <>
+                {/* 1. Projectiles (Syntax Sentinel / Vulture wind blade or Callback Demon / Deceased fire ball) */}
+                {currentEnemyConfig.attackType === "projectile" && (
+                  <div className="pixel-projectile">
+                    {currentEnemyConfig.name === "Deceased" ? (
+                      <svg width="24" height="24" viewBox="0 0 8 8" shapeRendering="crispEdges">
+                        <rect x="3" y="1" width="2" height="6" fill="#a855f7" />
+                        <rect x="2" y="2" width="4" height="4" fill="#ff007f" />
+                        <rect x="1" y="3" width="6" height="2" fill="#ffffff" />
+                        <rect x="3" y="3" width="2" height="2" fill="#ffffff" />
+                      </svg>
+                    ) : (
+                      <svg width="32" height="16" viewBox="0 0 16 8" shapeRendering="crispEdges">
+                        <rect x="0" y="3" width="2" height="2" fill="#00ffff" />
+                        <rect x="2" y="2" width="2" height="4" fill="#00ffff" />
+                        <rect x="4" y="1" width="2" height="6" fill="#ffffff" />
+                        <rect x="6" y="0" width="2" height="8" fill="#ffffff" />
+                        <rect x="8" y="1" width="2" height="6" fill="#00e5ff" />
+                        <rect x="10" y="2" width="2" height="4" fill="#00e5ff" />
+                        <rect x="12" y="3" width="2" height="2" fill="#0066ff" />
+                      </svg>
+                    )}
+                  </div>
+                )}
+
+                {/* 2. Spells (Scope Warden / Mummy sand spike rising from ground) */}
+                {currentEnemyConfig.attackType === "spell" && (
+                  <div className="pixel-spell-pillar">
+                    <svg width="40" height="100" viewBox="0 0 8 20" shapeRendering="crispEdges">
+                      <rect x="3" y="0" width="2" height="2" fill="#eab308" />
+                      <rect x="2" y="2" width="4" height="3" fill="#eab308" />
+                      <rect x="1" y="5" width="6" height="5" fill="#ca8a04" />
+                      <rect x="0" y="10" width="8" height="10" fill="#854d0e" />
+                      <rect x="3" y="4" width="2" height="12" fill="#38bdf8" />
+                    </svg>
+                  </div>
+                )}
+
+                {/* Impact flash at player position */}
+                <div className="beam-impact-flash" />
+
+                {/* Hit sparks at player */}
+                <div className="beam-hit-sparks">
+                  <div className="beam-hit-spark" />
+                  <div className="beam-hit-spark" />
+                  <div className="beam-hit-spark" />
+                  <div className="beam-hit-spark" />
+                </div>
+              </>
+            )}
+
             {/* Floating damage numbers */}
             {floatingDamage && (
-              <div className="float-dmg" style={{ top: "35%", left: "50%", transform: "translateX(-50%)" }}>
+              <div className="float-dmg" style={{ top: "5%", right: "15%" }}>
                 {floatingDamage}
               </div>
             )}
 
-            {/* Boss Sprite */}
-            <div className={bossHurt ? "boss-hurt" : ""}>
-              {renderBossSprite(bossData.bossType, bossHurt)}
+            {/* Pixel Player (Left) — Animated Knight Sprite */}
+            <div className={`pixel-fighter ${combatAnim === "player-strike" ? (playerAttackStyle === "jump" ? "striking-jump" : "striking-lunge") : combatAnim === "boss-strike" ? "recoiling" : "fighting-loop"}`}>
+              <KnightSprite
+                action={playerHP <= 0 ? "hurt" : (combatAnim === "player-strike" ? (playerAttackStyle === "jump" ? "jumpAttack" : "attack") : playerHurt ? "hurt" : "idle")}
+                isHurt={playerHurt}
+                playerHP={playerHP}
+              />
+              <div className="pixel-char-shadow" />
             </div>
-            <div className="er-pedestal" />
+
+            {/* Pixel Boss (Right) — Animated Enemy Sprite Sheet */}
+            <div className={`pixel-boss-fighter ${combatAnim === "boss-strike" ? `striking-${currentEnemyConfig.attackType}` : combatAnim === "player-strike" ? "recoiling" : "fighting-loop"}`}>
+              <EnemySprite
+                enemyConfig={currentEnemyConfig}
+                action={bossHP <= 0 ? "death" : (combatAnim === "boss-strike" ? "attack" : bossHurt ? "hurt" : "idle")}
+                isHurt={bossHurt}
+              />
+              <div className="pixel-char-shadow" />
+            </div>
           </div>
 
           {/* Boss combat dialogues / Subtitle block - rendered inline, not absolute, to prevent text overlay */}
-          <div style={{ minHeight: "54px", margin: "10px 0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ minHeight: "44px", margin: "5px 0", display: "flex", alignItems: "center", justifyContent: "center" }}>
             {displayedBossText && (
               <p className="er-subtitle-dialogue" style={{ fontSize: "17px", color: "#fcebd2", margin: 0 }}>
                 "{displayedBossText}"
@@ -1155,7 +2139,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
           <div style={{ marginTop: "10px" }}>
             {/* Boss Health Bar */}
             <div className="er-boss-hp-wrapper">
-              <div className="er-boss-hp-label">{bossData.bossType.toUpperCase()}</div>
+              <div className="er-boss-hp-label">{currentEnemyConfig.name.toUpperCase()}</div>
               <div className="er-boss-hp-track">
                 <div className="er-boss-hp-fill" style={{ width: `${bossHP}%` }} />
               </div>
@@ -1168,7 +2152,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
                   CONFRONTATION {currentIdx + 1} OF {bossData.questions.length}
                 </div>
                 
-                <h3 style={{ fontSize: "19px", fontWeight: "600", color: "#fff", lineHeight: "1.4", textAlign: "center", margin: "0 auto 20px", maxWidth: "680px" }}>
+                <h3 style={{ fontSize: "19px", fontWeight: "600", color: "#fff", lineHeight: "1.4", textAlign: "center", margin: "0 auto 12px", maxWidth: "680px" }}>
                   {bossData.questions[currentIdx].question}
                 </h3>
 
@@ -1227,7 +2211,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
           <div className="er-divider" />
 
           <p style={{ fontSize: "19px", color: "#dfd7c0", marginBottom: "40px", lineHeight: "1.6", maxWidth: "550px", margin: "0 auto 40px" }}>
-            The guardian <strong>{bossData.bossType}</strong> has fallen. Your mastery over the milestone of <strong>"{milestone.title}"</strong> has been sealed in the Erdtree of knowledge.
+            The guardian <strong>{currentEnemyConfig.name} ({bossData.bossType})</strong> has fallen. Your mastery over the milestone of <strong>"{milestone.title}"</strong> has been sealed in the Erdtree of knowledge.
           </p>
 
           {/* Reward HUD */}
