@@ -3,6 +3,7 @@ import * as sound from "../../utils/audio";
 import CognitivePathfinder from "../Roadmap/CognitivePathfinder";
 import ProfilePanel from "./ProfilePanel";
 import CommunityTab from "../Community/CommunityTab";
+import CanvasRuneLoader from "../Shared/CanvasRuneLoader";
 
 const TRENDING_TOPICS = [
   { icon: "⚡", label: "JavaScript", color: "#f59e0b", players: 1420 },
@@ -57,6 +58,25 @@ export default function Dashboard({
   const [activeMilestones, setActiveMilestones] = useState([]);
   const [todayVideos, setTodayVideos] = useState([]);
   const [loadingToday, setLoadingToday] = useState(false);
+
+  const [showRuneLoader, setShowRuneLoader] = useState(false);
+  const [isExploding, setIsExploding] = useState(false);
+
+  const activeLoading = isSearching || loadingFeed || loadingToday;
+
+  useEffect(() => {
+    if (activeLoading) {
+      setShowRuneLoader(true);
+      setIsExploding(false);
+    } else if (showRuneLoader && !isExploding) {
+      setIsExploding(true);
+    }
+  }, [activeLoading, showRuneLoader, isExploding]);
+
+  const handleExplodeComplete = () => {
+    setShowRuneLoader(false);
+    setIsExploding(false);
+  };
 
   useEffect(() => {
     if (!username) return;
@@ -559,152 +579,14 @@ export default function Dashboard({
               </div>
             )}
 
-            {/* Videos Grid — standard 16:9 cards OR game loading animation */}
-            {isSearching || loadingFeed || loadingToday ? (
-              <div style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                minHeight: "400px",
-                gap: "32px",
-                padding: "40px 0"
-              }}>
-                <style>{`
-                  @keyframes emblemPulse {
-                    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 12px rgba(255,106,0,0.3)); }
-                    50% { transform: scale(1.08); filter: drop-shadow(0 0 28px rgba(255,106,0,0.55)); }
-                  }
-                  @keyframes orbit {
-                    0% { transform: rotate(0deg) translateX(52px) rotate(0deg); }
-                    100% { transform: rotate(360deg) translateX(52px) rotate(-360deg); }
-                  }
-                  @keyframes orbitReverse {
-                    0% { transform: rotate(0deg) translateX(40px) rotate(0deg); }
-                    100% { transform: rotate(-360deg) translateX(40px) rotate(360deg); }
-                  }
-                  @keyframes ringGrow {
-                    0% { transform: scale(0.85); opacity: 0.6; }
-                    50% { transform: scale(1.15); opacity: 0.15; }
-                    100% { transform: scale(0.85); opacity: 0.6; }
-                  }
-                  @keyframes textReveal {
-                    0% { opacity: 0; transform: translateY(8px); }
-                    100% { opacity: 1; transform: translateY(0); }
-                  }
-                  @keyframes barSlide {
-                    0% { transform: translateX(-100%); }
-                    100% { transform: translateX(300%); }
-                  }
-                `}</style>
-
-                {/* Animated emblem area */}
-                <div style={{
-                  position: "relative",
-                  width: "120px",
-                  height: "120px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center"
-                }}>
-                  {/* Outer breathing ring */}
-                  <div style={{
-                    position: "absolute",
-                    width: "110px", height: "110px",
-                    borderRadius: "50%",
-                    border: `2px solid ${isDarkMode ? "rgba(255,106,0,0.25)" : "rgba(234,88,12,0.2)"}`,
-                    animation: "ringGrow 2.5s ease-in-out infinite"
-                  }} />
-
-                  {/* Orbiting embers — outer ring */}
-                  {[0, 1, 2, 3, 4].map(i => (
-                    <div key={`o-${i}`} style={{
-                      position: "absolute",
-                      width: "7px", height: "7px",
-                      borderRadius: "50%",
-                      background: isDarkMode
-                        ? `radial-gradient(circle, #ffb300, #ff6a00)`
-                        : `radial-gradient(circle, #ff8c3a, #ea580c)`,
-                      boxShadow: isDarkMode
-                        ? "0 0 6px rgba(255,179,0,0.6)"
-                        : "0 0 5px rgba(234,88,12,0.4)",
-                      animation: `orbit ${3 + i * 0.4}s linear infinite`,
-                      animationDelay: `${i * -0.6}s`,
-                      opacity: 0.9
-                    }} />
-                  ))}
-
-                  {/* Orbiting embers — inner ring, reverse */}
-                  {[0, 1, 2].map(i => (
-                    <div key={`ir-${i}`} style={{
-                      position: "absolute",
-                      width: "4px", height: "4px",
-                      borderRadius: "50%",
-                      background: isDarkMode ? "#ffb300" : "#f59e0b",
-                      boxShadow: isDarkMode
-                        ? "0 0 4px rgba(255,179,0,0.5)"
-                        : "0 0 3px rgba(245,158,11,0.4)",
-                      animation: `orbitReverse ${2.5 + i * 0.5}s linear infinite`,
-                      animationDelay: `${i * -0.8}s`,
-                      opacity: 0.7
-                    }} />
-                  ))}
-
-                  {/* Center emblem */}
-                  <div style={{
-                    fontSize: "44px",
-                    animation: "emblemPulse 2.5s ease-in-out infinite",
-                    lineHeight: 1,
-                    zIndex: 2
-                  }}>
-                    ⚔️
-                  </div>
-                </div>
-
-                {/* Text */}
-                <div style={{
-                  textAlign: "center",
-                  animation: "textReveal 0.6s ease-out forwards"
-                }}>
-                  <h3 style={{
-                    fontSize: "20px",
-                    fontWeight: "900",
-                    color: isDarkMode ? "#ffb300" : "#ea580c",
-                    margin: "0 0 8px 0",
-                    letterSpacing: "1px"
-                  }}>
-                    Entering the Arena
-                  </h3>
-                  <p style={{
-                    fontSize: "14px",
-                    color: "var(--text-muted)",
-                    margin: 0,
-                    fontWeight: "500"
-                  }}>
-                    Finding battles for <span style={{ fontWeight: "700", color: isDarkMode ? "#ff8c3a" : "#c2410c" }}>{searchQuery}</span>
-                  </p>
-                </div>
-
-                {/* Sleek loading bar — no container box */}
-                <div style={{
-                  width: "200px",
-                  height: "3px",
-                  borderRadius: "4px",
-                  background: isDarkMode ? "rgba(255,106,0,0.12)" : "rgba(234,88,12,0.1)",
-                  overflow: "hidden",
-                  position: "relative"
-                }}>
-                  <div style={{
-                    position: "absolute",
-                    top: 0, left: 0,
-                    width: "40%",
-                    height: "100%",
-                    background: "linear-gradient(90deg, transparent, #ff6a00, #ffb300, transparent)",
-                    borderRadius: "4px",
-                    animation: "barSlide 1.4s ease-in-out infinite"
-                  }} />
-                </div>
-              </div>
+            {showRuneLoader ? (
+              <CanvasRuneLoader
+                isExploding={isExploding}
+                onExplodeComplete={handleExplodeComplete}
+                isDarkMode={isDarkMode}
+                statusText="Entering the Arena"
+                subtopic={searchQuery}
+              />
             ) : searchQuery ? (
               // Search results mode
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>

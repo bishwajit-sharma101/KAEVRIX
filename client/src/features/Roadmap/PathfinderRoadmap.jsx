@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import * as sound from "../../utils/audio";
 import { parseMarkdownToHTML } from "../../utils/markdown";
 import BossBattleModal from "./BossBattleModal";
+import CanvasRuneLoader from "../Shared/CanvasRuneLoader";
 
 const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
 
@@ -1021,8 +1022,25 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
   const [score, setScore] = useState(0);
   const [loadingLog, setLoadingLog] = useState("Accessing YouTube database...");
 
+  const [showRuneLoader, setShowRuneLoader] = useState(false);
+  const [isExploding, setIsExploding] = useState(false);
+  const [pendingQuizData, setPendingQuizData] = useState(null);
+
+  const handleExplodeComplete = () => {
+    setShowRuneLoader(false);
+    setIsExploding(false);
+    if (pendingQuizData) {
+      setQuizData(pendingQuizData);
+      setAnswers(Array(pendingQuizData.postVideoQuestions.length).fill(null));
+      setStep("quiz");
+      sound.playMatchFound();
+    }
+  };
+
   const handleStartQuiz = async () => {
     setStep("generating");
+    setShowRuneLoader(true);
+    setIsExploding(false);
     setLoadingLog("Transcribing video stream...");
     
     const logs = [
@@ -1054,10 +1072,8 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
       if (!res.ok) throw new Error("Quiz API failed");
       const quiz = await res.json();
       clearInterval(logInterval);
-      setQuizData(quiz);
-      setAnswers(Array(quiz.postVideoQuestions.length).fill(null));
-      setStep("quiz");
-      sound.playMatchFound();
+      setPendingQuizData(quiz);
+      setIsExploding(true);
     } catch (err) {
       console.error("Failed to generate quiz:", err);
       clearInterval(logInterval);
@@ -1121,9 +1137,8 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
           }
         ]
       };
-      setQuizData(fallbackQuiz);
-      setAnswers(Array(5).fill(null));
-      setStep("quiz");
+      setPendingQuizData(fallbackQuiz);
+      setIsExploding(true);
     }
   };
 
@@ -1268,31 +1283,14 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
 
         {/* AI Generating Quiz Step */}
         {step === "generating" && (
-          <div style={{ padding: "48px 28px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "350px" }}>
-            <div style={{
-              width: "80px", height: "80px", borderRadius: "50%",
-              background: "rgba(0, 242, 254, 0.1)",
-              border: "2px solid var(--neon-blue)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "36px",
-              boxShadow: "0 0 20px rgba(0, 242, 254, 0.3)",
-              marginBottom: "32px",
-              animation: "pulse 1.5s infinite"
-            }}>
-              🧠
-            </div>
-            <h3 style={{ color: isDarkMode ? "#fff" : "var(--text-light)", fontSize: "20px", fontWeight: "bold", marginBottom: "8px" }}>AI Generating Solo Quiz</h3>
-            <p style={{ color: isDarkMode ? "rgba(255,255,255,0.5)" : "var(--text-muted)", fontSize: "14px", marginBottom: "24px", textAlign: "center", maxWidth: "380px" }}>
-              Analyzing video content to synthesize dynamic multiple choice questions...
-            </p>
-            <div style={{
-              background: isDarkMode ? "#050811" : "#f1f5f9",
-              border: isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0",
-              borderRadius: "12px", padding: "12px 24px", fontFamily: "monospace",
-              color: "var(--neon-orange)", fontSize: "12.5px"
-            }}>
-              {loadingLog}
-            </div>
+          <div style={{ padding: "20px", minHeight: "350px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <CanvasRuneLoader
+              isExploding={isExploding}
+              onExplodeComplete={handleExplodeComplete}
+              isDarkMode={isDarkMode}
+              statusText="Synthesizing Quiz"
+              subtopic={loadingLog}
+            />
           </div>
         )}
 
