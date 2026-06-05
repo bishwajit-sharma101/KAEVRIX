@@ -61,7 +61,9 @@ The **PathFinder System** acts as the macro-campaign director. Once a user input
 * **Dynamic Quest Tracking:** The dashboard's **Quest Tracker** tracks subtopic objectives. The main dashboard updates dynamically only when the prior subtopic node is structurally completed, keeping the user entirely locked into a linear progression line.
 
 <div align="center">
-  <img width="100%" src="https://github.com/user-attachments/assets/ba1cc3b2-52b9-4021-8b5d-eb6dc585a2fd" alt="Cognitive PathFinder Map UI" />
+ <img width="1920" height="1850" alt="Pathfinder" src="https://github.com/user-attachments/assets/9e16b25a-83b3-4496-82f1-ab389cbea912" />
+
+ <img width="1919" height="865" alt="pathfinder node popup" src="https://github.com/user-attachments/assets/1d0b5e12-f1c9-4e8b-81bd-28f2f738ee8e" />
 </div>
 
 ---
