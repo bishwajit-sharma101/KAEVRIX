@@ -85,15 +85,49 @@ export default function AppRouter(props) {
       </div>
 
       <div className="header-search-container" style={{ flex: 1, maxWidth: "600px", margin: "0 40px", display: "flex", alignItems: "center", gap: "15px" }}>
-        <form onSubmit={handleSearchSubmit} className="header-search-form" style={{ display: "flex", flex: 1, background: "#f1f5f9", borderRadius: "24px", overflow: "hidden", border: "1px solid #e2e8f0", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}>
+        <form 
+          onSubmit={handleSearchSubmit} 
+          className="header-search-form" 
+          style={{ 
+            display: "flex", 
+            flex: 1, 
+            background: isDarkMode ? "rgba(15, 23, 42, 0.6)" : "#f1f5f9", 
+            borderRadius: "24px", 
+            overflow: "hidden", 
+            border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.3)" : "1px solid #e2e8f0", 
+            boxShadow: isDarkMode ? "0 4px 20px rgba(0, 0, 0, 0.3)" : "inset 0 1px 2px rgba(0,0,0,0.05)",
+            backdropFilter: isDarkMode ? "blur(8px)" : "none"
+          }}
+        >
           <input
             type="text"
             placeholder="Search YouTube videos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ flex: 1, border: "none", background: "transparent", padding: "12px 20px", fontSize: "15px", outline: "none", color: isDarkMode ? "#ffffff" : "#0f172a" }}
+            style={{ 
+              flex: 1, 
+              border: "none", 
+              background: "transparent", 
+              padding: "12px 20px", 
+              fontSize: "15px", 
+              outline: "none", 
+              color: isDarkMode ? "#ffffff" : "#0f172a" 
+            }}
           />
-          <button type="submit" style={{ padding: "0 24px", background: "#f8fafc", border: "none", borderLeft: "1px solid #e2e8f0", cursor: "pointer", color: isDarkMode ? "#94a3b8" : "#64748b", fontSize: "16px" }} disabled={isSearching}>
+          <button 
+            type="submit" 
+            style={{ 
+              padding: "0 24px", 
+              background: isDarkMode ? "rgba(30, 41, 59, 0.8)" : "#f8fafc", 
+              border: "none", 
+              borderLeft: isDarkMode ? "1px solid rgba(255, 106, 0, 0.3)" : "1px solid #e2e8f0", 
+              cursor: "pointer", 
+              color: isDarkMode ? "#e2e8f0" : "#64748b", 
+              fontSize: "16px",
+              transition: "all 0.2s"
+            }} 
+            disabled={isSearching}
+          >
             {isSearching ? "..." : "🔍"}
           </button>
         </form>
