@@ -45,7 +45,10 @@ When a user initializes a **"NEW GAME"** and logs into the central Arena dashboa
 Users are immediately guided to launch the PathFinder system to establish their educational vector. However, for open-ended study, a global search utility bridges directly to the YouTube API, allowing users to pull any engineering resource into the custom Kaevrix engine framework on demand.
 
 <div align="center">
-  <img width="100%" src="https://github.com/user-attachments/assets/295efa3a-85a6-4788-ba77-c4bd5c30a148" alt="Arena Dashboard Portal Setup" />
+  <img width="100%" src="https://github.com/user-attachments/assets/46f8f758-1a43-4955-bc47-afc5044c97b7" alt="Arena Dashboard Portal Setup" />
+
+<img width="1919" height="864" alt="search of videos" src="https://github.com/user-attachments/assets/ce81226d-6393-4254-9119-1d39b907dbfd" />
+
 </div>
 
 ---
