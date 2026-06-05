@@ -35,7 +35,7 @@
 
 ## 🌍 The Vision
 
-Traditional online learning modules inevitably breakdown due to decision paralysis, infinite scrolling distractions, and a vacuum of long-term motivation. **Kaevrix** counters this by engineering a closed-loop token economy for learning. 
+Traditional online learning modules inevitably break down due to decision paralysis, infinite scrolling distractions, and a vacuum of long-term motivation. **Kaevrix** counters this by engineering a closed-loop token economy for learning. 
 
 By wrapping esports-inspired psychological stakes, modular RPG skill specialization trees, and dynamic visual status badges directly over raw technical content, Kaevrix turns the isolated, exhausting grind of self-education into a high-octane multiplayer quest for status, consistency, and technical dominance.
 
@@ -50,16 +50,9 @@ Users are immediately guided toward the PathFinder node matrix to construct thei
 <br/>
 
 <div align="center">
-  <table width="100%">
-    <tr>
-      <td width="50%" align="center"><strong>🎮 The Gateway Hub Login</strong></td>
-      <td width="50%" align="center"><strong>🔍 YouTube Index API Layer</strong></td>
-    </tr>
-    <tr>
-      <td><img src="https://github.com/user-attachments/assets/46f8f758-1a43-4955-bc47-afc5044c97b7" width="100%" alt="Portal Login Page"/></td>
-      <td><img src="https://github.com/user-attachments/assets/ce81226d-6393-4254-9119-1d39b907dbfd" width="100%" alt="Search Interface"/></td>
-    </tr>
-  </table>
+  <img src="https://github.com/user-attachments/assets/46f8f758-1a43-4955-bc47-afc5044c97b7" width="100%" alt="Portal Login Page"/>
+  <br/><br/>
+  <img src="https://github.com/user-attachments/assets/ce81226d-6393-4254-9119-1d39b907dbfd" width="100%" alt="Search Interface"/>
 </div>
 
 ---
@@ -74,16 +67,9 @@ The **PathFinder Engine** operates as the centralized campaign manager. Upon ent
 <br/>
 
 <div align="center">
-  <table width="100%">
-    <tr>
-      <td width="50%" align="center"><strong>🗺️ The Campaign Skill Map</strong></td>
-      <td width="50%" align="center"><strong>📍 Node Focus Popup Gating</strong></td>
-    </tr>
-    <tr>
-      <td><img src="https://github.com/user-attachments/assets/9e16b25a-83b3-4496-82f1-ab389cbea912" width="100%" alt="Macro PathFinder Interface"/></td>
-      <td><img src="https://github.com/user-attachments/assets/1d0b5e12-f1c9-4e8b-81bd-28f2f738ee8e" width="100%" alt="Node Breakdown Window"/></td>
-    </tr>
-  </table>
+  <img src="https://github.com/user-attachments/assets/9e16b25a-83b3-4496-82f1-ab389cbea912" width="100%" alt="Macro PathFinder Interface"/>
+  <br/><br/>
+  <img src="https://github.com/user-attachments/assets/1d0b5e12-f1c9-4e8b-81bd-28f2f738ee8e" width="100%" alt="Node Breakdown Window"/>
 </div>
 
 ---
@@ -95,62 +81,53 @@ When activating a target subtopic node, users split the core interface state int
 ### 🧘 Option A: The Solo Training Theatre (The Sanctum)
 *An immersive environment structured for dense knowledge ingestion, mental note extraction, and cognitive pacing.*
 
-* **The AI Study Codex:** Say goodbye to typing disorganized files. The Codex streams background audio transcript data to compile clear syntax-comparison matrices, conceptual hardware analogies, and real-time logic exercises (`Memory Tracers`, `Pointer Manipulators`) right inside the sidebar canvas.
-* **Integrated Ambient Soundscapes:** Activating Focus Mode automatically hooks an inline, low-stress background music loop into the browser window session to optimize acoustic isolation.
-* **State-Machine Pomodoro Loop:** To systematically counteract mental burnout, an un-skippable background state clock tracks active attention spans. Upon hitting the threshold, the view executes an application-wide viewport override (**Chill, Energize, Aura**), isolating the keyboard layout for a 5-minute custom Vibe Break backed by lo-fi music.
-* **Watch Threshold Gates:** To guarantee academic validity and eliminate system skimming, the module's target **Quest Quiz** evaluation panel remains completely locked until the backend engine verifies a 90% streaming watch checkpoint.
-
-<br/>
+#### The AI Study Codex
+Say goodbye to typing disorganized files. The Codex streams background audio transcript data to compile clear syntax-comparison matrices, conceptual hardware analogies, and real-time logic exercises (`Memory Tracers`, `Pointer Manipulators`) right inside the sidebar canvas.
 
 <div align="center">
-  <table width="100%">
-    <tr>
-      <td width="50%" align="center"><strong>📖 Solo Workspace & AI Codex</strong></td>
-      <td width="50%" align="center"><strong>🎧 Focused Ambient System State</strong></td>
-    </tr>
-    <tr>
-      <td><img src="https://github.com/user-attachments/assets/39786b05-f9b6-4468-9006-76d82c3e110c" width="100%" alt="AI Notes Space"/></td>
-      <td><img src="https://github.com/user-attachments/assets/e25c3e74-e034-4e27-9f54-175e9a931af1" width="100%" alt="Focus Track UI"/></td>
-    </tr>
-  </table>
+  <img src="https://github.com/user-attachments/assets/39786b05-f9b6-4468-9006-76d82c3e110c" width="100%" alt="AI Notes Space"/>
 </div>
 
 <br/>
 
+#### Integrated Ambient Soundscapes
+Activating Focus Mode automatically hooks an inline, low-stress background music loop into the browser window session to optimize acoustic isolation.
+
 <div align="center">
-  <strong>⏱️ Immersive Full-Screen State Overrides (Pomodoro Rest Windows)</strong>
-  <table width="100%">
-    <tr>
-      <td width="25%"><img src="https://github.com/user-attachments/assets/33889ea0-3594-4fa0-9fb9-84248f1d5e24" width="100%" alt="Chill Overlay"/></td>
-      <td width="25%"><img src="https://github.com/user-attachments/assets/9723257e-5ac2-46fd-a752-0cff0f57e2ba" width="100%" alt="Aura Overlay"/></td>
-      <td width="25%"><img src="https://github.com/user-attachments/assets/c31c2ba9-14d6-4446-8014-0f753bbaa56c" width="100%" alt="Energize Overlay"/></td>
-      <td width="25%"><img src="https://github.com/user-attachments/assets/d81f072d-c8c4-4316-b452-dd82cc6bfdc6" width="100%" alt="Focus Overwrite"/></td>
-    </tr>
-  </table>
+  <img src="https://github.com/user-attachments/assets/e25c3e74-e034-4e27-9f54-175e9a931af1" width="100%" alt="Focus Track UI"/>
 </div>
+
+<br/>
+
+#### State-Machine Pomodoro Loop
+To systematically counteract mental burnout, an un-skippable background state clock tracks active attention spans. Upon hitting the threshold, the view executes an application-wide viewport override (**Chill, Energize, Aura**), isolating the keyboard layout for a 5-minute custom Vibe Break backed by lo-fi music.
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/33889ea0-3594-4fa0-9fb9-84248f1d5e24" width="49%" alt="Chill Overlay"/>
+  <img src="https://github.com/user-attachments/assets/9723257e-5ac2-46fd-a752-0cff0f57e2ba" width="49%" alt="Aura Overlay"/>
+  <br/>
+  <img src="https://github.com/user-attachments/assets/c31c2ba9-14d6-4446-8014-0f753bbaa56c" width="49%" alt="Energize Overlay"/>
+  <img src="https://github.com/user-attachments/assets/d81f072d-c8c4-4316-b452-dd82cc6bfdc6" width="49%" alt="Focus Overwrite"/>
+</div>
+
+<br/>
+
+#### Watch Threshold Gates
+To guarantee academic validity and eliminate system skimming, the module's target **Quest Quiz** evaluation panel remains completely locked until the backend engine verifies a 90% streaming watch checkpoint.
 
 ***
 
 ### ⚔️ Option B: The Competitive Duel Arena (The Clash)
 *The raw, low-latency esports viewport engineered to stress-test conceptual memory speed and response accuracy.*
 
-* **The Workspace Strip:** All companion side-notes, ambient audio controllers, and Pomodoro loop triggers are stripped from the DOM.
-* **Synchronized Playback Sessions:** Opponents are bound to an un-buffered, multi-client synchronized media stream via sub-second WebSocket triggers. 
+* **The Workspace Strip:** All companion side-notes, ambient audio controllers, and Pomodoro loop triggers are completely stripped from the viewport.
+* **Synchronized Playback Sessions:** Opponents are bound to an un-buffered, multi-client synchronized media stream via sub-second WebSocket triggers. Players must process information instantly under high competitive pressure.
 * **Real-Time Matchmaker State Machine:** Driven by a fast Socket.IO matching routine, victory scales on speed coefficients. Players match pace over data-stream speeds, deploy real-time tactical multiplier points, and fight to enter blistering response strings to amplify cumulative combo damage.
 
-<br/>
-
 <div align="center">
-  <table width="100%">
-    <tr>
-      <td width="50%" align="center"><strong>🏟️ Real-Time Arena Lobby Setup</strong></td>
-      <td width="50%" align="center"><strong>⚡ Synchronized Real-Time Quiz Combat</strong></td>
-    </tr>
-    <tr>
-      <td><img src="https://github.com/user-attachments/assets/c41a542f-8da7-440a-9a3d-764a45dd0a66" width="100%" alt="Match Preparation Portal"/></td>
-      <td><img src="https://github.com/user-attachments/assets/73ca3aac-0a8d-4b9e-a896-d7072cc4475b" width="100%" alt="Live Quiz Clash Interface"/></td>
-    </tr>
-  </table>
+  <img src="https://github.com/user-attachments/assets/c41a542f-8da7-440a-9a3d-764a45dd0a66" width="100%" alt="Match Preparation Portal"/>
+  <br/><br/>
+  <img src="https://github.com/user-attachments/assets/73ca3aac-0a8d-4b9e-a896-d7072cc4475b" width="100%" alt="Live Quiz Clash Interface"/>
 </div>
 
 ---
@@ -159,32 +136,35 @@ When activating a target subtopic node, users split the core interface state int
 
 At the macro-junction of any finalized PathFinder level, standard check-box evaluations are entirely replaced by an immersive, turn-based **Ascension Boss Confrontation**. The screen shifts to a classic 2D pixel-art encounter viewport, forcing the student to challenge a regional system guardian, such as **Scorpio (The Syntax Sentinel)**.
 
-* **Combat Loop Logic:** The engine processes inputs directly as mechanical actions. Submitting a correct algorithmic solution triggers a character attack animation vector, taking down the boss's centralized health pool.
-* **The Integrity Heart System:** Answering incorrectly prompts a boss counter-attack payload, draining one of the player's **3 Integrity Hearts**.
-* **Automatic Pedagogical Feedback:** When the player loses a heart, the boss's runtime victory dialogue functions as a contextual correction mechanism, displaying the exact data structures theory needed to dodge the logic trap.
-* **Win/Loss Parameters:** The battle runs a tight condition loop. Dropping all 3 Integrity Hearts triggers a terminal **Game Over** screen requiring a full node reconstruction. Securing a minimum of **4 correct technical answers** conquers the guardian, shifting the platform into a legendary victory state.
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/9a427e78-d510-4274-9b79-91b51d46724a" width="100%" alt="A Foe Approaches Overlay"/>
+</div>
 
 <br/>
 
+#### Combat State Machine
+The evaluation operates on active game loop rules. Submitting a correct algorithmic solution triggers a character attack animation vector, taking down the boss's centralized health pool.
+
 <div align="center">
-  <table width="100%">
-    <tr>
-      <td width="50%" align="center"><strong>⚠️ The Encounter Cinematic Trigger</strong></td>
-      <td width="50%" align="center"><strong>👾 Real-Time Sprite Layout & Turn Loops</strong></td>
-    </tr>
-    <tr>
-      <td><img src="https://github.com/user-attachments/assets/9a427e78-d510-4274-9b79-91b51d46724a" width="100%" alt="A Foe Approaches Overlay"/></td>
-      <td><img src="https://github.com/user-attachments/assets/a7b09af1-9542-4c88-a0e9-472aea30628f" width="100%" alt="Combat UI Mechanics Window"/></td>
-    </tr>
-    <tr>
-      <td width="50%" align="center"><strong>💥 Damage Calculations & Theory Feedback</strong></td>
-      <td width="50%" align="center"><strong>🏆 The Foe Vanquished Reward State</strong></td>
-    </tr>
-    <tr>
-      <td><img src="https://github.com/user-attachments/assets/b480190f-012a-40f5-b65b-b96e40682ba4" width="100%" alt="Incorrect Answer Penalty Animation"/></td>
-      <td><img src="https://github.com/user-attachments/assets/14888864-1021-48c4-9c9c-857b2c4b2514" width="100%" alt="Victory State Screen Asset"/></td>
-    </tr>
-  </table>
+  <img src="https://github.com/user-attachments/assets/a7b09af1-9542-4c88-a0e9-472aea30628f" width="100%" alt="Combat UI Mechanics Window"/>
+</div>
+
+<br/>
+
+#### The Integrity Heart System
+Inputting an incorrect answer costs the player one of their **3 Integrity Hearts** as the boss counter-attacks, simultaneously displaying the exact data structures theory needed to dodge the logic trap.
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/b480190f-012a-40f5-b65b-b96e40682ba4" width="100%" alt="Incorrect Answer Penalty Animation"/>
+</div>
+
+<br/>
+
+#### Victory & Defeat Conditions
+The battle runs a tight condition loop. Dropping all 3 Integrity Hearts triggers a terminal **Game Over**. Securing a minimum of **4 correct technical answers** conquers the guardian, shifting the platform into a legendary victory state.
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/14888864-1021-48c4-9c9c-857b2c4b2514" width="100%" alt="Victory State Screen Asset"/>
 </div>
 
 ---
@@ -219,41 +199,30 @@ To prevent frantic system binging, the most prestigious profile enhancements—*
 
 Self-directed engineering tracks are traditionally isolated, lonely experiences. Kaevrix resolves this by building a persistent, real-time social fabric infrastructure.
 
-* **Macro Global Rankings:** A unified ledger aggregates user positions globally, sorting accounts live across cumulative XP metrics, account level, aggregate watch time, and successful quiz metrics.
-* **The Squad Matching Engine:** Players can safely inspect another engineer’s customized profile card, view their structural proficiency metrics, and issue instant friend vectors.
-* **Squad Alliances & Channels:** Merging connections opens dedicated **Squad Alliances**, unlocking low-latency Socket rooms to allow team coordinates to schedule live duels, check collective clan milestones, and chart group trajectory curves.
+#### The Global Ranking System
+A unified ledger aggregates user positions globally, sorting accounts live across cumulative XP metrics, account level, aggregate watch time, and successful quiz metrics.
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/77d0c016-e0ec-4a8b-a748-2857fd5d27e5" width="100%" alt="Global Rankings Workspace"/>
+</div>
 
 <br/>
 
-<div align="center">
-  <table width="100%">
-    <tr>
-      <td width="100%" align="center"><strong>🥇 Global Live Leaderboard Interface</strong></td>
-    </tr>
-    <tr>
-      <td><img src="https://github.com/user-attachments/assets/77d0c016-e0ec-4a8b-a748-2857fd5d27e5" width="100%" alt="Global Rankings Workspace"/></td>
-    </tr>
-  </table>
-  
-  <table width="100%">
-    <tr>
-      <td width="50%" align="center"><strong>🔍 Profile Card Inspections</strong></td>
-      <td width="50%" align="center"><strong>🤝 The Squad Discovery Hub</strong></td>
-    </tr>
-    <tr>
-      <td><img src="https://github.com/user-attachments/assets/e91c387c-be3d-4352-820d-bca816c00eb1" width="100%" alt="Inspecting Player Profiles UI"/></td>
-      <td><img src="https://github.com/user-attachments/assets/811ccc89-21fd-4019-b284-24cadf631dbc" width="100%" alt="Network Discover Screen"/></td>
-    </tr>
-  </table>
+#### The Squad Engine
+Players can safely inspect another engineer’s customized profile card, view their structural proficiency matrices, and issue instant friend requests.
 
-  <table width="100%">
-    <tr>
-      <td width="100%" align="center"><strong>💬 Low-Latency Team Alliance Rooms (Live Socket Chats)</strong></td>
-    </tr>
-    <tr>
-      <td><img src="https://github.com/user-attachments/assets/798e79d9-6d9f-4f34-bafe-8202363a57f2" width="100%" alt="Active Squad Chat System"/></td>
-    </tr>
-  </table>
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/e91c387c-be3d-4352-820d-bca816c00eb1" width="49%" alt="Inspecting Player Profiles UI"/>
+  <img src="https://github.com/user-attachments/assets/811ccc89-21fd-4019-b284-24cadf631dbc" width="49%" alt="Network Discover Screen"/>
+</div>
+
+<br/>
+
+#### Alliances & Channels
+Accepting an invitation merges users into unified **Squad Alliances**, unlocking low-latency Socket rooms to allow team coordinates to schedule live duels, check collective clan milestones, and chart group trajectory curves.
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/798e79d9-6d9f-4f34-bafe-8202363a57f2" width="100%" alt="Active Squad Chat System"/>
 </div>
 
 ---
@@ -277,7 +246,7 @@ Kaevrix is built on an incredibly lean, performance-first engine to protect low-
 | **Backend Framework** | Node.js, Express.js |
 | **Real-Time Layer** | Socket.IO, WebSockets, Web Audio API |
 | **Database Tier** | MongoDB, Mongoose ORM |
-| **External Service Integration** | Google Gemini API, YouTube IFrame API, yt-search |
+| **External Integrations** | Google Gemini API, YouTube IFrame API, yt-search |
 
 ---
 
