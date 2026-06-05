@@ -75,13 +75,30 @@ When launching a video node, players choose between two diametrically opposed en
 ### 🧘 Option A: The Solo Training Theatre (The Sanctum)
 Designed for deep ingestion, conceptual absorption, and systematic cognitive pacing.
 * **The AI Study Codex:** While watching, students do not take messy notes. The Codex parses metadata to generate clean, syntax-comparison matrices, conceptual analogies, and targeted logic exercises (e.g., *Memory Tracers* or *Pointer Manipulators*) in the side panel.
+<div align="center">
+ <img width="1919" height="1079" alt="AI Study Codex" src="https://github.com/user-attachments/assets/39786b05-f9b6-4468-9006-76d82c3e110c" />
+</div>
+
 * **Focus Soundscapes:** Toggling Focus Mode seamlessly initializes an integrated, low-stress ambient audio track directly inside the browser session.
-* **Pomodoro State Machine:** To prevent mental burnout, a hard-coded timer tracks cognitive load. At the interval, the interface triggers a full-screen override (**Chill, Energize, Aura**), locking the workstation down for a 5-minute Vibe Break paired with lo-fi tracks.
-* **Watch Gating:** To enforce academic integrity, the subtopic **Quest Quiz** remains strictly locked until the backend tracks a verified 90% video playback threshold.
 
 <div align="center">
-  <img width="100%" src="https://github.com/user-attachments/assets/d1258fdc-4d89-4c05-9d18-1d566a9d2b74" alt="Solo Training Theatre and AI Codex UI" />
+ <img width="1919" height="866" alt="Focus Soundscapes" src="https://github.com/user-attachments/assets/e25c3e74-e034-4e27-9f54-175e9a931af1" />
 </div>
+
+* **Pomodoro State Machine:** To prevent mental burnout, a hard-coded timer tracks cognitive load. At the interval, the interface triggers a full-screen override (**Chill, Energize, Aura**), locking the workstation down for a 5-minute Vibe Break paired with lo-fi tracks.
+
+<div align="center">
+ <img width="1919" height="1079" alt="Image" src="https://github.com/user-attachments/assets/33889ea0-3594-4fa0-9fb9-84248f1d5e24" />
+
+ <img width="1919" height="1079" alt="Image" src="https://github.com/user-attachments/assets/9723257e-5ac2-46fd-a752-0cff0f57e2ba" />
+
+ <img width="1919" height="1079" alt="Image" src="https://github.com/user-attachments/assets/c31c2ba9-14d6-4446-8014-0f753bbaa56c" />
+
+ <img width="1918" height="1079" alt="Image" src="https://github.com/user-attachments/assets/d81f072d-c8c4-4316-b452-dd82cc6bfdc6" />
+</div>
+
+* **Watch Gating:** To enforce academic integrity, the subtopic **Quest Quiz** remains strictly locked until the backend tracks a verified 90% video playback threshold.
+
 
 ### ⚔️ Option B: The Competitive Duel Arena (The Clash)
 The core esports engine where raw speed, high-fidelity focus, and real-time execution are tested.
@@ -91,6 +108,8 @@ The core esports engine where raw speed, high-fidelity focus, and real-time exec
 
 <div align="center">
   <img width="100%" src="https://github.com/user-attachments/assets/73ca3aac-0a8d-4b9e-a896-d7072cc4475b" alt="Competitive Duel Arena Live Evaluation" />
+
+  <img width="1920" height="1078" alt="Image" src="https://github.com/user-attachments/assets/c41a542f-8da7-440a-9a3d-764a45dd0a66" />
 </div>
 
 ---
