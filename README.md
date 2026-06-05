@@ -44,6 +44,11 @@
 ## 🚀 Onboarding & On-Demand Search
 
 > When a user executes a **"NEW GAME"** sequence and initializes their terminal session, they are intentionally dropped into a pristine cold-start state. Because excessive content alternatives spawn intense choice paralysis, the primary dashboard is systematically wiped clean of random, algorithmic video noise.
+
+<div align="center">
+ <img width="1919" height="1079" alt="Image" src="https://github.com/user-attachments/assets/74ef6726-13cb-4687-ad66-64ab576fb83c" />
+</div>
+
 > 
 > Users are immediately guided toward the PathFinder node matrix to construct their curated campaign path. However, for spontaneous training, a global search utility interfaces directly with the YouTube API, allowing users to safely query and capture any software engineering asset directly into the custom Kaevrix focus player runtime.
 
