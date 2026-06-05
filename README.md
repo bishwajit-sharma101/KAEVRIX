@@ -1,6 +1,6 @@
 <div align="center">
 
-<img width="100%" src="https://github.com/user-attachments/assets/49fbb51a-d29e-4dd9-b575-30ce64309475" alt="Kaevrix Banner"/>
+<img width="1774" height="887" alt="Image" src="https://github.com/user-attachments/assets/73c9e69e-7a8c-4184-8b4f-d572b0ceb5b4" />
 
 <br/>
 
