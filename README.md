@@ -85,7 +85,7 @@ The central hub provides players with quick access to active matchmaking queues,
 ### Player Combat Profiles
 > Track your battle history, win rates, total watch time, and current rank progression directly from your profile.
 <img width="100%" src="https://github.com/user-attachments/assets/99ceadf3-5087-4204-a915-da1e86d2de82" alt="Player Profiles" />
-[![Kaevrix Cosmetics System](https://img.youtube.com/vi/YOUR_VIDEO_ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=https://youtu.be/sgzADaLMgT4?si=yJnInPpEUG6wlWGO )
+[![Kaevrix Cosmetics System](https://img.youtube.com/vi/sgzADaLMgT4/maxresdefault.jpg)](https://www.youtube.com/watch?v=sgzADaLMgT4)
 
 ---
 
