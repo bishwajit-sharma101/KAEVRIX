@@ -182,12 +182,23 @@ To incentivize discipline over erratic binging, the rarest visual profile modifi
 
 Learning software engineering is a solitary experience; Kaevrix fixes this by providing an active social fabric layer.
 
-* **Live Telemetry:** The global sidebar renders real-time platform metrics, broadcasting active duels, online players, and videos currently processing in the queue.
+* **THE GLOBAL RANKING SYSTEM:** you can see the global raking of the player based on xp , level , hours , number of quizes attempted etc .
+
+<div align="center">
+ <img width="1919" height="1079" alt="Image" src="https://github.com/user-attachments/assets/77d0c016-e0ec-4a8b-a748-2857fd5d27e5" />
+</div>
+
 * **The Squad Engine:** Users can safely inspect another player's custom combat profile, review their mastery matrices, and issue immediate friend requests. 
+
+<div align="center">
+  <img width="1919" height="866" alt="Image" src="https://github.com/user-attachments/assets/e91c387c-be3d-4352-820d-bca816c00eb1" />
+</div>
+
+
 * **Alliances & Channels:** Accepting an invitation merges users into unified **Squad Alliances**, unlocking low-latency messaging rooms to let teammates coordinate study sessions, monitor group rankings, and track peer progression.
 
 <div align="center">
-  <img width="100%" src="https://github.com/user-attachments/assets/d136b6d6-3cc2-4a54-9f66-288778b55dd0" alt="Global Leaderboards and Squad Discovery Interface" />
+  <img width="1920" height="1363" alt="Image" src="https://github.com/user-attachments/assets/798e79d9-6d9f-4f34-bafe-8202363a57f2" />
 </div>
 
 ---
