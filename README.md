@@ -78,6 +78,11 @@
 
 > When activating a target subtopic node, users split the core interface state into one of two specialized, isolated runtime environments tailored to their training intention:
 
+<div align="center">
+  <img width="1919" height="1079" alt="Image" src="https://github.com/user-attachments/assets/2695283d-13e7-4f58-852e-19b7c59fab5d" />
+</div>
+
+
 <br/>
 
 ### 🧘 Option A: The Solo Training Theatre (The Sanctum)
