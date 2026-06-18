@@ -4,6 +4,7 @@ import CognitivePathfinder from "../Roadmap/CognitivePathfinder";
 import ProfilePanel from "./ProfilePanel";
 import CommunityTab from "../Community/CommunityTab";
 import CanvasRuneLoader from "../Shared/CanvasRuneLoader";
+import PathfinderScheduler from "../Roadmap/PathfinderScheduler";
 
 const TRENDING_TOPICS = [
   { icon: "⚡", label: "JavaScript", color: "#f59e0b", players: 1420 },
@@ -135,6 +136,100 @@ export default function Dashboard({
   }
   const topic = truncateText(rawTopic);
   const why = truncateText(savedRoadmap?.goal || (answers && answers[1] ? answers[1].answer : ""), 80);
+
+  // Calculate schedule parameters for the quest tracker sidebar
+  const getTodayDateString = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const todayDateStr = getTodayDateString();
+
+  const savedSchedule = localStorage.getItem(`kaevrix_roadmap_schedule_${username}`);
+  const schedule = savedSchedule ? JSON.parse(savedSchedule) : null;
+  const savedTodayProgress = localStorage.getItem(`kaevrix_today_progress_${username}`);
+  const todayProgress = savedTodayProgress ? JSON.parse(savedTodayProgress) : null;
+
+  let dailyTarget = 0;
+  let completedToday = 0;
+  let velocityStatus = "TRACK";
+  let streak = 0;
+  let todaysTasks = [];
+  let activePendingTasks = [];
+  let nextLimitBreakTask = null;
+
+  if (schedule && savedRoadmap) {
+    let totalSubtopics = 0;
+    let completedSubtopics = 0;
+    const allLevels = ["level1", "level2", "level3"];
+    
+    for (const lk of allLevels) {
+      const ms = savedRoadmap[lk]?.milestones || [];
+      for (const m of ms) {
+        if (m.isEncrypted || !m.keyPoints || m.keyPoints.length === 0) {
+          totalSubtopics += 4;
+          if (m.status === "completed") completedSubtopics += 4;
+        } else {
+          totalSubtopics += m.keyPoints.length;
+          if (m.status === "completed") {
+            completedSubtopics += m.keyPoints.length;
+          } else if (m.status === "locked") {
+            completedSubtopics += 0;
+          } else {
+            completedSubtopics += (m.subtopicIndex || 0);
+          }
+        }
+      }
+    }
+
+    const elapsedDays = Math.max(0, Math.floor((new Date(todayDateStr) - new Date(schedule.startDate)) / (1000 * 60 * 60 * 24)) + schedule.missedDaysOffset);
+    const remainingDays = Math.max(1, schedule.durationDays - elapsedDays);
+    
+    completedToday = (todayProgress && todayProgress.date === todayDateStr) ? todayProgress.completedToday : 0;
+    const completedBeforeToday = Math.max(0, completedSubtopics - completedToday);
+    const remainingSubtopicsStartOfToday = Math.max(0, totalSubtopics - completedBeforeToday);
+    
+    dailyTarget = remainingSubtopicsStartOfToday > 0 ? Math.ceil(remainingSubtopicsStartOfToday / remainingDays) : 0;
+    streak = schedule.streak;
+
+    const elapsedPercentage = Math.min(1, elapsedDays / schedule.durationDays);
+    const completedPercentage = Math.min(1, completedSubtopics / totalSubtopics);
+    if (completedPercentage > elapsedPercentage + 0.05) {
+      velocityStatus = "AHEAD";
+    } else if (completedPercentage < elapsedPercentage - 0.05) {
+      velocityStatus = "BEHIND";
+    }
+
+    // Get flat list of next incomplete subtopics
+    const list = [];
+    for (const lk of allLevels) {
+      const ms = savedRoadmap[lk]?.milestones || [];
+      for (const m of ms) {
+        if (m.status === "completed") continue;
+        if (m.isEncrypted) {
+          list.push({
+            milestone: m,
+            subtopicIndex: 0,
+            text: "Decrypt next tier in Pathfinder",
+            isEncrypted: true
+          });
+          continue;
+        }
+        const startIdx = m.status === "locked" ? 0 : (m.subtopicIndex || 0);
+        const keyPoints = m.keyPoints || [];
+        for (let i = startIdx; i < keyPoints.length; i++) {
+          list.push({
+            milestone: m,
+            subtopicIndex: i,
+            text: keyPoints[i],
+            isEncrypted: false
+          });
+        }
+      }
+    }
+    todaysTasks = list.slice(0, Math.max(2, dailyTarget));
+    activePendingTasks = todaysTasks.slice(completedToday);
+    nextLimitBreakTask = list.length > 0 ? list[0] : null;
+  }
 
   const cleanMilestoneTitle = (title) => {
     if (!title) return "";
@@ -377,6 +472,7 @@ export default function Dashboard({
     { id: "profile", icon: "👤", label: "Profile" },
     { id: "duels", icon: "🎮", label: "Arena" },
     { id: "pathfinder", icon: "🧠", label: "Pathfinder" },
+    { id: "chronos", icon: "⏱️", label: "Chronos" },
     { id: "community", icon: "👥", label: "Community" },
     { id: "rankings", icon: "🏆", label: "Global Rankings" },
   ];
@@ -732,6 +828,18 @@ export default function Dashboard({
           />
         )}
 
+        {activeTab === "chronos" && (
+          <PathfinderScheduler
+            roadmap={savedRoadmap}
+            username={username}
+            isDarkMode={isDarkMode}
+            onSelectMilestone={(m) => {
+              sound.playClockTick();
+              setActiveTab("pathfinder");
+            }}
+          />
+        )}
+
         {activeTab === "rankings" && (
           <div style={{ padding: "0 4px" }}>
             <div style={{ marginBottom: "36px" }}>
@@ -885,66 +993,182 @@ export default function Dashboard({
       {activeTab === "duels" && (
         <div style={{ width: "280px", display: "flex", flexDirection: "column", gap: "16px", flexShrink: 0, position: "sticky", top: "20px" }}>
           <div className="hud-panel" style={{ padding: "20px", display: "flex", flexDirection: "column" }}>
+            
+            {/* Header */}
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px", borderBottom: "1.5px solid rgba(255, 106, 0, 0.15)", paddingBottom: "10px" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-              <span style={{ fontSize: "11px", fontWeight: "800", color: "#ea580c", textTransform: "uppercase", letterSpacing: "1.5px", fontFamily: "var(--font-gamer)" }}>QUEST TRACKER</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff6a00" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#ff6a00", textTransform: "uppercase", letterSpacing: "1.5px", fontFamily: "var(--font-gamer)" }}>DAILY QUEST MATRIX</span>
             </div>
             
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "60vh", overflowY: "auto", paddingRight: "4px" }} className="custom-scrollbar">
-              {activeMilestones.length > 0 ? (
-                activeMilestones.map(m => {
-                  const isMilestoneDone = m.status === "completed";
-                  const subtopicIndex = m.subtopicIndex || 0;
-                  
-                  return (
-                    <div key={m.id} style={{ marginBottom: "12px" }}>
+            {/* Daily Quota Tracking Block */}
+            {schedule && (
+              <div style={{
+                background: isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc",
+                border: isDarkMode ? "1px solid var(--glass-border)" : "1px solid #e2e8f0",
+                borderRadius: "14px",
+                padding: "12px 14px",
+                marginBottom: "16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px"
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "10px", fontWeight: "900", color: "var(--text-muted)", textTransform: "uppercase" }}>TODAY'S TARGET</span>
+                  <span style={{ fontSize: "12.5px", fontWeight: "900", color: "#ff6a00" }}>{completedToday} / {dailyTarget} Done</span>
+                </div>
+                <div style={{ height: "4px", background: "rgba(100,100,100,0.15)", borderRadius: "2px", overflow: "hidden" }}>
+                  <div style={{ 
+                    height: "100%", 
+                    width: `${dailyTarget > 0 ? Math.min(100, (completedToday / dailyTarget) * 100) : 0}%`, 
+                    background: "#ff6a00", 
+                    borderRadius: "2px",
+                    transition: "width 0.4s ease"
+                  }} />
+                </div>
+                
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "10.5px", marginTop: "2px" }}>
+                  <span style={{ color: "var(--text-muted)" }}>Status:</span>
+                  {velocityStatus === "AHEAD" ? (
+                    <span style={{ color: "#10b981", fontWeight: "800" }}>🚀 Ahead</span>
+                  ) : velocityStatus === "BEHIND" ? (
+                    <span style={{ color: "#ef4444", fontWeight: "800" }}>⚠️ Behind</span>
+                  ) : (
+                    <span style={{ color: "#f59e0b", fontWeight: "800" }}>⚡ On Track</span>
+                  )}
+                </div>
+
+                {streak > 0 && (
+                  <div style={{ fontSize: "10.5px", color: "#ff6a00", fontWeight: "800", borderTop: "1px solid var(--glass-border)", paddingTop: "4px", marginTop: "2px" }}>
+                    🔥 Streak Active: {streak} Days!
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Subtopic Objectives Checklist */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "40vh", overflowY: "auto", paddingRight: "4px" }} className="custom-scrollbar">
+              {activePendingTasks.length > 0 ? (
+                <>
+                  <div style={{ fontSize: "10.5px", fontWeight: "900", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>
+                    QUEST OBJECTIVES
+                  </div>
+                  {activePendingTasks.map((t, idx) => (
+                    <div 
+                      key={`${t.milestone.id}_${t.subtopicIndex}`} 
+                      onClick={() => {
+                        if (!t.isEncrypted && onSearch) {
+                          sound.playClockTick();
+                          onSearch(t.milestone.searchQuery || t.milestone.title);
+                        }
+                      }}
+                      className="hud-quest-row hud-quest-row-active"
+                      style={{
+                        cursor: t.isEncrypted ? "default" : "pointer",
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        background: "rgba(255, 106, 0, 0.03)",
+                        border: "1px solid rgba(255, 106, 0, 0.12)"
+                      }}
+                    >
                       <div style={{
-                        fontSize: "11.5px", fontWeight: "900", color: "var(--text-light)",
-                        marginBottom: "8px", borderBottom: "1px solid var(--glass-border)",
-                        paddingBottom: "4px", fontFamily: "var(--font-gamer)", letterSpacing: "0.5px", textTransform: "uppercase"
+                        marginTop: "2px",
+                        color: "#ff6a00",
+                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center"
                       }}>
-                        {cleanMilestoneTitle(m.title)}
+                        <div style={{ 
+                          width: "12px", height: "12px", borderRadius: "50%", 
+                          border: "2.5px solid #ff6a00", background: "transparent"
+                        }} />
                       </div>
-                      
-                      {m.keyPoints?.map((pt, i) => {
-                        const isDone = isMilestoneDone || i < subtopicIndex;
-                        
-                        return (
-                          <div key={i} className={`hud-quest-row ${isDone ? "hud-quest-row-completed" : "hud-quest-row-active"}`}>
-                            <div style={{
-                              marginTop: "2px",
-                              color: isDone ? "#10b981" : "#ea580c",
-                              flexShrink: 0,
-                              display: "flex",
-                              alignItems: "center"
-                            }}>
-                              {isDone ? (
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                              ) : (
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
-                              )}
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ 
-                                fontSize: "11.5px", 
-                                fontWeight: isDone ? "500" : "700", 
-                                color: isDone ? "var(--text-muted)" : "var(--text-light)",
-                                textDecoration: isDone ? "line-through" : "none",
-                                lineHeight: "1.4",
-                                fontFamily: "var(--font-outfit)"
-                              }}>
-                                {pt}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ 
+                          fontSize: "11px", 
+                          fontWeight: "700", 
+                          color: "var(--text-light)",
+                          lineHeight: "1.4",
+                          fontFamily: "var(--font-outfit)"
+                        }}>
+                          {t.text}
+                        </div>
+                        <div style={{ fontSize: "9px", color: "var(--text-muted)", marginTop: "2px" }}>
+                          Node: {cleanMilestoneTitle(t.milestone.title)}
+                        </div>
+                      </div>
                     </div>
-                  );
-                })
+                  ))}
+                </>
               ) : (
-                <div style={{ fontSize: "11.5px", color: "var(--text-muted)", fontStyle: "italic", textAlign: "center", padding: "20px 0" }}>
-                  No active directives. Go to the Pathfinder tab to generate a roadmap!
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <div style={{ 
+                    fontSize: "11.5px", 
+                    color: "var(--neon-green)", 
+                    fontWeight: "800", 
+                    textAlign: "center", 
+                    padding: "16px 12px",
+                    background: "rgba(16, 185, 129, 0.04)",
+                    border: "1px solid rgba(16, 185, 129, 0.15)",
+                    borderRadius: "10px"
+                  }}>
+                    🏆 DAILY OBJECTIVES MET!
+                    <div style={{ fontSize: "10px", fontWeight: "600", color: "var(--text-muted)", marginTop: "4px" }}>
+                      Neural synchronization: 100%. Limit break is active.
+                    </div>
+                  </div>
+
+                  {nextLimitBreakTask && (
+                    <div 
+                      onClick={() => {
+                        if (!nextLimitBreakTask.isEncrypted && onSearch) {
+                          sound.playClockTick();
+                          onSearch(nextLimitBreakTask.milestone.searchQuery || nextLimitBreakTask.milestone.title);
+                        }
+                      }}
+                      className="hud-quest-row hud-quest-row-active"
+                      style={{
+                        cursor: nextLimitBreakTask.isEncrypted ? "default" : "pointer",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        background: "rgba(139, 92, 246, 0.03)",
+                        border: "1px solid rgba(139, 92, 246, 0.20)",
+                        transition: "all 0.2s"
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                        <span style={{ fontSize: "8px", fontWeight: "900", color: "#8b5cf6", letterSpacing: "1px", textTransform: "uppercase" }}>
+                          ⚡ LIMIT BREAK DIRECTIVE
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <div style={{
+                          marginTop: "2px",
+                          color: "#8b5cf6",
+                          flexShrink: 0,
+                          display: "flex",
+                          alignItems: "center"
+                        }}>
+                          <div style={{ 
+                            width: "12px", height: "12px", borderRadius: "50%", 
+                            border: "2.5px solid #8b5cf6", background: "transparent"
+                          }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ 
+                            fontSize: "11px", 
+                            fontWeight: "750", 
+                            color: "var(--text-light)",
+                            lineHeight: "1.4"
+                          }}>
+                            {nextLimitBreakTask.text}
+                          </div>
+                          <div style={{ fontSize: "9px", color: "var(--text-muted)", marginTop: "2px" }}>
+                            Node: {cleanMilestoneTitle(nextLimitBreakTask.milestone.title)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

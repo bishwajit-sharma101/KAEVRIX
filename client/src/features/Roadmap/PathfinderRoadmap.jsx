@@ -1905,41 +1905,6 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
           ))}
         </div>
 
-        {/* Daily Quest Questcard (Spans full width) */}
-        <div style={{
-          background: isDarkMode 
-            ? "linear-gradient(135deg, rgba(234, 88, 12, 0.15) 0%, rgba(20, 10, 5, 0.5) 100%)" 
-            : "linear-gradient(135deg, rgba(234, 88, 12, 0.05) 0%, rgba(254, 243, 199, 0.2) 100%)",
-          borderRadius: "18px",
-          padding: "20px 24px",
-          border: isDarkMode ? "1.5px solid rgba(234, 88, 12, 0.4)" : "1.5px solid #fed7aa",
-          boxShadow: isDarkMode ? "0 0 25px rgba(234, 88, 12, 0.1)" : "0 4px 15px rgba(255, 106, 0, 0.05)",
-          display: "flex",
-          alignItems: "center",
-          gap: "18px",
-          marginBottom: "32px",
-          transition: "all 0.2s"
-        }}
-        onMouseOver={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = isDarkMode ? "0 0 35px rgba(234, 88, 12, 0.25)" : "0 6px 20px rgba(255, 106, 0, 0.1)"; }}
-        onMouseOut={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = isDarkMode ? "0 0 25px rgba(234, 88, 12, 0.1)" : "0 4px 15px rgba(255, 106, 0, 0.05)"; }}
-        >
-          <div style={{
-            width: "52px", height: "52px", borderRadius: "50%",
-            background: "#ea580c", display: "flex", alignItems: "center",
-            justifyContent: "center", fontSize: "24px", color: "#ffffff",
-            boxShadow: "0 0 15px rgba(234, 88, 12, 0.5)", flexShrink: 0,
-            border: isDarkMode ? "2px solid rgba(255,255,255,0.1)" : "2px solid rgba(0,0,0,0.05)"
-          }}>
-            ⚔️
-          </div>
-          <div>
-            <div style={{ fontSize: "10px", fontWeight: "900", color: "#f97316", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "4px" }}>ACTIVE DAILY QUEST</div>
-            <div style={{ fontSize: "16px", fontWeight: "900", color: "var(--text-light)" }}>"{roadmap.dailyGoal || "Complete 1 node and watch 1 video daily"}"</div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
-              Complete this objective to maintain your learning streak and gain bonus XP!
-            </div>
-          </div>
-        </div>
 
         {/* Legend */}
         <div style={{ display: "flex", gap: "12px", marginBottom: "28px", flexWrap: "wrap" }}>
