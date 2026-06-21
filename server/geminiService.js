@@ -1236,20 +1236,13 @@ Format specification:
     };
   };
 
-  // 3. Try Ollama (gemma4:e4b) primary generator
-  try {
-    console.log(`[Ollama Quiz Generator] Generating quiz via Ollama ${OLLAMA_MODEL} for video: "${title}"`);
-    const responseText = await ollamaGenerate(prompt, "json");
-    const quizData = JSON.parse(responseText.trim());
-    const validated = validateQuizData(quizData);
-    return { ...validated, captions: transcriptList };
-  } catch (ollamaErr) {
-    console.warn(`[Ollama Quiz Generator] Ollama failed: ${ollamaErr.message}. Trying Gemini API as fallback...`);
-  }
-
-  // 4. Try Gemini API fallback
+  dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
   const apiKey = process.env.GEMINI_API_KEY;
-  if (apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE") {
+  const useGemini = apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE";
+  let geminiFailed = false;
+
+  // 3. Try Gemini API primary generator
+  if (useGemini) {
     try {
       console.log(`[Gemini Quiz Generator] Generating quiz via Gemini API for video: "${title}"`);
       const responseText = await callGeminiAPI(prompt, "application/json");
@@ -1257,7 +1250,21 @@ Format specification:
       const validated = validateQuizData(quizData);
       return { ...validated, captions: transcriptList };
     } catch (geminiErr) {
-      console.warn(`[Gemini Quiz Generator] Gemini API failed: ${geminiErr.message}. Using default template fallback...`);
+      console.warn(`[Gemini Quiz Generator] Gemini API failed: ${geminiErr.message}. Trying Ollama as fallback...`);
+      geminiFailed = true;
+    }
+  }
+
+  // 4. Try Ollama (gemma4:e4b) fallback generator
+  if (!useGemini || geminiFailed) {
+    try {
+      console.log(`[Ollama Quiz Generator] Generating quiz via Ollama ${OLLAMA_MODEL} for video: "${title}"`);
+      const responseText = await ollamaGenerate(prompt, "json");
+      const quizData = JSON.parse(responseText.trim());
+      const validated = validateQuizData(quizData);
+      return { ...validated, captions: transcriptList };
+    } catch (ollamaErr) {
+      console.warn(`[Ollama Quiz Generator] Ollama failed: ${ollamaErr.message}. Both Ollama and Gemini APIs failed.`);
     }
   }
 
@@ -1329,26 +1336,33 @@ Format specification:
     return { bossType, bossIntro, questions: validatedQuestions };
   };
 
-  // 1. Try Ollama (gemma4:e4b) primary generator
-  try {
-    console.log(`[Ollama Boss Generator] Generating boss questions via Ollama ${OLLAMA_MODEL} for milestone: "${mTitle}"`);
-    const responseText = await ollamaGenerate(prompt, "json");
-    const bossData = JSON.parse(responseText.trim());
-    return validateBossData(bossData);
-  } catch (ollamaErr) {
-    console.warn(`[Ollama Boss Generator] Ollama failed: ${ollamaErr.message}. Trying Gemini API as fallback...`);
-  }
-
-  // 2. Try Gemini API fallback
+  dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
   const apiKey = process.env.GEMINI_API_KEY;
-  if (apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE") {
+  const useGemini = apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE";
+  let geminiFailed = false;
+
+  // 1. Try Gemini API primary generator
+  if (useGemini) {
     try {
       console.log(`[Gemini Boss Generator] Generating boss questions via Gemini API for milestone: "${mTitle}"`);
       const responseText = await callGeminiAPI(prompt, "application/json");
       const bossData = JSON.parse(responseText.trim());
       return validateBossData(bossData);
     } catch (geminiErr) {
-      console.warn(`[Gemini Boss Generator] Gemini API failed: ${geminiErr.message}. Using default template fallback...`);
+      console.warn(`[Gemini Boss Generator] Gemini API failed: ${geminiErr.message}. Trying Ollama as fallback...`);
+      geminiFailed = true;
+    }
+  }
+
+  // 2. Try Ollama (gemma4:e4b) fallback generator
+  if (!useGemini || geminiFailed) {
+    try {
+      console.log(`[Ollama Boss Generator] Generating boss questions via Ollama ${OLLAMA_MODEL} for milestone: "${mTitle}"`);
+      const responseText = await ollamaGenerate(prompt, "json");
+      const bossData = JSON.parse(responseText.trim());
+      return validateBossData(bossData);
+    } catch (ollamaErr) {
+      console.warn(`[Ollama Boss Generator] Ollama failed: ${ollamaErr.message}. Using default template fallback...`);
     }
   }
 

@@ -104,7 +104,7 @@ function MilestoneNode({ milestone, levelColor, onSelect, isSelected, isDarkMode
     : (isDarkMode ? "#8a7343" : "#c5a85c");
 
   const medallionBorder = isLocked
-    ? `2px solid ${isDarkMode ? "rgba(100,90,80,0.25)" : "#e2e8f0"}`
+    ? `2px solid ${isDarkMode ? "rgba(100,90,80,0.25)" : "#cbd5e1"}`
     : isSelected ? `2.5px solid ${isDarkMode ? "#ffd700" : neonColor}`
     : `2px solid ${cornerColor}`;
 
@@ -154,28 +154,28 @@ function MilestoneNode({ milestone, levelColor, onSelect, isSelected, isDarkMode
         {/* The Diamond Base */}
         <div style={{
           position: "relative", width: "56px", height: "56px",
-          background: isCompleted ? neonColor : (isActive ? neonColor : "#1e293b"),
+          background: medallionBg,
           borderRadius: "12px", // rounded diamond
           transform: "rotate(45deg)",
-          boxShadow: isCompleted ? `0 0 25px ${neonColor}, 0 0 50px ${neonColor}66` : (isActive ? `0 0 20px ${neonColor}aa` : "none"),
-          border: `2px solid ${isCompleted || isActive ? "#ffffff" : "#334155"}`,
+          boxShadow: medallionGlow,
+          border: medallionBorder,
           display: "flex", alignItems: "center", justifyContent: "center",
           zIndex: 2,
         }}>
           {/* Inner Dark Tech Core */}
           <div style={{
             width: "44px", height: "44px",
-            background: "#0f172a",
+            background: isDarkMode ? "#0f172a" : "#ffffff",
             borderRadius: "8px",
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "inset 0 0 15px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.5)"
+            boxShadow: isDarkMode ? "inset 0 0 15px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.5)" : "inset 0 0 8px rgba(0,0,0,0.06)"
           }}>
             {/* Un-rotated Icon Container */}
             <span style={{
               transform: "rotate(-45deg)", 
-              color: isCompleted ? neonColor : (isActive ? neonColor : "#64748b"),
+              color: isCompleted ? neonColor : (isActive ? neonColor : (isDarkMode ? "#64748b" : "#475569")),
               fontSize: "22px", fontWeight: "900",
-              textShadow: isCompleted || isActive ? `0 0 15px ${neonColor}` : "none"
+              textShadow: (isCompleted || isActive) && isDarkMode ? `0 0 15px ${neonColor}` : "none"
             }}>
               {isCompleted ? "✓" : (isLocked ? "🔒" : "◈")}
             </span>
@@ -185,6 +185,7 @@ function MilestoneNode({ milestone, levelColor, onSelect, isSelected, isDarkMode
     </div>
   );
 }
+
 
 const STUDY_GEN_LOGS = [
   "🔍 Extracting milestone concepts and keys...",
@@ -718,12 +719,15 @@ function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, on
   const cfg = getStatusConfig(isDarkMode)[milestone.status] || getStatusConfig(isDarkMode).locked;
   const hasNotes = !!milestone.studyNotes;
 
+  const [panelTheme, setPanelTheme] = useState(() => localStorage.getItem("milestone_panel_theme") || "medieval");
   const [videos, setVideos] = useState([]);
   const [loadingVideos, setLoadingVideos] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const keyPoints = milestone.keyPoints || [];
   const activeSubtopicIndex = milestone.subtopicIndex || 0;
   const isAllSubtopicsFinished = activeSubtopicIndex >= keyPoints.length;
+  const isLight = !isDarkMode;
 
   const cleanMilestoneTitle = (title) => {
     if (!title) return "";
@@ -746,25 +750,31 @@ function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, on
   };
 
   useEffect(() => {
-    // Only search if strictly unlocked (skip locked and completed) and not all finished
-    if (milestone.status === "unlocked" && !isAllSubtopicsFinished && keyPoints.length > 0) {
-      const currentSubtopic = keyPoints[activeSubtopicIndex];
-      // Construct dynamic search query
-      const dynamicQuery = `${roadmapTopic} ${currentSubtopic} tutorial`;
-      
-      setLoadingVideos(true);
-      fetch(`${BACKEND_URL}/api/search?q=${encodeURIComponent(dynamicQuery)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) {
-            // User requested ONLY ONE video (the best one)
-            setVideos(data.slice(0, 1));
-          }
-        })
-        .catch(err => console.error("Error searching videos:", err))
-        .finally(() => setLoadingVideos(false));
+    setVideos([]);
+    setHasSearched(false);
+  }, [activeSubtopicIndex, milestone.id]);
+
+  const handleSearchVideos = async () => {
+    if (keyPoints.length === 0) return;
+    const currentSubtopic = keyPoints[activeSubtopicIndex];
+    const dynamicQuery = `${roadmapTopic} ${currentSubtopic} tutorial`;
+    
+    setLoadingVideos(true);
+    setHasSearched(true);
+    sound.playClockTick();
+    
+    try {
+      const res = await fetch(BACKEND_URL + "/api/search?q=" + encodeURIComponent(dynamicQuery));
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setVideos(data.slice(0, 1));
+      }
+    } catch (err) {
+      console.error("Error searching videos:", err);
+    } finally {
+      setLoadingVideos(false);
     }
-  }, [milestone.status, activeSubtopicIndex, keyPoints, roadmapTopic]);
+  };
 
   const handleFinishSubtopic = () => {
     sound.playCorrect();
@@ -772,244 +782,1221 @@ function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, on
   };
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 1000,
-      background: "rgba(3, 5, 10, 0.8)", backdropFilter: "blur(6px)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      padding: "20px"
-    }} onClick={onClose}>
+    <div className={`er-quest-overlay ${panelTheme === "medieval" ? "er-rpg" : "er-modern"} ${isLight ? "er-light" : ""}`} onClick={onClose}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Outfit:wght@400;600;800&family=Inter:wght@400;500;600;700&display=swap');
+
+        .er-quest-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 1000;
+          background: rgba(3, 3, 5, 0.95);
+          backdrop-filter: blur(12px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          animation: erFadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes erFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .er-quest-panel {
+          width: 95%;
+          max-width: 1000px;
+          max-height: 85vh;
+          background: radial-gradient(circle at 50% 30%, #121216 0%, #060608 100%);
+          border: 1px solid rgba(212, 175, 55, 0.3);
+          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.95), inset 0 0 40px rgba(0, 0, 0, 0.9), 0 0 25px rgba(212, 175, 55, 0.05);
+          border-radius: 8px;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          position: relative;
+          animation: erPanelSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes erPanelSlideUp {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+
+        .er-hud-body {
+          display: flex;
+          flex: 1;
+          overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+          .er-hud-body {
+            flex-direction: column;
+            overflow-y: auto;
+          }
+        }
+
+        .er-hud-left {
+          width: 42%;
+          border-right: 1px solid rgba(212, 175, 55, 0.15);
+          padding: 28px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          overflow-y: auto;
+          background: rgba(0, 0, 0, 0.15);
+        }
+
+        @media (max-width: 768px) {
+          .er-hud-left {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+            overflow-y: visible;
+          }
+        }
+
+        .er-hud-right {
+          width: 58%;
+          padding: 28px;
+          display: flex;
+          flex-direction: column;
+          overflow-y: auto;
+        }
+
+        @media (max-width: 768px) {
+          .er-hud-right {
+            width: 100%;
+            overflow-y: visible;
+          }
+        }
+
+        .er-quest-title {
+          font-family: 'Cinzel', serif;
+          font-size: 24px;
+          font-weight: 700;
+          color: #dfd5be;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          line-height: 1.3;
+          margin-bottom: 12px;
+          text-shadow: 0 2px 10px rgba(212, 175, 55, 0.25);
+        }
+
+        .er-lore-text {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: 17px;
+          font-style: italic;
+          color: #a59b84;
+          line-height: 1.6;
+          margin-bottom: 24px;
+        }
+
+        .er-section-header {
+          font-family: 'Cinzel', serif;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 3px;
+          color: #dfd5be;
+          text-transform: uppercase;
+          margin-bottom: 20px;
+          text-align: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+        }
+
+        .er-section-header::before, .er-section-header::after {
+          content: "";
+          flex: 1;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.25), transparent);
+        }
+
+        .er-stats-row {
+          display: flex;
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+
+        .er-stat-card {
+          flex: 1;
+          background: rgba(10, 10, 12, 0.65);
+          border: 1px solid rgba(212, 175, 55, 0.12);
+          padding: 10px 14px;
+          border-radius: 4px;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .er-stat-val {
+          font-family: 'Cinzel', serif;
+          font-size: 16px;
+          font-weight: bold;
+          color: #dfd5be;
+        }
+
+        .er-stat-label {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: 12px;
+          color: #a59b84;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+
+        .er-steps-container {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          position: relative;
+          padding-left: 20px;
+        }
+
+        .er-steps-connector {
+          position: absolute;
+          left: 8px;
+          top: 15px;
+          bottom: 15px;
+          width: 1px;
+          background: rgba(212, 175, 55, 0.15);
+          z-index: 1;
+        }
+
+        .er-step-item {
+          position: relative;
+          z-index: 2;
+        }
+
+        .er-step-bullet {
+          position: absolute;
+          left: -20px;
+          top: 13px;
+          transform: translate(-50%, -50%);
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: #0d0d10;
+          border: 1px solid rgba(212, 175, 55, 0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+        }
+
+        .er-step-bullet.completed {
+          border-color: #10b981;
+          background: rgba(16, 185, 129, 0.15);
+          box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+        }
+
+        .er-step-bullet.active {
+          border-color: #d4af37;
+          background: #d4af37;
+          box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+        }
+
+        .er-step-card {
+          background: rgba(14, 14, 18, 0.45);
+          border: 1px solid rgba(255, 255, 255, 0.03);
+          border-radius: 4px;
+          padding: 12px 14px;
+          transition: all 0.3s ease;
+        }
+
+        .er-step-card.active {
+          background: rgba(20, 18, 16, 0.6);
+          border: 1px solid rgba(212, 175, 55, 0.35);
+          box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 0 12px rgba(212,175,55,0.02);
+        }
+
+        .er-step-title {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: 16px;
+          font-weight: 600;
+          color: #dfd5be;
+          line-height: 1.4;
+        }
+
+        .er-step-title.completed {
+          color: #7e796c;
+          text-decoration: line-through;
+        }
+
+        .er-step-title.active {
+          font-weight: 700;
+          color: #ffffff;
+        }
+
+        .er-stream-card {
+          display: flex;
+          gap: 12px;
+          background: rgba(8, 8, 10, 0.85);
+          border: 1px solid rgba(212, 175, 55, 0.18);
+          border-radius: 4px;
+          padding: 10px;
+          align-items: center;
+          margin-top: 12px;
+        }
+
+        .er-stream-thumb {
+          width: 80px;
+          height: 46px;
+          border-radius: 3px;
+          overflow: hidden;
+          position: relative;
+          border: 1px solid rgba(255,255,255,0.05);
+          background: #000;
+          flex-shrink: 0;
+        }
+
+        .er-btn {
+          font-family: 'Cinzel', serif;
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: 2px;
+          color: #dfd5be;
+          background: rgba(18, 18, 22, 0.85);
+          border: 1px solid rgba(212, 175, 55, 0.35);
+          padding: 10px 18px;
+          cursor: pointer;
+          outline: none;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          border-radius: 3px;
+          text-transform: uppercase;
+        }
+
+        .er-btn:hover:not(:disabled) {
+          color: #ffffff;
+          border-color: #d4af37;
+          background: rgba(212, 175, 55, 0.08);
+          box-shadow: 0 0 12px rgba(212, 175, 55, 0.15);
+          transform: translateY(-1px);
+        }
+
+        .er-btn:disabled {
+          opacity: 0.35;
+          cursor: not-allowed;
+        }
+
+        .er-btn.primary {
+          background: linear-gradient(135deg, #700000 0%, #3a0000 100%);
+          border-color: rgba(212, 175, 55, 0.4);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(112, 0, 0, 0.25);
+        }
+
+        .er-btn.primary:hover:not(:disabled) {
+          background: linear-gradient(135deg, #950000 0%, #4a0000 100%);
+          border-color: #d4af37;
+          box-shadow: 0 6px 18px rgba(112, 0, 0, 0.4), 0 0 8px rgba(212,175,55,0.15);
+        }
+
+        .er-btn.success {
+          background: linear-gradient(135deg, #0d3d2a 0%, #062318 100%);
+          border-color: rgba(16, 185, 129, 0.35);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+        }
+
+        .er-btn.success:hover:not(:disabled) {
+          border-color: #10b981;
+          background: linear-gradient(135deg, #15573c 0%, #093424 100%);
+          box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+        }
+
+        .er-conjure-loader {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          align-items: center;
+          justify-content: center;
+          padding: 12px;
+          border: 1px dashed rgba(212, 175, 55, 0.2);
+          background: rgba(12, 12, 15, 0.4);
+          border-radius: 4px;
+          margin-top: 10px;
+        }
+
+        .er-conjure-text {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: 14px;
+          font-style: italic;
+          color: #dfd5be;
+          animation: erPulseText 2s infinite alternate;
+        }
+
+        @keyframes erPulseText {
+          from { opacity: 0.5; }
+          to { opacity: 1; text-shadow: 0 0 6px rgba(212,175,55,0.3); }
+        }
+
+        .er-aura-pulse {
+          width: 30px;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, #d4af37, transparent);
+          animation: erAuraWidth 1.5s infinite alternate ease-in-out;
+        }
+
+        @keyframes erAuraWidth {
+          from { width: 10px; opacity: 0.2; }
+          to { width: 120px; opacity: 0.8; }
+        }
+
+        .er-close-corner {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          background: none;
+          border: none;
+          color: #a59b84;
+          font-family: 'Cinzel', serif;
+          font-size: 16px;
+          cursor: pointer;
+          transition: all 0.2s;
+          padding: 4px;
+          z-index: 10;
+        }
+
+        .er-close-corner:hover {
+          color: #c8102e;
+          text-shadow: 0 0 6px rgba(200, 16, 46, 0.5);
+        }
+
+        /* =========================================
+           MODERN THEME OVERRIDES (Vercel/Stripe/Google)
+           ========================================= */
+
+        .er-quest-overlay.er-modern {
+          background: rgba(6, 8, 12, 0.95);
+          font-family: 'Inter', sans-serif;
+        }
+
+        .er-quest-overlay.er-modern .er-quest-panel {
+          background: radial-gradient(circle at 50% 30%, #0d111c 0%, #05070a 100%);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.95), inset 0 0 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(255, 106, 0, 0.03);
+        }
+
+        .er-quest-overlay.er-modern .er-hud-left {
+          background: rgba(255, 255, 255, 0.01);
+          border-right: 1px solid rgba(255, 255, 255, 0.06);
+          font-family: 'Inter', sans-serif;
+        }
+
+        .er-quest-overlay.er-modern .er-hud-right {
+          font-family: 'Inter', sans-serif;
+        }
+
+        .er-quest-overlay.er-modern .er-quest-title {
+          font-family: 'Outfit', sans-serif;
+          color: #ffffff;
+          text-transform: none;
+          letter-spacing: -0.5px;
+          text-shadow: none;
+          font-size: 26px;
+          font-weight: 800;
+        }
+
+        .er-quest-overlay.er-modern .er-lore-text {
+          font-family: 'Inter', sans-serif;
+          font-size: 15px;
+          font-style: normal;
+          color: #94a3b8;
+          line-height: 1.6;
+        }
+
+        .er-quest-overlay.er-modern .er-section-header {
+          font-family: 'Outfit', sans-serif;
+          color: #ffffff;
+          text-transform: none;
+          font-size: 14px;
+          font-weight: 700;
+          letter-spacing: 0px;
+        }
+
+        .er-quest-overlay.er-modern .er-section-header::before, 
+        .er-quest-overlay.er-modern .er-section-header::after {
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .er-quest-overlay.er-modern .er-stat-card {
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .er-quest-overlay.er-modern .er-stat-val {
+          font-family: 'Outfit', sans-serif;
+          color: #ff6a00;
+          font-size: 18px;
+        }
+
+        .er-quest-overlay.er-modern .er-stat-label {
+          font-family: 'Inter', sans-serif;
+          color: #64748b;
+          text-transform: none;
+          letter-spacing: 0px;
+        }
+
+        .er-quest-overlay.er-modern .er-steps-connector {
+          background: rgba(255, 255, 255, 0.08);
+        }
+
+        .er-quest-overlay.er-modern .er-step-bullet {
+          border-color: rgba(255, 255, 255, 0.15);
+          background: #080a10;
+        }
+
+        .er-quest-overlay.er-modern .er-step-bullet.completed {
+          border-color: #10b981;
+          background: #10b981;
+          box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+
+        .er-quest-overlay.er-modern .er-step-bullet.active {
+          border-color: #ff6a00;
+          background: #ff6a00;
+          box-shadow: 0 0 12px rgba(255, 106, 0, 0.4);
+        }
+
+        .er-quest-overlay.er-modern .er-step-card {
+          background: rgba(255, 255, 255, 0.015);
+          border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .er-quest-overlay.er-modern .er-step-card.active {
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 106, 0, 0.35);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .er-quest-overlay.er-modern .er-step-title {
+          font-family: 'Inter', sans-serif;
+          font-size: 15px;
+          color: #cbd5e1;
+          text-decoration: none;
+        }
+
+        .er-quest-overlay.er-modern .er-step-title.completed {
+          color: #64748b;
+          text-decoration: line-through;
+        }
+
+        .er-quest-overlay.er-modern .er-step-title.active {
+          color: #ffffff;
+        }
+
+        .er-quest-overlay.er-modern .er-stream-card {
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .er-quest-overlay.er-modern .er-btn {
+          font-family: 'Outfit', sans-serif;
+          font-size: 13px;
+          letter-spacing: 0px;
+          color: #cbd5e1;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          text-transform: none;
+          font-weight: 600;
+          border-radius: 6px;
+        }
+
+        .er-quest-overlay.er-modern .er-btn:hover:not(:disabled) {
+          color: #ffffff;
+          border-color: rgba(255, 255, 255, 0.25);
+          background: rgba(255, 255, 255, 0.08);
+          box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+        }
+
+        .er-quest-overlay.er-modern .er-btn.primary {
+          background: linear-gradient(135deg, #ff6a00 0%, #ff8f00 100%);
+          border-color: rgba(255, 255, 255, 0.06);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(255, 106, 0, 0.25);
+        }
+
+        .er-quest-overlay.er-modern .er-btn.primary:hover:not(:disabled) {
+          background: linear-gradient(135deg, #ff8f00 0%, #ffa500 100%);
+          box-shadow: 0 6px 18px rgba(255, 106, 0, 0.4);
+        }
+
+        .er-quest-overlay.er-modern .er-btn.success {
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          border-color: rgba(255, 255, 255, 0.06);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+        }
+
+        .er-quest-overlay.er-modern .er-btn.success:hover:not(:disabled) {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+        }
+
+        .er-quest-overlay.er-modern .er-conjure-loader {
+          border: 1px dashed rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.01);
+        }
+
+        .er-quest-overlay.er-modern .er-conjure-text {
+          font-family: 'Inter', sans-serif;
+          font-style: normal;
+          color: #94a3b8;
+          animation: erPulseTextModern 2s infinite alternate;
+        }
+
+        @keyframes erPulseTextModern {
+          from { opacity: 0.6; }
+          to { opacity: 1; }
+        }
+
+        .er-quest-overlay.er-modern .er-aura-pulse {
+          background: linear-gradient(90deg, transparent, #ff6a00, transparent);
+        }
+
+        .er-quest-overlay.er-modern .er-close-corner {
+          font-family: sans-serif;
+          color: #64748b;
+        }
+
+        .er-quest-overlay.er-modern .er-close-corner:hover {
+          color: #ffffff;
+          text-shadow: none;
+        }
+
+        /* =========================================
+           LIGHT MODE OVERRIDES
+           ========================================= */
+
+        /* 1. Light RPG Theme Overrides */
+        .er-quest-overlay.er-light.er-rpg {
+          background: rgba(246, 243, 234, 0.65);
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-quest-panel {
+          background: radial-gradient(circle at 50% 30%, #fdfbf7 0%, #f6f3ea 100%);
+          border: 1px solid rgba(138, 115, 67, 0.4);
+          box-shadow: 0 25px 60px rgba(0,0,0,0.15), inset 0 0 30px rgba(242, 237, 224, 0.6);
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-hud-left {
+          background: rgba(138, 115, 67, 0.03);
+          border-right: 1px solid rgba(138, 115, 67, 0.15);
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-quest-title {
+          color: #5c4d37;
+          text-shadow: 0 1px 4px rgba(138, 115, 67, 0.15);
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-lore-text {
+          color: #7c6a4e;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-section-header {
+          color: #5c4d37;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-section-header::before,
+        .er-quest-overlay.er-light.er-rpg .er-section-header::after {
+          background: linear-gradient(90deg, transparent, rgba(138, 115, 67, 0.25), transparent);
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-stat-card {
+          background: rgba(253, 252, 249, 0.8);
+          border: 1px solid rgba(138, 115, 67, 0.18);
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-stat-val {
+          color: #8a7343;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-stat-label {
+          color: #7c6a4e;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-steps-connector {
+          background: rgba(138, 115, 67, 0.15);
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-step-bullet {
+          border-color: rgba(138, 115, 67, 0.35);
+          background: #fdfcf9;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-step-bullet.completed {
+          border-color: #10b981;
+          background: rgba(16, 185, 129, 0.1);
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-step-bullet.active {
+          border-color: #8a7343;
+          background: #8a7343;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-step-card {
+          background: rgba(138, 115, 67, 0.02);
+          border: 1px solid rgba(0, 0, 0, 0.03);
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-step-card.active {
+          background: rgba(253, 252, 249, 0.95);
+          border: 1.5px solid rgba(138, 115, 67, 0.5);
+          box-shadow: 0 4px 12px rgba(138,115,67,0.08);
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-step-title {
+          color: #5c4d37;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-step-title.completed {
+          color: #8b7c62;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-step-title.active {
+          color: #2c2518;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-stream-card {
+          background: rgba(253, 252, 249, 0.9);
+          border: 1px solid rgba(138, 115, 67, 0.2);
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-stream-card div {
+          color: #2c2518 !important;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-btn {
+          background: #fdfcf9;
+          border-color: rgba(138, 115, 67, 0.4);
+          color: #5c4d37;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-btn:hover:not(:disabled) {
+          background: rgba(138, 115, 67, 0.08);
+          border-color: #8a7343;
+          color: #2c2518;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-btn.primary {
+          background: linear-gradient(135deg, #a81111 0%, #700000 100%);
+          border-color: rgba(138, 115, 67, 0.45);
+          color: #ffffff;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-btn.primary:hover:not(:disabled) {
+          background: linear-gradient(135deg, #c51a1a 0%, #900000 100%);
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-btn.success {
+          background: linear-gradient(135deg, #10b981 0%, #0d9488 100%);
+          border-color: rgba(138, 115, 67, 0.35);
+          color: #ffffff;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-btn.success:hover:not(:disabled) {
+          background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-conjure-loader {
+          border-color: rgba(138, 115, 67, 0.3);
+          background: rgba(138, 115, 67, 0.04);
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-conjure-text {
+          color: #5c4d37;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-aura-pulse {
+          background: linear-gradient(90deg, transparent, #8a7343, transparent);
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-close-corner {
+          color: #7c6a4e;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-close-corner:hover {
+          color: #a81111;
+        }
+
+        .er-quest-overlay.er-light.er-rpg .er-style-toggle-btn {
+          background: #fdfcf9;
+          border-color: rgba(138, 115, 67, 0.3);
+          color: #5c4d37;
+        }
+
+        /* 2. Light Modern Theme Overrides */
+        .er-quest-overlay.er-light.er-modern {
+          background: rgba(255, 255, 255, 0.65);
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-quest-panel {
+          background: radial-gradient(circle at 50% 30%, #ffffff 0%, #f8fafc 100%);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.12), inset 0 0 40px rgba(255, 255, 255, 0.9);
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-hud-left {
+          background: rgba(0, 0, 0, 0.015);
+          border-right: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-quest-title {
+          color: #0f172a;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-lore-text {
+          color: #475569;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-section-header {
+          color: #0f172a;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-section-header::before, 
+        .er-quest-overlay.er-light.er-modern .er-section-header::after {
+          background: rgba(0, 0, 0, 0.06);
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-stat-card {
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-stat-val {
+          color: #ff6a00;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-stat-label {
+          color: #64748b;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-steps-connector {
+          background: rgba(0, 0, 0, 0.05);
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-step-bullet {
+          border-color: rgba(0, 0, 0, 0.1);
+          background: #ffffff;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-step-bullet.completed {
+          border-color: #10b981;
+          background: #10b981;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-step-bullet.active {
+          border-color: #ff6a00;
+          background: #ff6a00;
+          box-shadow: 0 0 10px rgba(255, 106, 0, 0.35);
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-step-card {
+          background: rgba(0, 0, 0, 0.005);
+          border: 1px solid rgba(0, 0, 0, 0.02);
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-step-card.active {
+          background: #ffffff;
+          border: 1px solid rgba(255, 106, 0, 0.3);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-step-title {
+          color: #475569;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-step-title.completed {
+          color: #94a3b8;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-step-title.active {
+          color: #0f172a;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-stream-card {
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-stream-card div {
+          color: #0f172a !important;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-btn {
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          color: #475569;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-btn:hover:not(:disabled) {
+          background: #f8fafc;
+          color: #0f172a;
+          border-color: rgba(0, 0, 0, 0.15);
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-btn.primary {
+          background: linear-gradient(135deg, #ff6a00 0%, #ff8f00 100%);
+          border-color: rgba(0, 0, 0, 0.05);
+          color: #ffffff;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-btn.primary:hover:not(:disabled) {
+          background: linear-gradient(135deg, #ff8f00 0%, #ffa500 100%);
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-btn.success {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          border-color: rgba(0, 0, 0, 0.05);
+          color: #ffffff;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-btn.success:hover:not(:disabled) {
+          background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-conjure-loader {
+          border-color: rgba(0, 0, 0, 0.06);
+          background: rgba(0, 0, 0, 0.01);
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-conjure-text {
+          color: #64748b;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-close-corner {
+          color: #64748b;
+        }
+
+        .er-quest-overlay.er-light.er-modern .er-close-corner:hover {
+          color: #0f172a;
+        }
+      `}</style>
+
       <div
         onClick={e => e.stopPropagation()}
-        style={{
-          width: "100%", maxWidth: "600px",
-          background: isDarkMode ? "rgba(10, 16, 32, 0.95)" : "#ffffff",
-          border: isDarkMode ? "1.5px solid rgba(0, 242, 254, 0.25)" : "1.5px solid #e2e8f0",
-          boxShadow: isDarkMode ? "0 30px 80px rgba(0,0,0,0.6)" : "0 30px 80px rgba(0,0,0,0.15)",
-          display: "flex", flexDirection: "column",
-          borderRadius: "24px",
-          overflow: "hidden",
-          maxHeight: "90vh"
-        }}
+        className="er-quest-panel"
       >
-        {/* Header */}
-        <div style={{
-          padding: "24px 28px",
-          borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid #f1f5f9",
-          background: isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc",
-          position: "relative"
-        }}>
-          <button onClick={onClose} style={{
-            position: "absolute", top: "20px", right: "20px",
-            width: "32px", height: "32px", borderRadius: "50%",
-            border: isDarkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid #e2e8f0", 
-            background: isDarkMode ? "rgba(0,0,0,0.3)" : "#ffffff",
-            cursor: "pointer", fontSize: "16px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: isDarkMode ? "rgba(255,255,255,0.6)" : "#64748b"
-          }}>✕</button>
-          
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-            <span style={{
-              fontSize: "10px", fontWeight: "800", color: isDarkMode ? "#000" : "#ffffff",
-              background: levelColor, padding: "3px 10px", borderRadius: "8px",
-              textTransform: "uppercase", letterSpacing: "1px",
-              boxShadow: isDarkMode ? `0 0 10px ${levelColor}` : "none"
-            }}>
-              {cfg.label}
-            </span>
-            {milestone.estimatedMinutes && (
-              <span style={{ fontSize: "12px", color: isDarkMode ? "rgba(255,255,255,0.6)" : "var(--text-muted)", fontWeight: "600" }}>⏱ {milestone.estimatedMinutes} min</span>
-            )}
-            <span style={{ fontSize: "12px", fontWeight: "800", color: levelColor }}>+{milestone.xpReward} XP</span>
-          </div>
-          <h2 style={{ fontSize: "22px", fontWeight: "900", color: isDarkMode ? "#fff" : "var(--text-light)", lineHeight: "1.3", marginBottom: "6px" }}>
-            {cleanMilestoneTitle(milestone.title)}
-          </h2>
-          <p style={{ fontSize: "14px", color: isDarkMode ? "rgba(255,255,255,0.6)" : "var(--text-muted)", lineHeight: "1.5", margin: 0 }}>
-            {cleanMilestoneTitle(milestone.description).replace("Get started with Module,", "Get started,")}
-          </p>
-        </div>
+        {/* Style Toggle Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            sound.playClockTick();
+            const nextTheme = panelTheme === "medieval" ? "modern" : "medieval";
+            setPanelTheme(nextTheme);
+            localStorage.setItem("milestone_panel_theme", nextTheme);
+          }}
+          className="er-btn"
+          style={{
+            position: "absolute",
+            top: "14px",
+            right: "48px",
+            background: panelTheme === "medieval"
+              ? (isLight ? "#fdfcf9" : "rgba(18, 18, 22, 0.85)")
+              : (isLight ? "#ffffff" : "rgba(255, 255, 255, 0.02)"),
+            borderColor: panelTheme === "medieval"
+              ? (isLight ? "rgba(138, 115, 67, 0.3)" : "rgba(212, 175, 55, 0.4)")
+              : (isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.15)"),
+            color: panelTheme === "medieval"
+              ? (isLight ? "#5c4d37" : "#dfd5be")
+              : (isLight ? "#475569" : "#94a3b8"),
+            fontFamily: panelTheme === "medieval" ? "'Cinzel', serif" : "'Outfit', sans-serif",
+            fontSize: "10px",
+            fontWeight: "700",
+            padding: "5px 12px",
+            borderRadius: panelTheme === "medieval" ? "3px" : "6px",
+            cursor: "pointer",
+            textTransform: "uppercase",
+            letterSpacing: "1px",
+            transition: "all 0.2s",
+            zIndex: 10
+          }}
+        >
+          {panelTheme === "medieval" ? "✨ RPG Realm" : "✨ Modern Style"}
+        </button>
 
-        {/* Scrollable body */}
-        <div style={{ padding: "24px 28px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "24px" }}>
+        {/* Close Button */}
+        <button onClick={onClose} className="er-close-corner">✕</button>
+
+        {/* HUD Split Body */}
+        <div className="er-hud-body">
           
-          {/* Key Objectives & Subtopic Progression */}
-          {keyPoints.length > 0 && (
+          {/* Left Panel: Quest Logs */}
+          <div className="er-hud-left">
             <div>
-              <h3 style={{ fontSize: "11px", fontWeight: "900", color: "var(--neon-orange)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "16px" }}>
-                📌 Subtopic Objectives
-              </h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Status Badge */}
+              <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "16px" }}>
+                <span style={{
+                  fontFamily: panelTheme === "medieval" ? "'Cinzel', serif" : "'Outfit', sans-serif",
+                  fontSize: "10px",
+                  fontWeight: "bold",
+                  color: milestone.status === "locked" ? (isLight ? "#64748b" : "#7c7267") : levelColor,
+                  border: panelTheme === "medieval" 
+                    ? `1px solid ${milestone.status === "locked" ? (isLight ? "rgba(138, 115, 67, 0.2)" : "rgba(138, 115, 67, 0.15)") : `${levelColor}44`}`
+                    : `1px solid ${milestone.status === "locked" ? (isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255,255,255,0.08)") : `${levelColor}22`}`,
+                  background: panelTheme === "medieval"
+                    ? `${milestone.status === "locked" ? "transparent" : `${levelColor}08`}`
+                    : `${milestone.status === "locked" ? "rgba(0, 0, 0, 0.02)" : `${levelColor}15`}`,
+                  padding: "3px 10px",
+                  borderRadius: panelTheme === "medieval" ? "3px" : "6px",
+                  letterSpacing: "1px",
+                  textTransform: "uppercase"
+                }}>
+                  {cfg.label}
+                </span>
+                {milestone.status !== "locked" && (
+                  <span style={{
+                    fontFamily: panelTheme === "medieval" ? "'Cinzel', serif" : "'Outfit', sans-serif",
+                    fontSize: "10px",
+                    fontWeight: "bold",
+                    color: panelTheme === "medieval" ? (isLight ? "#8a7343" : "#d4af37") : (isLight ? "#ff6a00" : "#6366f1"),
+                    border: panelTheme === "medieval" ? (isLight ? "1px solid rgba(138, 115, 67, 0.25)" : "1px solid rgba(212, 175, 55, 0.25)") : (isLight ? "1px solid rgba(255, 106, 0, 0.25)" : "1px solid rgba(99, 102, 241, 0.2)"),
+                    background: panelTheme === "medieval" ? "rgba(138, 115, 67, 0.04)" : (isLight ? "rgba(255, 106, 0, 0.06)" : "rgba(99, 102, 241, 0.04)"),
+                    padding: "3px 10px",
+                    borderRadius: panelTheme === "medieval" ? "3px" : "6px",
+                    letterSpacing: "1px",
+                    textTransform: "uppercase"
+                  }}>
+                    {panelTheme === "medieval" ? "ACTIVE LOG" : "Active Module"}
+                  </span>
+                )}
+              </div>
+
+              {/* Title & Lore Description */}
+              <h2 className="er-quest-title">
+                {cleanMilestoneTitle(milestone.title)}
+              </h2>
+              
+              <p className="er-lore-text">
+                {cleanMilestoneTitle(milestone.description).replace("Get started with Module,", "Get started,")}
+              </p>
+
+              {/* Core Stats Row */}
+              <div className="er-stats-row">
+                <div className="er-stat-card">
+                  <span className="er-stat-val" style={{ color: panelTheme === "medieval" ? (isLight ? "#8a7343" : "#d4af37") : "#ff6a00" }}>+{milestone.xpReward} XP</span>
+                  <span className="er-stat-label">{panelTheme === "medieval" ? "Trial Reward" : "XP Reward"}</span>
+                </div>
+                {milestone.estimatedMinutes && (
+                  <div className="er-stat-card">
+                    <span className="er-stat-val">⏱ {milestone.estimatedMinutes}m</span>
+                    <span className="er-stat-label">{panelTheme === "medieval" ? "Estimated" : "Duration"}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Knowledge Study Guide Trigger Button */}
+            {milestone.status !== "locked" && (
+              <button
+                onClick={() => { sound.playClockTick(); onOpenNotes(); }}
+                className="er-btn"
+                style={{ width: "100%", borderColor: panelTheme === "medieval" ? (isLight ? "rgba(138, 115, 67, 0.4)" : "rgba(212, 175, 55, 0.45)") : (isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.1)"), color: panelTheme === "medieval" ? (isLight ? "#5c4d37" : "#dfd5be") : (isLight ? "#475569" : "#ffffff") }}
+              >
+                {panelTheme === "medieval" ? "📖 OPEN STUDY GUIDE" : "📖 Open Study Notes"}
+              </button>
+            )}
+          </div>
+
+          {/* Right Panel: Mission Progression Steps */}
+          <div className="er-hud-right">
+            <h3 className="er-section-header">
+              {panelTheme === "medieval" ? "✦ STEPS OF THE TRIAL ✦" : "Module Lessons"}
+            </h3>
+
+            {keyPoints.length > 0 ? (
+              <div className="er-steps-container">
+                <div className="er-steps-connector" />
+
                 {keyPoints.map((pt, i) => {
                   const isFinished = milestone.status === "completed" || i < activeSubtopicIndex;
                   const isUnlocked = milestone.status !== "locked" && i === activeSubtopicIndex;
                   const isLocked = milestone.status === "locked" || i > activeSubtopicIndex;
-                  
+
                   return (
-                    <div key={i} style={{ 
-                      display: "flex", flexDirection: "column", gap: "10px",
-                      opacity: isLocked ? 0.5 : 1,
-                      background: isUnlocked ? (isDarkMode ? "rgba(0,242,254,0.03)" : "#f0f9ff") : "transparent",
-                      border: isUnlocked ? `1px solid ${isDarkMode ? "rgba(0,242,254,0.2)" : "#bae6fd"}` : "1px solid transparent",
-                      borderRadius: "12px",
-                      padding: isUnlocked ? "12px" : "4px 12px",
-                      transition: "all 0.3s"
-                    }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-                        <div style={{
-                          width: "22px", height: "22px", borderRadius: "50%",
-                          background: isFinished ? "#10b981" : (isUnlocked ? "var(--neon-blue)" : (isDarkMode ? "rgba(255,255,255,0.1)" : "#f1f5f9")),
-                          color: (isFinished || isUnlocked) ? "#fff" : (isDarkMode ? "#fff" : "#475569"),
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: "11px", fontWeight: "900", flexShrink: 0, marginTop: "0px",
-                          boxShadow: isUnlocked ? "0 0 10px var(--neon-blue)" : "none"
-                        }}>
-                          {isFinished ? "✓" : (isUnlocked ? "▶" : i + 1)}
-                        </div>
-                        <span style={{ 
-                          fontSize: "14px", 
-                          color: isFinished ? "var(--text-muted)" : (isDarkMode ? "rgba(255,255,255,0.9)" : "var(--text-light)"),
-                          textDecoration: isFinished ? "line-through" : "none",
-                          fontWeight: isUnlocked ? "800" : "500",
-                          lineHeight: "1.4",
-                          marginTop: "2px"
-                        }}>
-                          {pt}
-                        </span>
+                    <div key={i} className="er-step-item" style={{ opacity: isLocked ? (isLight ? 0.65 : 0.4) : 1 }}>
+                      {/* Step Indicator Connector Node */}
+                      <div className={`er-step-bullet ${isFinished ? "completed" : isUnlocked ? "active" : ""}`}>
+                        {isFinished && <span style={{ color: "#10b981", fontSize: "9px", fontWeight: "900" }}>✓</span>}
+                        {isUnlocked && <span style={{ color: panelTheme === "medieval" ? (isLight ? "#fff" : "#000") : "#fff", fontSize: "8px", fontWeight: "900" }}>▶</span>}
                       </div>
-                      
-                      {/* Dynamic Video Embed for the CURRENTLY Unlocked Subtopic */}
-                      {isUnlocked && (
-                        <div style={{ paddingLeft: "34px", marginTop: "4px" }}>
-                          {loadingVideos ? (
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", color: isDarkMode ? "rgba(255,255,255,0.4)" : "var(--text-muted)", fontSize: "12px" }}>
-                              <div className="spinner" style={{ width: "14px", height: "14px", border: `2px solid ${isDarkMode ? "#00f2fe" : "var(--neon-blue)"}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                              Scanning YouTube for precisely "{pt}"...
-                            </div>
-                          ) : videos.length > 0 ? (
-                            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                              {videos.map((vid) => (
-                                <div
-                                  key={vid.id}
-                                  onClick={() => onSelectVideo && onSelectVideo(vid)}
-                                  style={{
-                                    display: "flex", gap: "12px", padding: "10px",
-                                    background: isDarkMode ? "rgba(255,255,255,0.02)" : "#ffffff",
-                                    border: isDarkMode ? "1.5px solid rgba(255,255,255,0.06)" : "1.5px solid #e2e8f0",
-                                    borderRadius: "10px", cursor: "pointer",
-                                    transition: "all 0.2s", alignItems: "center",
-                                    boxShadow: isDarkMode ? "none" : "0 2px 5px rgba(0,0,0,0.02)"
-                                  }}
-                                  onMouseOver={e => { e.currentTarget.style.borderColor = "var(--neon-blue)"; e.currentTarget.style.background = isDarkMode ? "rgba(0,242,254,0.04)" : "rgba(255,106,0,0.04)"; }}
-                                  onMouseOut={e => { e.currentTarget.style.borderColor = isDarkMode ? "rgba(255,255,255,0.06)" : "#e2e8f0"; e.currentTarget.style.background = isDarkMode ? "rgba(255,255,255,0.02)" : "#ffffff"; }}
-                                >
-                                  <div style={{ width: "100px", height: "56px", borderRadius: "6px", overflow: "hidden", flexShrink: 0, position: "relative", background: "#000" }}>
-                                    <img src={vid.thumbnail} alt="thumbnail" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                    <span style={{ position: "absolute", bottom: "2px", right: "4px", background: "rgba(0,0,0,0.8)", fontSize: "9px", color: "#fff", padding: "1px 3px", borderRadius: "3px" }}>
-                                      {Math.floor(vid.duration / 60)}:{String(vid.duration % 60).padStart(2, '0')}
-                                    </span>
-                                  </div>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ color: isDarkMode ? "#fff" : "var(--text-light)", fontSize: "13px", fontWeight: "bold", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", marginBottom: "4px" }}>
-                                      {vid.title}
-                                    </div>
-                                    <div style={{ color: isDarkMode ? "rgba(255,255,255,0.4)" : "var(--text-muted)", fontSize: "11px" }}>
-                                      🎬 {vid.channel}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                              
-                              <button 
-                                onClick={handleFinishSubtopic}
-                                style={{
-                                  padding: "8px 16px", borderRadius: "8px", border: "none",
-                                  background: "#10b981", color: "#fff", fontWeight: "800", fontSize: "12px",
-                                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px"
-                                }}
-                              >
-                                ✓ Finish Subtopic
-                              </button>
-                            </div>
-                          ) : (
-                            <div style={{ color: isDarkMode ? "rgba(255,255,255,0.4)" : "var(--text-muted)", fontSize: "12px" }}>
-                              No specific video found for this subtopic. Click "Finish Subtopic" to proceed.
-                              <button 
-                                onClick={handleFinishSubtopic}
-                                style={{
-                                  marginTop: "8px", width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #10b981",
-                                  background: "transparent", color: "#10b981", fontWeight: "700", fontSize: "12px", cursor: "pointer"
-                                }}
-                              >
-                                ✓ Mark Subtopic Complete
-                              </button>
-                            </div>
-                          )}
+
+                      {/* Subtopic Card */}
+                      <div className={`er-step-card ${isUnlocked ? "active" : ""}`}>
+                        <div className={`er-step-title ${isFinished ? "completed" : isUnlocked ? "active" : ""}`}>
+                          {pt}
                         </div>
-                      )}
+
+                        {/* Active Trial Control Center */}
+                        {isUnlocked && (
+                          <div style={{ paddingLeft: "4px" }}>
+                            
+                            {/* Search video trigger button */}
+                            {!hasSearched && !loadingVideos && (
+                              <button
+                                onClick={handleSearchVideos}
+                                className="er-btn"
+                                style={{ marginTop: "12px", width: "100%", borderStyle: "dashed" }}
+                              >
+                                {panelTheme === "medieval" ? "⚔️ SEEK GUIDANCE" : "🔍 Search Video Tutorial"}
+                              </button>
+                            )}
+
+                            {/* Loading state */}
+                            {loadingVideos && (
+                              <div className="er-conjure-loader">
+                                <span className="er-conjure-text">
+                                  {panelTheme === "medieval" ? "Conjuring stream pathways..." : "Searching video tutorials..."}
+                                </span>
+                                <div className="er-aura-pulse" />
+                              </div>
+                            )}
+
+                            {/* Search Results */}
+                            {hasSearched && !loadingVideos && videos.length > 0 && (
+                              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                                {videos.map((vid) => (
+                                  <div key={vid.id} className="er-stream-card">
+                                    <div className="er-stream-thumb">
+                                      <img src={vid.thumbnail} alt="thumbnail" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                      <span style={{ 
+                                        position: "absolute", bottom: "2px", right: "4px", 
+                                        background: "rgba(10, 10, 12, 0.85)", border: panelTheme === "medieval" ? "1px solid rgba(212, 175, 55, 0.3)" : "1px solid rgba(255,255,255,0.15)",
+                                        fontSize: "8px", color: panelTheme === "medieval" ? "#dfd5be" : "#fff", padding: "1px 3px", borderRadius: "2px",
+                                        fontWeight: "800", fontFamily: "monospace"
+                                      }}>
+                                        {Math.floor(vid.duration / 60)}:{String(vid.duration % 60).padStart(2, '0')}
+                                      </span>
+                                    </div>
+                                    
+                                    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
+                                      <div style={{ 
+                                        color: panelTheme === "medieval" ? (isLight ? "#2c2518" : "#dfd5be") : (isLight ? "#0f172a" : "#ffffff"), 
+                                        fontSize: "13px", 
+                                        fontWeight: "600", 
+                                        fontFamily: panelTheme === "medieval" ? "'Cormorant Garamond', serif" : "'Inter', sans-serif",
+                                        overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", 
+                                        WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: "1.3"
+                                      }}>
+                                        {vid.title}
+                                      </div>
+                                      <div style={{ 
+                                        color: panelTheme === "medieval" ? (isLight ? "#7c6a4e" : "#a59b84") : (isLight ? "#64748b" : "#94a3b8"), 
+                                        fontSize: "11px", 
+                                        fontFamily: panelTheme === "medieval" ? "'Cormorant Garamond', serif" : "'Inter', sans-serif" 
+                                      }}>
+                                        🎬 {vid.channel}
+                                      </div>
+                                    </div>
+
+                                    <button
+                                      onClick={() => onSelectVideo && onSelectVideo(vid)}
+                                      className="er-btn primary"
+                                      style={{ padding: "8px 14px", fontSize: "11px", letterSpacing: "1.5px" }}
+                                    >
+                                      {panelTheme === "medieval" ? "⚔️ PLAY" : "▶ Play Lesson"}
+                                    </button>
+                                  </div>
+                                ))}
+
+                                <button
+                                  onClick={handleFinishSubtopic}
+                                  className="er-btn success"
+                                  style={{ alignSelf: "flex-start", marginTop: "4px" }}
+                                >
+                                  {panelTheme === "medieval" ? "✓ SEAL STEP" : "✓ Mark Step Complete"}
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Search Empty Bypass override */}
+                            {hasSearched && !loadingVideos && videos.length === 0 && (
+                              <div style={{ 
+                                marginTop: "12px", 
+                                padding: "12px", 
+                                border: panelTheme === "medieval" ? (isLight ? "1px solid rgba(138,115,67,0.2)" : "1px solid rgba(212, 175, 55, 0.15)") : (isLight ? "1px solid rgba(0,0,0,0.08)" : "1px solid rgba(255,255,255,0.08)"), 
+                                background: panelTheme === "medieval" ? (isLight ? "#f4ece1" : "rgba(10,10,12,0.45)") : (isLight ? "#f1f5f9" : "rgba(10,10,12,0.45)"), 
+                                borderRadius: "4px" 
+                              }}>
+                                <p style={{ 
+                                  fontFamily: panelTheme === "medieval" ? "'Cormorant Garamond', serif" : "'Inter', sans-serif", 
+                                  fontSize: "13px", 
+                                  color: panelTheme === "medieval" ? (isLight ? "#7c6a4e" : "#a59b84") : (isLight ? "#475569" : "#a59b84"), 
+                                  margin: "0 0 10px", 
+                                  fontStyle: "italic" 
+                                }}>
+                                  {panelTheme === "medieval" ? "No stream registered in the archives. Override and complete:" : "No lessons found in search. Skip step:"}
+                                </p>
+                                <button
+                                  onClick={handleFinishSubtopic}
+                                  className="er-btn"
+                                  style={{ width: "100%", padding: "8px 12px", fontSize: "11px", letterSpacing: "1px" }}
+                                >
+                                  {panelTheme === "medieval" ? "✓ BYPASS STEP" : "✓ Skip Step"}
+                                </button>
+                              </div>
+                            )}
+
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
-          )}
-
-
+            ) : (
+              <div style={{ textAlign: "center", padding: "40px 0", fontFamily: panelTheme === "medieval" ? "'Cormorant Garamond', serif" : "'Inter', sans-serif", fontStyle: "italic", color: "#a59b84" }}>
+                No objectives defined for this milestone trial.
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Footer actions */}
+        {/* Footer command panel */}
         <div style={{
-          padding: "20px 28px",
-          borderTop: isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid #f1f5f9",
+          padding: "16px 28px",
+          borderTop: panelTheme === "medieval" ? (isLight ? "1px solid rgba(138, 115, 67, 0.15)" : "1px solid rgba(212, 175, 55, 0.15)") : (isLight ? "1px solid rgba(0, 0, 0, 0.06)" : "1px solid rgba(255, 255, 255, 0.08)"),
           display: "flex", gap: "12px",
-          background: isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc"
+          background: panelTheme === "medieval"
+            ? (isLight ? "#f3eee0" : "rgba(5, 5, 6, 0.4)")
+            : (isLight ? "#f1f5f9" : "rgba(5, 5, 6, 0.4)"),
+          flexDirection: "row",
+          justifyContent: "flex-end"
         }}>
           {milestone.status !== "locked" && (
             <button
               onClick={() => { sound.playClockTick(); onSearchDuel(milestone); onClose(); }}
-              style={{
-                flex: 1, padding: "12px 20px", borderRadius: "10px",
-                border: isDarkMode ? "none" : "1.5px solid #e2e8f0", 
-                background: isDarkMode ? "rgba(255,255,255,0.06)" : "#ffffff",
-                color: isDarkMode ? "#fff" : "var(--text-light)", 
-                fontWeight: "800", fontSize: "13.5px",
-                cursor: "pointer", display: "flex", alignItems: "center",
-                justifyContent: "center", gap: "6px"
-              }}
+              className="er-btn"
+              style={{ flex: 1, borderColor: panelTheme === "medieval" ? (isLight ? "rgba(138, 115, 67, 0.25)" : "rgba(128, 90, 213, 0.4)") : (isLight ? "rgba(255, 106, 0, 0.25)" : "rgba(255, 106, 0, 0.3)"), color: panelTheme === "medieval" ? (isLight ? "#8a7343" : "#d6bcfa") : "#ff6a00" }}
             >
-              ⚔️ Duel Topic
+              {panelTheme === "medieval" ? "⚔️ DUEL TOPIC" : "Practice Quiz"}
             </button>
           )}
 
           {milestone.status === "unlocked" && onChallengeBoss && (
             <button
               onClick={() => { sound.playClockTick(); onChallengeBoss(milestone); onClose(); }}
-              style={{
-                flex: 1, padding: "12px 20px", borderRadius: "10px",
-                border: "none",
-                background: `linear-gradient(135deg, ${levelColor}, ${levelColor}dd)`,
-                color: "#ffffff",
-                fontWeight: "900", fontSize: "13.5px",
-                cursor: "pointer", display: "flex", alignItems: "center",
-                justifyContent: "center", gap: "6px",
-                boxShadow: `0 4px 15px ${levelColor}35`
-              }}
+              className="er-btn primary"
+              style={{ flex: 1 }}
             >
-              ⚔️ Challenge Boss
+              {panelTheme === "medieval" ? "⚔️ CHALLENGE BOSS" : "Challenge Boss"}
             </button>
           )}
 
           {milestone.status === "unlocked" && isAllSubtopicsFinished && (
             <button
               onClick={() => { sound.playClockTick(); onMarkComplete(milestone); onClose(); }}
-              style={{
-                padding: "12px 20px", borderRadius: "10px",
-                border: `1.5px solid ${levelColor}`, background: "transparent",
-                color: levelColor, fontWeight: "700", fontSize: "13px",
-                cursor: "pointer"
-              }}
+              className="er-btn success"
+              style={{ flex: 1 }}
             >
-              ✓ Mark Milestone Complete
+              {panelTheme === "medieval" ? "✓ CLAIM MILESTONE COMPLETE" : "✓ Complete Milestone"}
             </button>
           )}
         </div>

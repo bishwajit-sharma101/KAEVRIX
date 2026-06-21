@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import * as sound from "../../utils/audio";
 import YoutubePlayer from "../Shared/YoutubePlayer";
 import { parseMarkdownToHTML } from "../../utils/markdown";
@@ -269,21 +269,37 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  // Retrieve onboarding answers for personalization
   // Retrieve onboarding answers and AI roadmap for personalization
   const roadmapKey = `kaevrix_roadmap_progress_${username}`;
-  const savedRoadmapStr = localStorage.getItem(roadmapKey);
-  const savedRoadmap = savedRoadmapStr ? JSON.parse(savedRoadmapStr) : null;
+  const savedRoadmap = useMemo(() => {
+    const savedRoadmapStr = localStorage.getItem(roadmapKey);
+    if (!savedRoadmapStr) return null;
+    try {
+      return JSON.parse(savedRoadmapStr);
+    } catch (e) {
+      return null;
+    }
+  }, [roadmapKey]);
 
   const answersKey = `kaevrix_roadmap_answers_${username}`;
-  const savedAnswers = localStorage.getItem(answersKey);
-  const answers = savedAnswers ? JSON.parse(savedAnswers) : [];
-  let rawTopic = savedRoadmap?.topic || (answers && answers[0] ? answers[0].answer : (video.category || "General learning"));
-  if (rawTopic.length > 35) {
-    const words = rawTopic.split(/\s+/);
-    rawTopic = words.length > 3 ? words.slice(0, 4).join(" ") : rawTopic.substring(0, 30);
-  }
-  const topic = rawTopic;
+  const answers = useMemo(() => {
+    const savedAnswers = localStorage.getItem(answersKey);
+    if (!savedAnswers) return [];
+    try {
+      return JSON.parse(savedAnswers);
+    } catch (e) {
+      return [];
+    }
+  }, [answersKey]);
+
+  const topic = useMemo(() => {
+    let rawTopic = savedRoadmap?.topic || (answers && answers[0] ? answers[0].answer : (video.category || "General learning"));
+    if (rawTopic.length > 35) {
+      const words = rawTopic.split(/\s+/);
+      rawTopic = words.length > 3 ? words.slice(0, 4).join(" ") : rawTopic.substring(0, 30);
+    }
+    return rawTopic;
+  }, [savedRoadmap, answers, video.category]);
 
   // Track if unlocked alert has played
   const alertPlayedRef = useRef(false);
@@ -360,8 +376,12 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
     }
   };
 
+  const fetchedVideoIdRef = useRef(null);
+
   // Generate quiz in background on mount
   const generateQuizInBackground = useCallback(async (isMounted = true) => {
+    if (fetchedVideoIdRef.current === video.id) return;
+    fetchedVideoIdRef.current = video.id;
     setQuizError(false);
     try {
       const devKeywords = [
