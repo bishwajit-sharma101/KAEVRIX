@@ -1,6 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import * as sound from "../../utils/audio";
 import { CHARACTER_CLASSES } from "../../utils/characterClasses";
+import LandingPage from "./LandingPage";
 
 const BACKEND_URL = window.location.hostname === "localhost" ? "http://localhost:5000" : "";
 const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}&backgroundColor=transparent`;
@@ -81,7 +82,7 @@ export default function WelcomeScreen({
   const [portalStyle, setPortalStyle] = useState(() => localStorage.getItem("kaevrix_portal_style") || "workspace");
   const [showMusicSettings, setShowMusicSettings] = useState(false);
   
-  const [authMode, setAuthMode] = useState("menu"); // menu, signin, signup
+  const [authMode, setAuthMode] = useState("landing"); // landing, menu, signin, signup
   const [retroShowForm, setRetroShowForm] = useState(false);
   const [retroTipIdx, setRetroTipIdx] = useState(0);
 
@@ -514,6 +515,26 @@ export default function WelcomeScreen({
   // In light mode, glow is always orange (not class-based color which can be blue/purple)
   const ambientGlowColor = isDarkMode ? currentThemeColor : "#ff6a00";
 
+  if (authMode === "landing") {
+    return (
+      <LandingPage
+        onStartSignUp={() => {
+          sound.playClockTick();
+          setAuthMode("signup");
+          setSignUpStep(1);
+        }}
+        onStartSignIn={() => {
+          sound.playClockTick();
+          setAuthMode("signin");
+        }}
+        isMusicMuted={isMusicMuted}
+        setIsMusicMuted={setIsMusicMuted}
+        musicProfile={musicProfile}
+        cycleMusic={cycleMusicProfile}
+      />
+    );
+  }
+
   return (
     <div
       className="welcome-aaa-overlay"
@@ -859,7 +880,7 @@ export default function WelcomeScreen({
             {authMode === "signin" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
                 <button
-                  onClick={() => { sound.playClockTick(); setAuthMode("menu"); setLoginUsername(""); setLoginPassword(""); setLoginError(""); }}
+                  onClick={() => { sound.playClockTick(); setAuthMode("landing"); setLoginUsername(""); setLoginPassword(""); setLoginError(""); }}
                   style={{ background: "transparent", border: "none", color: textMuted, cursor: "pointer", fontSize: "12px", fontWeight: "700", textAlign: "left", padding: "0 0 20px 0", letterSpacing: "1px", display: "flex", alignItems: "center", gap: "6px" }}
                 >
                   ← BACK TO MAIN MENU
@@ -968,7 +989,7 @@ export default function WelcomeScreen({
             {authMode === "signup" && signUpStep === 1 && (
               <div style={{ display: "flex", flexDirection: "column", gap: "0", minHeight: "0" }}>
                 <button
-                  onClick={() => { sound.playClockTick(); setAuthMode("menu"); }}
+                  onClick={() => { sound.playClockTick(); setAuthMode("landing"); }}
                   style={{ background: "transparent", border: "none", color: textMuted, cursor: "pointer", fontSize: "12px", fontWeight: "700", textAlign: "left", padding: "0 0 20px 0", letterSpacing: "1px" }}
                 >
                   ← BACK

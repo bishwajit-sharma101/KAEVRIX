@@ -18,6 +18,23 @@ export default function AppRouter(props) {
 
   const [isSearchFocused, setIsSearchFocused] = React.useState(false);
   const [isCodingMode, setIsCodingMode] = React.useState(false);
+  const [hellMode, setHellMode] = React.useState(() => {
+    const localVal = localStorage.getItem("hellMode");
+    if (localVal === "true") return true;
+    if (localVal === "false") return false;
+    try {
+      const savedRoadmap = localStorage.getItem(`kaevrix_roadmap_progress_${username}`);
+      if (savedRoadmap) {
+        const roadmapObj = JSON.parse(savedRoadmap);
+        return roadmapObj?.difficulty === "Hell";
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return false;
+  });
+
+
 
   // 1. Initial Login Setup Overlay
   if (!isRegistered) {
@@ -281,6 +298,50 @@ export default function AppRouter(props) {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        {/* Hell Mode Toggle Button */}
+        <button
+          onClick={() => {
+            sound.playMatchFound();
+            const nextHell = !hellMode;
+            setHellMode(nextHell);
+            localStorage.setItem("hellMode", String(nextHell));
+          }}
+          className={hellMode ? "hell-btn-active" : "hell-btn-inactive"}
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "8px 18px",
+            borderRadius: "22px",
+            fontSize: "12px",
+            fontWeight: "900",
+            fontFamily: "var(--font-gamer)",
+            letterSpacing: "2px",
+            cursor: "pointer",
+            outline: "none",
+            height: "42px",
+            transition: "all 0.4s cubic-bezier(.4,0,.2,1)",
+            alignSelf: "center",
+            boxSizing: "border-box",
+            position: "relative",
+            overflow: "visible",
+            zIndex: 2,
+          }}
+          title={hellMode ? "Hell Mode Active - Click to disable" : "Unleash Hell Mode"}
+        >
+          {hellMode && <div className="hell-aura" />}
+          {hellMode && <div className="hell-sheen" />}
+          {hellMode && (
+            <div className="hell-sparks">
+              <span/><span/><span/><span/><span/>
+            </div>
+          )}
+          <span className="hell-text" style={{ position: "relative", zIndex: 5 }}>
+            {hellMode ? "💀 HELL ACTIVE" : "🔥 HELL MODE"}
+          </span>
+        </button>
+
         <div className="header-profile" style={{ display: "flex", alignItems: "center", gap: "12px", background: isDarkMode ? "#1e293b" : "#ffffff", padding: "6px 16px 6px 6px", borderRadius: "30px", border: "1px solid var(--glass-border)", boxShadow: "0 4px 6px rgba(0,0,0,0.02)" }}>
           <div className="profile-avatar" style={{ width: "36px", height: "36px", borderRadius: "50%", background: isDarkMode ? "#0f172a" : "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", border: "1px solid var(--glass-border)", overflow: "hidden" }}>
             {avatar && avatar.includes('http') ? <img src={avatar} alt="avatar" style={{width: "100%", height: "100%", objectFit: "cover"}}/> : avatar}
@@ -321,8 +382,174 @@ export default function AppRouter(props) {
       </div>
     </header>
   );
+  const hellModeStyles = (
+    <style>{`
+      /* ═══════════════ HELL MODE - INFERNAL BADGE ═══════════════ */
+
+      .hell-btn-active {
+        position: relative !important;
+        background: linear-gradient(135deg, #150202 0%, #3a0808 50%, #150202 100%) !important;
+        background-size: 200% 200% !important;
+        animation: hellMagmaShift 4s ease infinite !important;
+        border: 1px solid rgba(255, 34, 0, 0.8) !important;
+        box-shadow: 
+          0 2px 10px rgba(0, 0, 0, 0.5),
+          inset 0 0 10px rgba(255, 34, 0, 0.5),
+          inset 0 1px 2px rgba(255, 255, 255, 0.1) !important;
+      }
+
+      .hell-btn-inactive {
+        background: ${isDarkMode ? "#1e293b" : "#ffffff"};
+        border: 1.5px solid ${isDarkMode ? "rgba(255, 255, 255, 0.15)" : "#e2e8f0"};
+        color: #64748b;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+      }
+
+      .hell-btn-inactive:hover {
+        border-color: rgba(255, 34, 0, 0.6);
+        color: #ff3333;
+        box-shadow: 0 0 20px rgba(255, 34, 0, 0.25), 0 0 40px rgba(255, 34, 0, 0.08);
+        text-shadow: 0 0 8px rgba(255, 34, 0, 0.5);
+        background: ${isDarkMode ? "#1c0505" : "#fff5f5"};
+      }
+
+      /* ── Magma Shifting Background ── */
+      @keyframes hellMagmaShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      /* ── Breathing Aura Back-Glow ── */
+      .hell-aura {
+        position: absolute;
+        inset: -6px;
+        border-radius: 28px;
+        background: rgba(255, 34, 0, 0.15);
+        pointer-events: none;
+        z-index: -1;
+        filter: blur(8px);
+        animation: hellAuraBreathe 3s ease-in-out infinite alternate;
+      }
+
+      @keyframes hellAuraBreathe {
+        0% {
+          transform: scale(0.96);
+          opacity: 0.4;
+          box-shadow: 0 0 10px rgba(255, 34, 0, 0.2);
+        }
+        100% {
+          transform: scale(1.04);
+          opacity: 1;
+          box-shadow: 0 0 25px rgba(255, 34, 0, 0.5), 0 0 45px rgba(255, 34, 0, 0.2);
+        }
+      }
+
+      /* ── Metallic Sheen Sweep ── */
+      .hell-sheen {
+        position: absolute;
+        inset: 0;
+        border-radius: 22px;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 3;
+      }
+
+      .hell-sheen::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -150%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.1) 30%,
+          rgba(255, 255, 255, 0.25) 50%,
+          rgba(255, 255, 255, 0.1) 70%,
+          transparent
+        );
+        transform: skewX(-25deg);
+        animation: hellSheenSweep 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+
+      @keyframes hellSheenSweep {
+        0% { left: -150%; }
+        30%, 100% { left: 150%; }
+      }
+
+      /* ── Tiny Spark Particles ── */
+      .hell-sparks {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: visible;
+        z-index: 4;
+      }
+
+      .hell-sparks span {
+        position: absolute;
+        display: block;
+        width: 2px;
+        height: 2px;
+        background: #ff6a00;
+        bottom: 80%;
+        border-radius: 50%;
+        opacity: 0;
+        box-shadow: 0 0 4px #ff3300, 0 0 8px #ffaa00;
+        animation: hellSparkFloat 1.8s infinite linear;
+      }
+
+      .hell-sparks span:nth-child(1) { left: 15%; animation-delay: 0s; animation-duration: 1.5s; }
+      .hell-sparks span:nth-child(2) { left: 35%; animation-delay: 0.4s; animation-duration: 2s; }
+      .hell-sparks span:nth-child(3) { left: 55%; animation-delay: 0.8s; animation-duration: 1.7s; }
+      .hell-sparks span:nth-child(4) { left: 75%; animation-delay: 0.2s; animation-duration: 2.2s; }
+      .hell-sparks span:nth-child(5) { left: 90%; animation-delay: 1.2s; animation-duration: 1.6s; }
+
+      @keyframes hellSparkFloat {
+        0% {
+          transform: translateY(0) scale(1) rotate(0deg);
+          opacity: 0;
+        }
+        15% {
+          opacity: 1;
+        }
+        80% {
+          opacity: 0.8;
+        }
+        100% {
+          transform: translateY(-20px) translateX(4px) scale(0.3) rotate(180deg);
+          opacity: 0;
+        }
+      }
+
+      /* ── Pulsing Text Glow ── */
+      .hell-text {
+        position: relative;
+        z-index: 5;
+        color: #ff3c1f !important;
+        text-shadow: 0 0 8px rgba(255, 34, 0, 0.8), 0 0 15px rgba(255, 34, 0, 0.4) !important;
+        animation: hellTextPulse 2s ease-in-out infinite alternate;
+      }
+
+      @keyframes hellTextPulse {
+        0% {
+          color: #ff3c1f;
+          text-shadow: 0 0 6px rgba(255, 34, 0, 0.7), 0 0 12px rgba(255, 34, 0, 0.3);
+        }
+        100% {
+          color: #ff6a00;
+          text-shadow: 0 0 10px rgba(255, 106, 0, 0.9), 0 0 20px rgba(255, 34, 0, 0.5);
+        }
+      }
+    `}</style>
+  );
+
   return (
     <div className="app-container">
+      {/* Dynamic Hell Mode styles */}
+      {hellModeStyles}
       {(!isCodingMode || status !== "solo_study") && headerComponent}
 
       {/* 2. DASHBOARD OR GAME STATES */}

@@ -5,6 +5,7 @@ import ProfilePanel from "./ProfilePanel";
 import CommunityTab from "../Community/CommunityTab";
 import CanvasRuneLoader from "../Shared/CanvasRuneLoader";
 import PathfinderScheduler from "../Roadmap/PathfinderScheduler";
+import StudyHistory from "./StudyHistory";
 
 const TRENDING_TOPICS = [
   { icon: "⚡", label: "JavaScript", color: "#f59e0b", players: 1420 },
@@ -506,6 +507,7 @@ export default function Dashboard({
     { id: "duels", icon: "🎮", label: "Arena" },
     { id: "pathfinder", icon: "🧠", label: "Pathfinder" },
     { id: "chronos", icon: "⏱️", label: "Chronos" },
+    { id: "history", icon: "📖", label: "History" },
     { id: "community", icon: "👥", label: "Community" },
     { id: "rankings", icon: "🏆", label: "Global Rankings" },
   ];
@@ -870,6 +872,14 @@ export default function Dashboard({
               sound.playClockTick();
               setActiveTab("pathfinder");
             }}
+          />
+        )}
+
+        {activeTab === "history" && (
+          <StudyHistory
+            username={username}
+            isDarkMode={isDarkMode}
+            onStartSoloStudy={onStartSoloStudy}
           />
         )}
 

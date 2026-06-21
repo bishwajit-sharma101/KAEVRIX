@@ -319,6 +319,61 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
     setProgress(100);
   };
 
+  // Load existing notes from history on mount if available
+  useEffect(() => {
+    try {
+      const historyKey = `kaevrix_study_history_${username}`;
+      const existingHistoryStr = localStorage.getItem(historyKey);
+      if (existingHistoryStr) {
+        const history = JSON.parse(existingHistoryStr);
+        const videoId = video.id || video.videoId;
+        const savedRecord = history.find(item => (item.video?.id === videoId || item.video?.videoId === videoId || item.id === videoId));
+        if (savedRecord && savedRecord.notes) {
+          setNotes(savedRecord.notes);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load study notes from history on mount:", e);
+    }
+  }, [video.id, video.videoId, username]);
+
+  // Save study session to localStorage history
+  const saveStudySession = (notesText) => {
+    try {
+      const historyKey = `kaevrix_study_history_${username}`;
+      const existingHistoryStr = localStorage.getItem(historyKey);
+      const history = existingHistoryStr ? JSON.parse(existingHistoryStr) : [];
+      
+      const videoId = video.id || video.videoId;
+      const index = history.findIndex(item => (item.video?.id === videoId || item.video?.videoId === videoId || item.id === videoId));
+      
+      const newRecord = {
+        id: videoId || Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        video: {
+          id: video.id || video.videoId,
+          title: video.title,
+          channel: video.channel,
+          videoId: video.videoId || video.id,
+          url: video.url || `https://www.youtube.com/watch?v=${video.videoId || video.id}`
+        },
+        notes: notesText,
+        topic: topic || "General Learning",
+        subTopic: video.title,
+      };
+      
+      if (index !== -1) {
+        history[index] = newRecord;
+      } else {
+        history.unshift(newRecord);
+      }
+      
+      localStorage.setItem(historyKey, JSON.stringify(history));
+    } catch (e) {
+      console.error("Failed to save study history:", e);
+    }
+  };
+
   // Generate Notes
   const handleGenerateNotes = async () => {
     setLoadingNotes(true);
@@ -366,6 +421,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
       
       clearInterval(logInterval);
       setNotes(data.notes);
+      saveStudySession(data.notes); // Persistent save to study history
       sound.playCorrect();
     } catch (err) {
       console.error("Notes generation failed:", err);
@@ -514,10 +570,24 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
   // Download Notes as PDF
   const handleDownloadNotes = () => {
     sound.playClockTick();
-    const printWindow = window.open('', '_blank');
-    const htmlContent = parseMarkdownToHTML(notes);
     
-    printWindow.document.write(`
+    // Create a temporary hidden iframe to handle printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.zIndex = '-9999';
+    
+    document.body.appendChild(iframe);
+    
+    const htmlContent = parseMarkdownToHTML(notes);
+    const doc = iframe.contentWindow.document;
+    
+    doc.open();
+    doc.write(`
       <html>
         <head>
           <title>${video.title.replace(/[^a-z0-9]/gi, '_')} - Study Guide</title>
@@ -606,18 +676,27 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
         </head>
         <body>
           ${htmlContent}
-          <script>
-            window.onload = function() {
-              setTimeout(() => {
-                window.print();
-                window.close();
-              }, 250);
-            }
-          </script>
         </body>
       </html>
     `);
-    printWindow.document.close();
+    doc.close();
+
+    // Trigger printing once loaded
+    iframe.contentWindow.focus();
+    
+    // Clean up the iframe only AFTER the print/save dialog is closed
+    iframe.contentWindow.addEventListener('afterprint', () => {
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 2000); // 2-second buffer to allow PDF spooling to complete
+    });
+
+    // Give some time for CSS/fonts to load inside the iframe before printing
+    setTimeout(() => {
+      iframe.contentWindow.print();
+    }, 500);
   };
 
   const isCodingChallenge = activeTab === "quiz" && quizState === "active" && questions[currentQIdx]?.type === "coding";
