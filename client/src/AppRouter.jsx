@@ -16,6 +16,9 @@ import ModeSelection from "./features/GameArena/ModeSelection";
 export default function AppRouter(props) {
   const { username, setUsername, avatar, setAvatar, selectedClass, setSelectedClass, isRegistered, setIsRegistered, xp, setXp, level, setLevel, wins, setWins, losses, setLosses, isDarkMode, setIsDarkMode, token, setToken, isMusicMuted, setIsMusicMuted, musicProfile, setMusicProfile, keepMusicInGame, setKeepMusicInGame, showMusicSettings, setShowMusicSettings, showSurpassLimits, setShowSurpassLimits, isExitIntercept, setIsExitIntercept, interceptTrackIdx, setInterceptTrackIdx, showDailyModal, setShowDailyModal, journeyDay, setJourneyDay, energy, setEnergy, isFrozen, setIsFrozen, isBlurred, setIsBlurred, progressAtQuizEntry, setProgressAtQuizEntry, doubleDownQuestions, setDoubleDownQuestions, disabledOptions, setDisabledOptions, leaderboard, setLeaderboard, curatedVideos, setCuratedVideos, selectedVideo, setSelectedVideo, selectedSoloVideo, setSelectedSoloVideo, vsBot, setVsBot, searchQuery, setSearchQuery, activeSearchQuery, setActiveSearchQuery, searchResults, setSearchResults, isSearching, setIsSearching, socket, setSocket, status, setStatus, room, setRoom, opponent, setOpponent, countdown, setCountdown, myProgress, setMyProgress, opponentProgress, setOpponentProgress, opponentWaiting, setOpponentWaiting, opponentSubmitted, setOpponentSubmitted, chatMessages, setChatMessages, chatInput, setChatInput, questions, setQuestions, currentQuestionIdx, setCurrentQuestionIdx, selectedAnswers, setSelectedAnswers, quizTimer, setQuizTimer, gameResults, setGameResults, xpGained, setXpGained, leveledUp, setLeveledUp, handleLogout, cancelMatchmaking, handleSearchSubmit, clearSearch, resetToDashboard, startMatchmaking, handleReadyToPlay, handleSendChat, handleVideoProgress, handleVideoFinished, handleUsePowerup, handleSelectOption, handleDoubleDown, handleHackersClue, submitQuizAnswers, handleNextQuestion, handleStartSoloStudy, handleAddSoloXp, exitAttemptsRef, BACKEND_URL, getRankTitle, triggerSearch, initializeSocketAndRegister } = props;
 
+  const [isSearchFocused, setIsSearchFocused] = React.useState(false);
+  const [isCodingMode, setIsCodingMode] = React.useState(false);
+
   // 1. Initial Login Setup Overlay
   if (!isRegistered) {
     return (
@@ -53,7 +56,7 @@ export default function AppRouter(props) {
   const headerComponent = (
     <header className="app-header">
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        {/* Back Arrow ΓÇö only show when not on dashboard */}
+        {/* Back Arrow — only show when not on dashboard */}
         {status !== "idle" && (
           <button
             onClick={() => { sound.playClockTick(); resetToDashboard(); }}
@@ -91,44 +94,94 @@ export default function AppRouter(props) {
           style={{ 
             display: "flex", 
             flex: 1, 
-            background: isDarkMode ? "rgba(15, 23, 42, 0.6)" : "#f1f5f9", 
-            borderRadius: "24px", 
+            background: isDarkMode ? "rgba(10, 6, 4, 0.65)" : "rgba(255, 255, 255, 0.9)", 
+            borderRadius: "28px", 
             overflow: "hidden", 
-            border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.3)" : "1px solid #e2e8f0", 
-            boxShadow: isDarkMode ? "0 4px 20px rgba(0, 0, 0, 0.3)" : "inset 0 1px 2px rgba(0,0,0,0.05)",
-            backdropFilter: isDarkMode ? "blur(8px)" : "none"
+            border: isSearchFocused
+              ? (isDarkMode ? "1.5px solid #ff6a00" : "1.5px solid #ea580c")
+              : (isDarkMode ? "1.5px solid rgba(255, 106, 0, 0.25)" : "1.5px solid #fed7aa"), 
+            boxShadow: isSearchFocused
+              ? (isDarkMode ? "0 0 25px rgba(255, 106, 0, 0.35), inset 0 2px 4px rgba(0,0,0,0.4)" : "0 4px 20px rgba(255, 106, 0, 0.15)")
+              : (isDarkMode ? "0 4px 20px rgba(0, 0, 0, 0.3)" : "inset 0 1px 2px rgba(0,0,0,0.05)"),
+            backdropFilter: "blur(12px)",
+            transition: "all 0.3s ease",
+            alignItems: "center"
           }}
         >
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            paddingLeft: "18px"
+          }}>
+            <span style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              backgroundColor: isSearchFocused ? "#ff6a00" : (isDarkMode ? "rgba(255, 106, 0, 0.4)" : "rgba(234, 88, 12, 0.3)"),
+              boxShadow: isSearchFocused ? "0 0 8px #ff6a00, 0 0 15px #ffb300" : "none",
+              transition: "all 0.3s ease"
+            }} />
+          </div>
           <input
             type="text"
             placeholder="Search YouTube videos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
             style={{ 
               flex: 1, 
               border: "none", 
               background: "transparent", 
-              padding: "12px 20px", 
+              padding: "12px 14px", 
               fontSize: "15px", 
               outline: "none", 
-              color: isDarkMode ? "#ffffff" : "#0f172a" 
+              color: isDarkMode ? "#ffffff" : "#0f172a",
+              fontFamily: "'Outfit', var(--font-sans)"
             }}
           />
           <button 
             type="submit" 
             style={{ 
-              padding: "0 24px", 
-              background: isDarkMode ? "rgba(30, 41, 59, 0.8)" : "#f8fafc", 
+              alignSelf: "stretch",
+              padding: "0 28px", 
+              background: isDarkMode ? "linear-gradient(135deg, #ff6a00, #ffb300)" : "linear-gradient(135deg, #ea580c, #f97316)", 
               border: "none", 
-              borderLeft: isDarkMode ? "1px solid rgba(255, 106, 0, 0.3)" : "1px solid #e2e8f0", 
-              cursor: "pointer", 
-              color: isDarkMode ? "#e2e8f0" : "#64748b", 
+              clipPath: "polygon(12px 0, 100% 0, 100% 100%, 0 100%)",
+              cursor: isSearching ? "not-allowed" : "pointer", 
+              color: "#ffffff", 
               fontSize: "16px",
-              transition: "all 0.2s"
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }} 
             disabled={isSearching}
           >
-            {isSearching ? "..." : "🔍"}
+            {isSearching ? (
+              <div className="search-dots-loader">
+                <span className="search-dot" style={{ backgroundColor: "#ffffff" }}></span>
+                <span className="search-dot" style={{ backgroundColor: "#ffffff" }}></span>
+                <span className="search-dot" style={{ backgroundColor: "#ffffff" }}></span>
+              </div>
+            ) : (
+              <svg 
+                width="18" 
+                height="18" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="3" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                style={{ transition: "transform 0.2s" }} 
+                onMouseOver={e => e.currentTarget.style.transform = "scale(1.15)"} 
+                onMouseOut={e => e.currentTarget.style.transform = "scale(1)"}
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            )}
           </button>
         </form>
         <button 
@@ -270,7 +323,7 @@ export default function AppRouter(props) {
   );
   return (
     <div className="app-container">
-      {headerComponent}
+      {(!isCodingMode || status !== "solo_study") && headerComponent}
 
       {/* 2. DASHBOARD OR GAME STATES */}
       {status === "idle" && (
@@ -421,6 +474,7 @@ export default function AppRouter(props) {
           backendUrl={BACKEND_URL}
           onBack={resetToDashboard}
           onAddSoloXp={handleAddSoloXp}
+          onCodingModeChange={setIsCodingMode}
         />
       )}
 

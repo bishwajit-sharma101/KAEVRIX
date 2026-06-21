@@ -31,6 +31,8 @@ const LEVEL_META = {
   1: { emoji: "🌱", label: "Foundations", range: "Basic → Intermediate" },
   2: { emoji: "⚡", label: "Intermediate", range: "Intermediate → Advanced" },
   3: { emoji: "🔥", label: "Mastery",     range: "Advanced → God Tier" },
+  4: { emoji: "🏛️", label: "Architecture", range: "Real World Mastery" },
+  5: { emoji: "👑", label: "Supreme Mastery", range: "Interview Ready" },
 };
 
 const getConstellationLayout = (n) => {
@@ -563,25 +565,28 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
                   Our AI engine is compiling detailed explanations, tables, before/after code blocks, and job interview questions...
                 </p>
 
-                {/* Progress Terminal Log */}
+                {/* Clean SaaS-style progress log */}
                 <div style={{
                   width: "100%",
                   maxWidth: "480px",
-                  background: "#090d16",
-                  borderRadius: "16px",
-                  padding: "20px 24px",
-                  border: "1px solid #1e293b",
-                  boxShadow: "0 12px 24px rgba(0,0,0,0.1)"
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px"
                 }}>
                   {genLog.map((log, idx) => (
                     <div key={idx} style={{
-                      fontFamily: "monospace",
-                      fontSize: "12.5px",
+                      fontSize: "13.5px",
+                      fontWeight: "750",
+                      fontFamily: "var(--font-outfit), sans-serif",
                       color: idx === genLog.length - 1 ? "#ea580c" : "#94a3b8",
-                      marginBottom: "6px",
                       display: "flex",
                       alignItems: "center",
-                      gap: "8px"
+                      gap: "10px",
+                      padding: "10px 14px",
+                      borderRadius: "10px",
+                      background: idx === genLog.length - 1 ? "rgba(234, 88, 12, 0.05)" : "transparent",
+                      border: idx === genLog.length - 1 ? "1px solid rgba(234, 88, 12, 0.15)" : "1px solid transparent",
+                      transition: "all 0.3s ease"
                     }}>
                       <span style={{ color: idx < genLog.length - 1 ? "#10b981" : "#ea580c" }}>
                         {idx < genLog.length - 1 ? "✓" : "⚡"}
@@ -590,7 +595,7 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
                     </div>
                   ))}
                   {genStep < STUDY_GEN_LOGS.length - 1 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px" }}>
                       <div style={{
                         width: "6px",
                         height: "6px",
@@ -598,7 +603,7 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
                         background: "#ea580c",
                         animation: "pulse 0.8s infinite"
                       }} />
-                      <span style={{ fontFamily: "monospace", fontSize: "11px", color: "#475569" }}>
+                      <span style={{ fontFamily: "var(--font-sans)", fontSize: "12px", color: "#64748b", fontWeight: "500" }}>
                         processing...
                       </span>
                     </div>
@@ -1026,6 +1031,167 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
   const [isExploding, setIsExploding] = useState(false);
   const [pendingQuizData, setPendingQuizData] = useState(null);
 
+  const [currentCode, setCurrentCode] = useState("");
+  const [testResults, setTestResults] = useState(null);
+  const [consoleError, setConsoleError] = useState(null);
+
+  useEffect(() => {
+    if (quizData?.postVideoQuestions[currentIdx]) {
+      const q = quizData.postVideoQuestions[currentIdx];
+      if (q.type === "coding") {
+        setCurrentCode(q.starterCode || "");
+        setTestResults(null);
+        setConsoleError(null);
+      }
+    }
+  }, [currentIdx, quizData]);
+
+  const handleRunCode = () => {
+    sound.playClockTick();
+    const currentQ = quizData.postVideoQuestions[currentIdx];
+    if (!currentQ || currentQ.type !== "coding") return;
+
+    try {
+      setConsoleError(null);
+      
+      const solver = new Function(`
+        ${currentCode}
+        if (typeof solve !== 'function') {
+          throw new Error("Function 'solve' is not defined. Please define solve(input).");
+        }
+        return solve;
+      `)();
+
+      const results = [];
+      for (let tc of currentQ.testCases) {
+        let parsedInput;
+        try {
+          parsedInput = JSON.parse(tc.input);
+        } catch {
+          parsedInput = tc.input;
+        }
+
+        let parsedExpected;
+        try {
+          parsedExpected = JSON.parse(tc.expected);
+        } catch {
+          parsedExpected = tc.expected;
+        }
+
+        const got = solver(parsedInput);
+        const passed = JSON.stringify(got) === JSON.stringify(parsedExpected);
+        results.push({
+          input: tc.input,
+          expected: parsedExpected,
+          got: got,
+          passed
+        });
+      }
+
+      setTestResults(results);
+      
+      const allPassed = results.every(r => r.passed);
+      if (allPassed) {
+        sound.playCorrect();
+      } else {
+        sound.playIncorrect();
+      }
+    } catch (err) {
+      console.error("User Code Execution Error:", err);
+      setConsoleError(err.message);
+      sound.playIncorrect();
+    }
+  };
+
+  const handleSubmitCode = () => {
+    sound.playClockTick();
+    const currentQ = quizData.postVideoQuestions[currentIdx];
+    if (!currentQ || currentQ.type !== "coding") return;
+
+    let results = [];
+    let allPassed = false;
+    try {
+      const solver = new Function(`
+        ${currentCode}
+        if (typeof solve !== 'function') {
+          throw new Error("Function 'solve' is not defined. Please define solve(input).");
+        }
+        return solve;
+      `)();
+
+      for (let tc of currentQ.testCases) {
+        let parsedInput;
+        try {
+          parsedInput = JSON.parse(tc.input);
+        } catch {
+          parsedInput = tc.input;
+        }
+
+        let parsedExpected;
+        try {
+          parsedExpected = JSON.parse(tc.expected);
+        } catch {
+          parsedExpected = tc.expected;
+        }
+
+        const got = solver(parsedInput);
+        const passed = JSON.stringify(got) === JSON.stringify(parsedExpected);
+        results.push({
+          input: tc.input,
+          expected: parsedExpected,
+          got: got,
+          passed
+        });
+      }
+
+      setTestResults(results);
+      allPassed = results.every(r => r.passed);
+    } catch (err) {
+      setConsoleError(err.message);
+      sound.playIncorrect();
+      return;
+    }
+
+    if (allPassed) {
+      setScore(s => s + 1);
+      setAnswers(prev => {
+        const next = [...prev];
+        next[currentIdx] = "passed_code";
+        return next;
+      });
+      sound.playCorrect();
+    } else {
+      sound.playIncorrect();
+      setConsoleError("Submit Failed: Some test cases did not pass.");
+    }
+  };
+
+  const handleNextCodingQuestion = () => {
+    sound.playClockTick();
+    if (currentIdx < quizData.postVideoQuestions.length - 1) {
+      setCurrentIdx(idx => idx + 1);
+    } else {
+      setStep("results");
+      if (score >= 3) {
+        sound.playVictory();
+        
+        fetch(`${BACKEND_URL}/api/solo-xp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            xpEarned: milestone.xpReward || 50,
+            videoTitle: video.title
+          })
+        }).catch(err => console.error("XP Award Error:", err));
+        
+        onMarkComplete(milestone);
+      } else {
+        sound.playDefeat();
+      }
+    }
+  };
+
   const handleExplodeComplete = () => {
     setShowRuneLoader(false);
     setIsExploding(false);
@@ -1060,13 +1226,49 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
 
     try {
       sound.playClockTick();
+      const roadmapKey = `kaevrix_roadmap_progress_${username}`;
+      const savedRoadmapStr = localStorage.getItem(roadmapKey);
+      const savedRoadmap = savedRoadmapStr ? JSON.parse(savedRoadmapStr) : null;
+      const topic = savedRoadmap?.topic || milestone.title || "General learning";
+
+      const answersKey = `kaevrix_roadmap_answers_${username}`;
+      const savedAnswers = localStorage.getItem(answersKey);
+      const answersList = savedAnswers ? JSON.parse(savedAnswers) : [];
+
+      const devKeywords = [
+        "developer", "engineer", "programming", "coding", "software", "web dev",
+        "frontend", "backend", "fullstack", "full stack", "javascript", "python",
+        "react", "node", "java", "c++", "c#", "rust", "go language", "golang", "devops",
+        "data science", "machine learning", "database", "sql", "html", "css", "git", "leet", "leetcode", "hacker", "hackerrank"
+      ];
+      const whyAnswer = answersList.find(a => a.question.toLowerCase().includes("why") || a.question.toLowerCase().includes("dream"))?.answer || "";
+      const isDev = devKeywords.some(kw => 
+        topic.toLowerCase().includes(kw) || 
+        video.title.toLowerCase().includes(kw) || 
+        whyAnswer.toLowerCase().includes(kw)
+      );
+
+      const completedMilestones = savedRoadmap 
+        ? [
+            ...(savedRoadmap.level1?.milestones || []),
+            ...(savedRoadmap.level2?.milestones || []),
+            ...(savedRoadmap.level3?.milestones || [])
+          ]
+            .filter(m => m.status === "completed")
+            .map(m => m.title)
+        : [];
+
       const res = await fetch(`${BACKEND_URL}/api/quiz/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           videoId: video.id,
           title: video.title,
-          duration: video.duration
+          duration: video.duration,
+          topic: topic,
+          why: whyAnswer,
+          isDeveloper: isDev,
+          completedMilestones: completedMilestones
         })
       });
       if (!res.ok) throw new Error("Quiz API failed");
@@ -1202,6 +1404,8 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
     setQuizData(null);
   };
 
+  const isCodingChallenge = step === "quiz" && quizData?.postVideoQuestions[currentIdx]?.type === "coding";
+
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 3000,
@@ -1211,13 +1415,16 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
       padding: "20px"
     }}>
       <div style={{
-        width: "100%", maxWidth: "700px",
+        width: isCodingChallenge ? "95%" : "100%", 
+        maxWidth: isCodingChallenge ? "1100px" : "700px",
+        height: isCodingChallenge ? "85vh" : "auto",
         background: isDarkMode ? "rgba(10, 16, 32, 0.95)" : "#ffffff",
         border: isDarkMode ? "1.5px solid rgba(0, 242, 254, 0.3)" : "1.5px solid #e2e8f0",
         boxShadow: isDarkMode ? "0 0 40px rgba(0, 242, 254, 0.15)" : "0 30px 80px rgba(0,0,0,0.15)",
         borderRadius: "24px",
         overflow: "hidden",
-        display: "flex", flexDirection: "column"
+        display: "flex", flexDirection: "column",
+        transition: "all 0.3s ease"
       }}>
         {/* Modal Header */}
         <div style={{
@@ -1296,84 +1503,289 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
 
         {/* Quiz Taking Step */}
         {step === "quiz" && quizData && (
-          <div style={{ padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ padding: "28px", display: "flex", flexDirection: "column", gap: "16px", flex: 1, overflow: "hidden" }}>
+            
+            {/* Header info */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
               <span style={{ color: "var(--neon-orange)", fontWeight: "bold", fontSize: "13px" }}>
                 QUESTION {currentIdx + 1} OF {quizData.postVideoQuestions.length}
               </span>
-              <span style={{ color: isDarkMode ? "rgba(255,255,255,0.4)" : "var(--text-muted)", fontSize: "13px" }}>
-                Score: {score}
+              <span style={{ color: isDarkMode ? "rgba(255,255,255,0.4)" : "var(--text-muted)", fontSize: "13px", fontWeight: "700" }}>
+                {quizData.postVideoQuestions[currentIdx].type === "coding" ? "💻 CODING PLAYGROUND" : `Score: ${score}`}
               </span>
             </div>
 
-            <div style={{ color: isDarkMode ? "#fff" : "var(--text-light)", fontSize: "18px", fontWeight: "800", lineHeight: "1.4" }}>
-              {quizData.postVideoQuestions[currentIdx].question}
-            </div>
+            {quizData.postVideoQuestions[currentIdx].type === "coding" ? (
+              /* Splitscreen Sandbox inside Modal */
+              <div style={{ display: "flex", flex: 1, overflow: "hidden", gap: "24px", minHeight: "350px" }}>
+                
+                {/* Left side: Problem & Tests */}
+                <div style={{
+                  width: "50%",
+                  background: isDarkMode ? "rgba(255, 255, 255, 0.02)" : "#f8fafc",
+                  borderRight: isDarkMode ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #e2e8f0",
+                  paddingRight: "18px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "14px",
+                  overflowY: "auto"
+                }} className="custom-scrollbar">
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+                      <h3 style={{ fontSize: "17px", fontWeight: "900", color: isDarkMode ? "#fff" : "#0f172a" }}>
+                        {quizData.postVideoQuestions[currentIdx].title}
+                      </h3>
+                      <span style={{
+                        fontSize: "10px",
+                        fontWeight: "850",
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        textTransform: "uppercase",
+                        background: quizData.postVideoQuestions[currentIdx].difficulty === "Easy" ? "rgba(16, 185, 129, 0.15)" : quizData.postVideoQuestions[currentIdx].difficulty === "Hard" ? "rgba(239, 68, 68, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                        color: quizData.postVideoQuestions[currentIdx].difficulty === "Easy" ? "#10b981" : quizData.postVideoQuestions[currentIdx].difficulty === "Hard" ? "#ef4444" : "#f59e0b"
+                      }}>
+                        {quizData.postVideoQuestions[currentIdx].difficulty}
+                      </span>
+                    </div>
+                    
+                    <div 
+                      style={{ fontSize: "13.5px", lineHeight: "1.5", textAlign: "left", opacity: 0.9, color: isDarkMode ? "#cbd5e1" : "#334155" }}
+                      dangerouslySetInnerHTML={{ __html: parseMarkdownToHTML(quizData.postVideoQuestions[currentIdx].question) }}
+                    />
+                  </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {quizData.postVideoQuestions[currentIdx].options.map((opt, oIdx) => {
-                const isSelected = selectedAns === oIdx;
-                return (
-                  <button
-                    key={oIdx}
-                    onClick={() => handleAnswerSelect(oIdx)}
-                    style={{
-                      width: "100%",
-                      padding: "16px 20px",
-                      background: isSelected 
-                        ? (isDarkMode ? "rgba(0, 242, 254, 0.1)" : "rgba(255, 106, 0, 0.08)")
-                        : (isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc"),
-                      border: isSelected
-                        ? `1.5px solid ${isDarkMode ? "var(--neon-blue)" : "var(--neon-orange)"}`
-                        : `1.5px solid ${isDarkMode ? "rgba(255,255,255,0.08)" : "#e2e8f0"}`,
-                      borderRadius: "12px",
-                      color: isSelected 
-                        ? (isDarkMode ? "#fff" : "var(--text-light)")
-                        : (isDarkMode ? "rgba(255,255,255,0.8)" : "var(--text-light)"),
-                      fontWeight: "600",
-                      fontSize: "14px",
-                      textAlign: "left",
-                      cursor: "pointer",
-                      transition: "all 0.2s",
-                      boxShadow: isSelected 
-                        ? (isDarkMode ? "0 0 15px rgba(0, 242, 254, 0.15)" : "0 0 15px rgba(255,106,0,0.12)")
-                        : "none"
-                    }}
-                    onMouseOver={e => { if(!isSelected) e.currentTarget.style.borderColor = isDarkMode ? "rgba(255,255,255,0.2)" : "#cbd5e1"; }}
-                    onMouseOut={e => { if(!isSelected) e.currentTarget.style.borderColor = isDarkMode ? "rgba(255,255,255,0.08)" : "#e2e8f0"; }}
-                  >
-                    <span style={{ color: isSelected ? (isDarkMode ? "var(--neon-blue)" : "var(--neon-orange)") : (isDarkMode ? "rgba(255,255,255,0.4)" : "#94a3b8"), marginRight: "12px", fontWeight: "900" }}>
-                      {String.fromCharCode(65 + oIdx)}.
-                    </span>
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
+                  {/* Test cases list */}
+                  <div>
+                    <h4 style={{ fontSize: "13px", fontWeight: "800", textTransform: "uppercase", color: "#ff6a00", marginBottom: "8px" }}>Test Cases</h4>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      {quizData.postVideoQuestions[currentIdx].testCases.map((tc, tcIdx) => {
+                        const result = testResults ? testResults[tcIdx] : null;
+                        return (
+                          <div key={tcIdx} style={{
+                            padding: "10px",
+                            borderRadius: "6px",
+                            background: isDarkMode ? "rgba(0,0,0,0.15)" : "#ffffff",
+                            border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.04)" : "1px solid #e2e8f0",
+                            fontSize: "12px"
+                          }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                              <span style={{ fontWeight: "700", color: "var(--text-muted)" }}>Case {tcIdx + 1}</span>
+                              {result && (
+                                <span style={{ fontWeight: "800", color: result.passed ? "#10b981" : "#ef4444" }}>
+                                  {result.passed ? "✅ Passed" : "❌ Failed"}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "2px", fontFamily: "monospace" }}>
+                              <div><span style={{ color: "#a78bfa" }}>Input:</span> {tc.input}</div>
+                              <div><span style={{ color: "#38bdf8" }}>Expected:</span> {JSON.stringify(result ? result.expected : tc.expected)}</div>
+                              {result && !result.passed && (
+                                <div style={{ color: "#f87171" }}><span style={{ color: "#f87171" }}>Got:</span> {JSON.stringify(result.got)}</div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
 
-            <button
-              onClick={handleNext}
-              disabled={selectedAns === null}
-              style={{
-                width: "100%",
-                padding: "16px",
-                background: selectedAns === null 
-                  ? (isDarkMode ? "rgba(255,255,255,0.05)" : "#f1f5f9")
-                  : "linear-gradient(135deg, var(--neon-orange), #ffb300)",
-                border: "none",
-                borderRadius: "12px",
-                color: selectedAns === null 
-                  ? (isDarkMode ? "rgba(255,255,255,0.2)" : "#cbd5e1")
-                  : "#fff",
-                fontWeight: "900",
-                fontSize: "15px",
-                cursor: selectedAns === null ? "default" : "pointer",
-                letterSpacing: "1px",
-                transition: "all 0.2s"
-              }}
-            >
-              {currentIdx < quizData.postVideoQuestions.length - 1 ? "NEXT QUESTION" : "SUBMIT QUIZ"}
-            </button>
+                {/* Right side: Editor & console */}
+                <div style={{
+                  width: "50%",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "14px"
+                }}>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                    <textarea
+                      value={currentCode}
+                      onChange={(e) => setCurrentCode(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Tab') {
+                          e.preventDefault();
+                          const { selectionStart, selectionEnd, value } = e.target;
+                          const newValue = value.substring(0, selectionStart) + "  " + value.substring(selectionEnd);
+                          setCurrentCode(newValue);
+                          setTimeout(() => {
+                            e.target.selectionStart = e.target.selectionEnd = selectionStart + 2;
+                          }, 0);
+                        }
+                      }}
+                      placeholder="Write your JavaScript solution here..."
+                      style={{
+                        width: "100%",
+                        flex: 1,
+                        backgroundColor: "#090d16",
+                        color: "#38bdf8",
+                        fontFamily: "'Fira Code', 'Courier New', monospace",
+                        fontSize: "13px",
+                        lineHeight: "1.5",
+                        padding: "12px",
+                        border: "1px solid rgba(0, 242, 254, 0.25)",
+                        borderRadius: "10px",
+                        outline: "none",
+                        resize: "none"
+                      }}
+                    />
+                  </div>
+
+                  {/* Buttons */}
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button
+                      onClick={handleRunCode}
+                      style={{
+                        flex: 1,
+                        padding: "10px",
+                        borderRadius: "8px",
+                        border: "1.5px solid #ff6a00",
+                        background: "transparent",
+                        color: "#ff6a00",
+                        fontWeight: "800",
+                        cursor: "pointer",
+                        clipPath: "polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%)",
+                        transition: "all 0.2s"
+                      }}
+                      onMouseOver={e => e.currentTarget.style.background = "rgba(255, 106, 0, 0.08)"}
+                      onMouseOut={e => e.currentTarget.style.background = "transparent"}
+                    >
+                      ▶ Run Code
+                    </button>
+                    <button
+                      onClick={handleSubmitCode}
+                      style={{
+                        flex: 1,
+                        padding: "10px",
+                        borderRadius: "8px",
+                        border: "none",
+                        background: "linear-gradient(135deg, #10b981, #059669)",
+                        color: "#ffffff",
+                        fontWeight: "900",
+                        cursor: "pointer",
+                        clipPath: "polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%)",
+                        transition: "all 0.2s"
+                      }}
+                      onMouseOver={e => e.currentTarget.style.filter = "brightness(1.1)"}
+                      onMouseOut={e => e.currentTarget.style.filter = "none"}
+                    >
+                      🚀 Submit
+                    </button>
+                  </div>
+
+                  {/* Output Box */}
+                  <div style={{
+                    height: "85px",
+                    backgroundColor: isDarkMode ? "rgba(0,0,0,0.2)" : "#f8fafc",
+                    border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.04)" : "1px solid #cbd5e1",
+                    borderRadius: "8px",
+                    padding: "10px",
+                    fontSize: "12px",
+                    fontFamily: "monospace",
+                    overflowY: "auto",
+                    textAlign: "left"
+                  }} className="custom-scrollbar">
+                    <div style={{ color: "var(--text-muted)", fontWeight: "700", marginBottom: "2px" }}>Console:</div>
+                    {consoleError ? (
+                      <div style={{ color: "#f87171" }}>{consoleError}</div>
+                    ) : testResults && testResults.every(r => r.passed) ? (
+                      <div style={{ color: "#34d399" }}>🎉 Test cases passed! Click Next to submit.</div>
+                    ) : testResults ? (
+                      <div style={{ color: "#fb7185" }}>❌ Output mismatch. Some tests failed.</div>
+                    ) : (
+                      <div style={{ color: "var(--text-muted)" }}>Run code or Submit to check results.</div>
+                    )}
+                  </div>
+
+                  {/* Move Next */}
+                  {answers[currentIdx] === "passed_code" && (
+                    <button
+                      onClick={handleNextCodingQuestion}
+                      style={{
+                        padding: "12px",
+                        borderRadius: "10px",
+                        border: "none",
+                        background: "linear-gradient(135deg, #ffd700, #ff8c00)",
+                        color: "#0f172a",
+                        fontWeight: "900",
+                        cursor: "pointer",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px"
+                      }}
+                    >
+                      {currentIdx < quizData.postVideoQuestions.length - 1 ? "Next Challenge →" : "Submit Assessment"}
+                    </button>
+                  )}
+                </div>
+
+              </div>
+            ) : (
+              /* Standard MCQ Layout */
+              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                <div style={{ color: isDarkMode ? "#fff" : "var(--text-light)", fontSize: "16px", fontWeight: "800", lineHeight: "1.4", minHeight: "45px", textAlign: "left" }}>
+                  {quizData.postVideoQuestions[currentIdx].question}
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {quizData.postVideoQuestions[currentIdx].options.map((opt, oIdx) => {
+                    const isSelected = selectedAns === oIdx;
+                    return (
+                      <button
+                        key={oIdx}
+                        onClick={() => handleAnswerSelect(oIdx)}
+                        style={{
+                          width: "100%",
+                          padding: "14px 18px",
+                          background: isSelected 
+                            ? (isDarkMode ? "rgba(0, 242, 254, 0.1)" : "rgba(255, 106, 0, 0.08)")
+                            : (isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc"),
+                          border: isSelected
+                            ? `1.5px solid ${isDarkMode ? "var(--neon-blue)" : "var(--neon-orange)"}`
+                            : `1.5px solid ${isDarkMode ? "rgba(255,255,255,0.08)" : "#e2e8f0"}`,
+                          borderRadius: "10px",
+                          color: isSelected 
+                            ? (isDarkMode ? "#fff" : "var(--text-light)")
+                            : (isDarkMode ? "rgba(255,255,255,0.8)" : "var(--text-light)"),
+                          fontWeight: "600",
+                          fontSize: "13.5px",
+                          textAlign: "left",
+                          cursor: "pointer",
+                          transition: "all 0.2s"
+                        }}
+                      >
+                        <span style={{ color: isSelected ? (isDarkMode ? "var(--neon-blue)" : "var(--neon-orange)") : (isDarkMode ? "rgba(255,255,255,0.4)" : "#94a3b8"), marginRight: "10px", fontWeight: "900" }}>
+                          {String.fromCharCode(65 + oIdx)}.
+                        </span>
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={handleNext}
+                  disabled={selectedAns === null}
+                  style={{
+                    width: "100%",
+                    padding: "14px",
+                    background: selectedAns === null 
+                      ? (isDarkMode ? "rgba(255,255,255,0.05)" : "#f1f5f9")
+                      : "linear-gradient(135deg, var(--neon-orange), #ffb300)",
+                    border: "none",
+                    borderRadius: "10px",
+                    color: selectedAns === null 
+                      ? (isDarkMode ? "rgba(255,255,255,0.2)" : "#cbd5e1")
+                      : "#fff",
+                    fontWeight: "900",
+                    fontSize: "14px",
+                    cursor: selectedAns === null ? "default" : "pointer",
+                    letterSpacing: "0.5px",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  {currentIdx < quizData.postVideoQuestions.length - 1 ? "NEXT QUESTION" : "SUBMIT QUIZ"}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -1592,6 +2004,8 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
     ...(roadmap?.level1?.milestones || []),
     ...(roadmap?.level2?.milestones || []),
     ...(roadmap?.level3?.milestones || []),
+    ...(roadmap?.level4?.milestones || []),
+    ...(roadmap?.level5?.milestones || []),
   ];
 
   const completedCount = getAllMilestones().filter(m => m.status === "completed").length;
@@ -1603,6 +2017,7 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
     setRoadmap(prev => {
       const next = JSON.parse(JSON.stringify(prev));
       const allLevels = ["level1", "level2", "level3"];
+      if (next.level4) allLevels.push("level4", "level5");
 
       let found = false;
       let nextUnlocked = false;
@@ -1670,6 +2085,10 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
     { key: "level2", num: 2, color: "#f59e0b" },
     { key: "level3", num: 3, color: "#8b5cf6" },
   ];
+  if (roadmap.level4) {
+    levels.push({ key: "level4", num: 4, color: "#ec4899" });
+    levels.push({ key: "level5", num: 5, color: "#ef4444" });
+  }
 
   return (
     <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "32px 20px" }}>

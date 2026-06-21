@@ -5,7 +5,7 @@ import { parseMarkdownToHTML } from "../../utils/markdown";
 import RechargeOverlay from "./RechargeOverlay";
 
 
-export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl, onBack, onAddSoloXp }) {
+export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl, onBack, onAddSoloXp, onCodingModeChange }) {
   const [progress, setProgress] = useState(0);
   const [activeTab, setActiveTab] = useState("notes"); // notes, quiz
   const [notes, setNotes] = useState(null);
@@ -24,6 +24,209 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
   const [gradedAnswers, setGradedAnswers] = useState([]); // null, 'correct', 'incorrect' for each question
   const [earnedXp, setEarnedXp] = useState(0);
   const [quizScore, setQuizScore] = useState(0);
+  const [isQuizReady, setIsQuizReady] = useState(false);
+  const [quizError, setQuizError] = useState(false);
+  const quizDataRef = useRef(null);
+
+  const [currentCode, setCurrentCode] = useState("");
+  const [testResults, setTestResults] = useState(null);
+  const [consoleError, setConsoleError] = useState(null);
+
+  useEffect(() => {
+    if (onCodingModeChange) {
+      onCodingModeChange(activeTab === "quiz");
+    }
+  }, [activeTab, onCodingModeChange]);
+
+  useEffect(() => {
+    if (questions[currentQIdx]) {
+      if (questions[currentQIdx].type === "coding") {
+        setCurrentCode(questions[currentQIdx].starterCode || "");
+        setTestResults(null);
+        setConsoleError(null);
+      }
+    }
+  }, [currentQIdx, questions]);
+
+  const handleRunCode = () => {
+    sound.playClockTick();
+    const currentQ = questions[currentQIdx];
+    if (!currentQ || currentQ.type !== "coding") return;
+
+    try {
+      setConsoleError(null);
+      
+      // Try to dynamically match the function name if 'solve' isn't explicitly used
+      const functionNameMatch = currentCode.match(/function\s+([a-zA-Z_$][0-9a-zA-Z_$]*)\s*\(/);
+      const dynamicFuncName = functionNameMatch ? functionNameMatch[1] : null;
+
+      const solver = new Function(`
+        ${currentCode}
+        if (typeof solve === 'function') return solve;
+        if ('${dynamicFuncName}' && typeof window === 'undefined' && eval("typeof " + '${dynamicFuncName}') === 'function') return eval('${dynamicFuncName}');
+        
+        // Fallback checks
+        if (typeof checkDataType === 'function') return checkDataType;
+        if ('${dynamicFuncName}') {
+            try { return eval('${dynamicFuncName}'); } catch (e) {}
+        }
+        throw new Error("Could not find the function to execute. Please ensure your function is defined correctly.");
+      `)();
+
+      const results = [];
+      for (let tc of currentQ.testCases) {
+        let parsedInput;
+        if (tc.input === "undefined") {
+          parsedInput = undefined;
+        } else if (tc.input === "NaN") {
+          parsedInput = NaN;
+        } else {
+          try {
+            parsedInput = JSON.parse(tc.input);
+          } catch {
+            try {
+              parsedInput = new Function('return (' + tc.input + ')')();
+            } catch {
+              parsedInput = tc.input;
+            }
+          }
+        }
+
+        let parsedExpected;
+        if (tc.expected === "undefined") {
+          parsedExpected = undefined;
+        } else if (tc.expected === "NaN") {
+          parsedExpected = NaN;
+        } else {
+          try {
+            parsedExpected = JSON.parse(tc.expected);
+          } catch {
+            try {
+              parsedExpected = new Function('return (' + tc.expected + ')')();
+            } catch {
+              parsedExpected = tc.expected;
+            }
+          }
+        }
+
+        const got = solver(parsedInput);
+        const passed = JSON.stringify(got) === JSON.stringify(parsedExpected);
+        results.push({
+          input: tc.input,
+          expected: parsedExpected,
+          got: got,
+          passed
+        });
+      }
+
+      setTestResults(results);
+      
+      const allPassed = results.every(r => r.passed);
+      if (allPassed) {
+        sound.playCorrect();
+      } else {
+        sound.playIncorrect();
+      }
+    } catch (err) {
+      console.error("User Code Execution Error:", err);
+      setConsoleError(err.message);
+      sound.playIncorrect();
+    }
+  };
+
+  const handleSubmitCode = () => {
+    sound.playClockTick();
+    const currentQ = questions[currentQIdx];
+    if (!currentQ || currentQ.type !== "coding") return;
+
+    let results = [];
+    let allPassed = false;
+    try {
+      const functionNameMatch = currentCode.match(/function\s+([a-zA-Z_$][0-9a-zA-Z_$]*)\s*\(/);
+      const dynamicFuncName = functionNameMatch ? functionNameMatch[1] : null;
+
+      const solver = new Function(`
+        ${currentCode}
+        if (typeof solve === 'function') return solve;
+        if ('${dynamicFuncName}' && typeof window === 'undefined' && eval("typeof " + '${dynamicFuncName}') === 'function') return eval('${dynamicFuncName}');
+        
+        if (typeof checkDataType === 'function') return checkDataType;
+        if ('${dynamicFuncName}') {
+            try { return eval('${dynamicFuncName}'); } catch (e) {}
+        }
+        throw new Error("Could not find the function to execute. Please ensure your function is defined correctly.");
+      `)();
+
+      for (let tc of currentQ.testCases) {
+        let parsedInput;
+        if (tc.input === "undefined") {
+          parsedInput = undefined;
+        } else if (tc.input === "NaN") {
+          parsedInput = NaN;
+        } else {
+          try {
+            parsedInput = JSON.parse(tc.input);
+          } catch {
+            try {
+              parsedInput = new Function('return (' + tc.input + ')')();
+            } catch {
+              parsedInput = tc.input;
+            }
+          }
+        }
+
+        let parsedExpected;
+        if (tc.expected === "undefined") {
+          parsedExpected = undefined;
+        } else if (tc.expected === "NaN") {
+          parsedExpected = NaN;
+        } else {
+          try {
+            parsedExpected = JSON.parse(tc.expected);
+          } catch {
+            try {
+              parsedExpected = new Function('return (' + tc.expected + ')')();
+            } catch {
+              parsedExpected = tc.expected;
+            }
+          }
+        }
+
+        const got = solver(parsedInput);
+        const passed = JSON.stringify(got) === JSON.stringify(parsedExpected);
+        results.push({
+          input: tc.input,
+          expected: parsedExpected,
+          got: got,
+          passed
+        });
+      }
+
+      setTestResults(results);
+      allPassed = results.every(r => r.passed);
+    } catch (err) {
+      setConsoleError(err.message);
+      sound.playIncorrect();
+      return;
+    }
+
+    if (allPassed) {
+      setGradedAnswers(prev => {
+        const next = [...prev];
+        next[currentQIdx] = "correct";
+        return next;
+      });
+      setSelectedAnswers(prev => {
+        const next = [...prev];
+        next[currentQIdx] = "passed_code";
+        return next;
+      });
+      sound.playCorrect();
+    } else {
+      sound.playIncorrect();
+      setConsoleError("Submit Failed: Some test cases did not pass.");
+    }
+  };
 
   // ═══ Study Timer & Recharge ═══
   const RECHARGE_THRESHOLD = 1200; // 20 minutes in seconds
@@ -139,111 +342,103 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic, milestone, answers, noteStyle })
       });
+      
       const data = await res.json();
+      if (!res.ok || !data.notes) {
+        throw new Error(data.error || "Server failed to return valid notes");
+      }
+      
       clearInterval(logInterval);
       setNotes(data.notes);
       sound.playCorrect();
     } catch (err) {
       console.error("Notes generation failed:", err);
       clearInterval(logInterval);
-      const fallback = `## ${video.title}\n\nGenerated fallback notes for ${video.title} on channel ${video.channel}.\n\n### ⚡ Key Points\n- Understand core concepts presented.\n- Practice coding or application.\n- Prepare for the level up quiz.`;
-      setNotes(fallback);
+      setNotes(`## ❌ Generation Failed\n\nOops! We couldn't generate the study notes. The AI engine might have timed out or encountered an error.\n\n**Error Details:** ${err.message}\n\nPlease click the **Study Notes** tab again or refresh the page to retry.`);
     } finally {
       setLoadingNotes(false);
     }
   };
 
-  // Start Quiz
-  const handleStartQuiz = async () => {
-    setQuizState("loading");
-    sound.playClockTick();
+  // Generate quiz in background on mount
+  const generateQuizInBackground = useCallback(async (isMounted = true) => {
+    setQuizError(false);
     try {
+      const devKeywords = [
+        "developer", "engineer", "programming", "coding", "software", "web dev",
+        "frontend", "backend", "fullstack", "full stack", "javascript", "python",
+        "react", "node", "java", "c++", "c#", "rust", "go language", "golang", "devops",
+        "data science", "machine learning", "database", "sql", "html", "css", "git", "leet", "leetcode", "hacker", "hackerrank"
+      ];
+      const whyAnswer = answers.find(a => a.question.toLowerCase().includes("why") || a.question.toLowerCase().includes("dream"))?.answer || "";
+      const isDev = devKeywords.some(kw => 
+        topic.toLowerCase().includes(kw) || 
+        video.title.toLowerCase().includes(kw) || 
+        whyAnswer.toLowerCase().includes(kw)
+      );
+
+      const completedMilestones = savedRoadmap 
+        ? [
+            ...(savedRoadmap.level1?.milestones || []),
+            ...(savedRoadmap.level2?.milestones || []),
+            ...(savedRoadmap.level3?.milestones || [])
+          ]
+            .filter(m => m.status === "completed")
+            .map(m => m.title)
+        : [];
+
       const res = await fetch(`${backendUrl}/api/quiz/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           videoId: video.id,
           title: video.title,
-          duration: video.duration
+          duration: video.duration,
+          topic: topic,
+          why: whyAnswer,
+          isDeveloper: isDev,
+          completedMilestones: completedMilestones,
+          difficulty: savedRoadmap?.difficulty || "Medium",
+          devGoal: savedRoadmap?.devGoal || ""
         })
       });
       if (res.ok) {
         const quiz = await res.json();
+        if (isMounted) {
+          quizDataRef.current = quiz;
+          setIsQuizReady(true);
+        }
+      } else {
+        if (isMounted) setQuizError(true);
+      }
+    } catch (err) {
+      console.error("Background quiz generation failed:", err);
+      if (isMounted) setQuizError(true);
+    }
+  }, [backendUrl, video.id, video.title, video.duration, topic, answers, savedRoadmap]);
+
+  useEffect(() => {
+    let isMounted = true;
+    generateQuizInBackground(isMounted);
+    return () => { isMounted = false; };
+  }, [generateQuizInBackground]);
+
+  // Start Quiz
+  const handleStartQuiz = async () => {
+    if (!isQuizReady || !quizDataRef.current) return;
+    setQuizState("loading");
+    sound.playClockTick();
+    try {
+        const quiz = quizDataRef.current;
         setQuestions(quiz.postVideoQuestions || []);
         setSelectedAnswers(Array(quiz.postVideoQuestions?.length || 5).fill(null));
         setGradedAnswers(Array(quiz.postVideoQuestions?.length || 5).fill(null));
         setCurrentQIdx(0);
         setQuizState("active");
         sound.playMatchFound();
-      } else {
-        throw new Error("Failed to fetch quiz");
-      }
     } catch (err) {
-      console.error("Quiz fetch error, using fallbacks:", err);
-      // Fallback local quiz
-      const fallbackQs = [
-        {
-          question: `What was the primary focus of "${video.title}"?`,
-          options: [
-            "A detailed exploration of the subject matter",
-            "A random compilation of unrelated files",
-            "A sports tournament highlights video",
-            "A corporate advertisement campaign"
-          ],
-          answerIndex: 0,
-          points: 100
-        },
-        {
-          question: "Which strategy is most effective to retain knowledge from this video?",
-          options: [
-            "Playing it on mute while sleeping",
-            "Active watching, note-taking, and practicing exercises",
-            "Closing the browser tab after 5 seconds",
-            "Skimming through at 8x speed"
-          ],
-          answerIndex: 1,
-          points: 100
-        },
-        {
-          question: "If you have questions about the topics in the video, what should you do?",
-          options: [
-            "Ignore them and guess on the quiz",
-            "Read documentation, write test scripts, and verify concepts",
-            "Post angry comments on the video",
-            "Uninstall your code editor"
-          ],
-          answerIndex: 1,
-          points: 100
-        },
-        {
-          question: "Why are interactive quiz duels helpful for learning?",
-          options: [
-            "They test recall, reinforce active learning, and highlight knowledge gaps",
-            "They are purely for cosmetic points and vanity level badges",
-            "They make the computer run faster",
-            "They automatically write the code for you"
-          ],
-          answerIndex: 0,
-          points: 100
-        },
-        {
-          question: "What is the best way to master a new programming framework?",
-          options: [
-            "Watch a video once and consider it mastered",
-            "Build practical, hands-on projects and solve real challenges",
-            "Pay someone else to do your work",
-            "Memorize the syntax word-for-word without understanding"
-          ],
-          answerIndex: 1,
-          points: 100
-        }
-      ];
-      setQuestions(fallbackQs);
-      setSelectedAnswers(Array(5).fill(null));
-      setGradedAnswers(Array(5).fill(null));
-      setCurrentQIdx(0);
-      setQuizState("active");
-      sound.playMatchFound();
+      console.error("Quiz fetch error:", err);
+      setQuizError(true);
     }
   };
 
@@ -296,17 +491,116 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
     onBack();
   };
 
-  // Download Notes
+  // Download Notes as PDF
   const handleDownloadNotes = () => {
     sound.playClockTick();
-    const element = document.createElement("a");
-    const file = new Blob([notes], {type: 'text/plain'});
-    element.href = URL.createObjectURL(file);
-    element.download = `${video.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_study_guide.md`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    const printWindow = window.open('', '_blank');
+    const htmlContent = parseMarkdownToHTML(notes);
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${video.title.replace(/[^a-z0-9]/gi, '_')} - Study Guide</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;700;900&display=swap');
+            body {
+              font-family: 'Inter', sans-serif;
+              padding: 40px;
+              color: #0f172a;
+              line-height: 1.8;
+              font-size: 14px;
+            }
+            h1, h2, h3 {
+              font-family: 'Outfit', sans-serif;
+              font-weight: 900;
+              letter-spacing: -0.02em;
+              line-height: 1.2;
+              color: #ea580c;
+              border-bottom: 2px solid #ffedd5;
+              padding-bottom: 8px;
+              margin-top: 30px;
+            }
+            h1 { font-size: 28px; }
+            h2 { font-size: 22px; }
+            h3 { font-size: 18px; color: #f97316; border-bottom: none; }
+            code {
+              font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+              background: #f1f5f9;
+              padding: 2px 6px;
+              border-radius: 4px;
+              color: #ef4444;
+              font-size: 13px;
+            }
+            pre {
+              background: #0f172a;
+              color: #f8fafc;
+              padding: 16px;
+              border-radius: 12px;
+              overflow-x: auto;
+              border: 1px solid #1e293b;
+            }
+            pre code {
+              background: transparent;
+              color: #e2e8f0;
+              padding: 0;
+            }
+            blockquote {
+              border-left: 4px solid #ff6a00;
+              background: #fff7ed;
+              margin: 1.5em 0;
+              padding: 12px 20px;
+              border-radius: 0 8px 8px 0;
+              color: #475569;
+              font-style: italic;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 20px 0;
+            }
+            th, td {
+              border: 1px solid #e2e8f0;
+              padding: 12px;
+              text-align: left;
+            }
+            th {
+              background-color: #f8fafc;
+              font-weight: 700;
+              color: #0f172a;
+            }
+            ul, ol {
+              padding-left: 24px;
+            }
+            li {
+              margin-bottom: 8px;
+            }
+            a {
+              color: #ff6a00;
+              text-decoration: none;
+            }
+            @media print {
+              body { padding: 0; }
+              pre { white-space: pre-wrap; word-wrap: break-word; }
+            }
+          </style>
+        </head>
+        <body>
+          ${htmlContent}
+          <script>
+            window.onload = function() {
+              setTimeout(() => {
+                window.print();
+                window.close();
+              }, 250);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
+
+  const isCodingChallenge = activeTab === "quiz" && quizState === "active" && questions[currentQIdx]?.type === "coding";
 
   return (
     <div style={{
@@ -715,8 +1009,8 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
         
         {/* Left Side: Large Immersive Player */}
         <div style={{
-          width: isNotesExpanded ? "0%" : "55%",
-          display: isNotesExpanded ? "none" : "flex",
+          width: (isNotesExpanded || isCodingChallenge) ? "0%" : "55%",
+          display: (isNotesExpanded || isCodingChallenge) ? "none" : "flex",
           padding: "32px",
           flexDirection: "column",
           gap: "32px",
@@ -815,7 +1109,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
  
         {/* Right Side: Interactive Notes & Quizzes */}
         <div style={{
-          width: isNotesExpanded ? "100%" : "45%",
+          width: (isNotesExpanded || isCodingChallenge) ? "100%" : "45%",
           display: "flex",
           flexDirection: "column",
           background: isDarkMode ? "rgba(13, 8, 5, 0.85)" : "rgba(255, 255, 255, 0.85)",
@@ -1038,7 +1332,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                         onMouseOver={e => e.currentTarget.style.background = isDarkMode ? "rgba(255,255,255,0.1)" : "#f1f5f9"}
                         onMouseOut={e => e.currentTarget.style.background = isDarkMode ? "rgba(255,255,255,0.05)" : "#ffffff"}
                       >
-                        📥 Download Notes (.md)
+                        📥 Download Notes (.pdf)
                       </button>
                     </div>
                     <div 
@@ -1261,6 +1555,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                     </p>
                     <button
                       onClick={handleStartQuiz}
+                      disabled={!isQuizReady}
                       style={{
                         padding: "16px 36px",
                         borderRadius: "14px",
@@ -1269,16 +1564,27 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                         color: "#ffffff",
                         fontWeight: "900",
                         fontSize: "14.5px",
-                        cursor: "pointer",
-                        boxShadow: "0 6px 20px rgba(16,185,129,0.35)",
+                        cursor: isQuizReady ? "pointer" : "not-allowed",
+                        boxShadow: isQuizReady ? "0 6px 20px rgba(16,185,129,0.35)" : "none",
                         textTransform: "uppercase",
                         letterSpacing: "0.5px",
-                        transition: "all 0.2s"
+                        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                        opacity: isQuizReady ? 1 : 0.5
                       }}
-                      onMouseOver={e => e.currentTarget.style.transform = "translateY(-1px)"}
-                      onMouseOut={e => e.currentTarget.style.transform = "none"}
+                      onMouseOver={e => {
+                        if (!isQuizReady) return;
+                        e.currentTarget.style.transform = "translateY(-2px)";
+                        e.currentTarget.style.boxShadow = "0 8px 24px rgba(16,185,129,0.55)";
+                        e.currentTarget.style.filter = "brightness(1.05)";
+                      }}
+                      onMouseOut={e => {
+                        if (!isQuizReady) return;
+                        e.currentTarget.style.transform = "none";
+                        e.currentTarget.style.boxShadow = "0 6px 20px rgba(16,185,129,0.35)";
+                        e.currentTarget.style.filter = "none";
+                      }}
                     >
-                      ⚔️ Start Level Up Quiz
+                      {isQuizReady ? "⚔️ START PRACTICE PHASE" : "⏳ GENERATING QUIZ..."}
                     </button>
                   </div>
                 )}
@@ -1313,136 +1619,353 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
 
                 {/* 2d. Active Quiz Mode */}
                 {quizState === "active" && questions.length > 0 && (
-                  <div style={{ display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
                     
-                    <div>
-                      {/* Progress header */}
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                        <span style={{ fontSize: "12px", fontWeight: "900", color: "#10b981", textTransform: "uppercase", letterSpacing: "1.5px" }}>
-                          QUESTION {currentQIdx + 1} OF {questions.length}
-                        </span>
-                        <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: "700" }}>
-                          📚 Solo Quiz
-                        </span>
-                      </div>
-
-                      {/* Question card */}
-                      <div style={{
-                        background: isDarkMode ? "#1e293b" : "#f8fafc",
-                        border: isDarkMode ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0",
-                        borderRadius: "16px",
-                        padding: "24px",
-                        marginBottom: "24px",
-                        lineHeight: "1.5",
-                        fontSize: "15.5px",
-                        fontWeight: "750"
-                      }}>
-                        {questions[currentQIdx].question}
-                      </div>
-
-                      {/* Options Grid */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                        {questions[currentQIdx].options.map((opt, optIdx) => {
-                          const isSelected = selectedAnswers[currentQIdx] === optIdx;
-                          const correctIdx = questions[currentQIdx].answerIndex;
-                          const wasGraded = gradedAnswers[currentQIdx] !== null;
-
-                          let btnBg = isDarkMode ? "rgba(255,255,255,0.03)" : "#ffffff";
-                          let btnBorder = isDarkMode ? "1.5px solid rgba(255,255,255,0.08)" : "1.5px solid #cbd5e1";
-                          let btnColor = "var(--text-light)";
-
-                          if (wasGraded) {
-                            if (optIdx === correctIdx) {
-                              // Correct answer glow
-                              btnBg = "rgba(16,185,129,0.12)";
-                              btnBorder = "1.5px solid #10b981";
-                              btnColor = "#10b981";
-                            } else if (isSelected) {
-                              // Incorrect selected answer red glow
-                              btnBg = "rgba(239, 68, 68, 0.12)";
-                              btnBorder = "1.5px solid #ef4444";
-                              btnColor = "#ef4444";
-                            } else {
-                              btnBg = isDarkMode ? "rgba(255,255,255,0.01)" : "#f8fafc";
-                              btnBorder = isDarkMode ? "1.5px solid rgba(255,255,255,0.03)" : "1.5px solid #e2e8f0";
-                              btnColor = "var(--text-muted)";
-                            }
-                          }
-
-                          return (
-                            <button
-                              key={optIdx}
-                              disabled={wasGraded}
-                              onClick={() => handleSelectOption(optIdx)}
-                              style={{
-                                width: "100%",
-                                padding: "16px 20px",
-                                borderRadius: "12px",
-                                background: btnBg,
-                                border: btnBorder,
-                                color: btnColor,
-                                fontSize: "14px",
-                                fontWeight: "700",
-                                textAlign: "left",
-                                cursor: wasGraded ? "default" : "pointer",
-                                transition: "all 0.15s",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "12px"
-                              }}
-                              onMouseOver={e => {
-                                if (!wasGraded) {
-                                  e.currentTarget.style.borderColor = "#10b981";
-                                  e.currentTarget.style.background = isDarkMode ? "rgba(16,185,129,0.06)" : "#f0fdf4";
-                                }
-                              }}
-                              onMouseOut={e => {
-                                if (!wasGraded) {
-                                  e.currentTarget.style.borderColor = isDarkMode ? "rgba(255,255,255,0.08)" : "#cbd5e1";
-                                  e.currentTarget.style.background = btnBg;
-                                }
-                              }}
-                            >
-                              <span style={{
-                                width: "24px", height: "24px",
-                                borderRadius: "50%",
-                                background: isSelected ? "#10b981" : (isDarkMode ? "rgba(255,255,255,0.06)" : "#f1f5f9"),
-                                border: "1px solid #cbd5e1",
-                                color: isSelected ? "#fff" : "var(--text-muted)",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                fontSize: "11px", fontWeight: "900", flexShrink: 0
-                              }}>
-                                {String.fromCharCode(65 + optIdx)}
-                              </span>
-                              <span>{opt}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                    {/* Progress header */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexShrink: 0 }}>
+                      <span style={{ fontSize: "12px", fontWeight: "900", color: "#10b981", textTransform: "uppercase", letterSpacing: "1.5px" }}>
+                        QUESTION {currentQIdx + 1} OF {questions.length}
+                      </span>
+                      <span style={{ fontSize: "11.5px", color: "#ff6a00", fontWeight: "900", fontFamily: "'Outfit', sans-serif", letterSpacing: "0.5px" }}>
+                        {questions[currentQIdx].type === "coding" ? "💻 CODING WORKSTATION" : "📚 CONCEPTUAL CHECK"}
+                      </span>
                     </div>
 
-                    {/* Bottom Action (Next Q / Submit) */}
-                    {gradedAnswers[currentQIdx] !== null && (
-                      <div style={{ marginTop: "24px" }}>
-                        <button
-                          onClick={handleNextQ}
-                          style={{
-                            width: "100%",
-                            padding: "16px",
-                            borderRadius: "12px",
-                            border: "none",
-                            background: "linear-gradient(135deg, #10b981, #059669)",
-                            color: "#ffffff",
-                            fontWeight: "800",
-                            fontSize: "14.5px",
-                            cursor: "pointer",
-                            boxShadow: "0 6px 18px rgba(16,185,129,0.25)",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px"
-                          }}
-                        >
-                          {currentQIdx < questions.length - 1 ? "Next Question →" : "Submit Quiz & Score"}
-                        </button>
+                    {questions[currentQIdx].type === "coding" ? (
+                      /* LeetCode splitscreen coding sandbox */
+                      <div style={{ display: "flex", flex: 1, overflow: "hidden", gap: "24px", minHeight: "450px" }}>
+                        
+                        {/* Left Half: Problem details & Test Cases */}
+                        <div style={{
+                          width: "50%",
+                          background: isDarkMode ? "rgba(15, 10, 5, 0.4)" : "#ffffff",
+                          borderRight: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid #cbd5e1",
+                          paddingRight: "20px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "18px",
+                          overflowY: "auto"
+                        }} className="custom-scrollbar">
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                              <h2 style={{ fontSize: "20px", fontWeight: "900", fontFamily: "'Outfit', sans-serif" }}>
+                                {questions[currentQIdx].title}
+                              </h2>
+                              <span style={{
+                                fontSize: "11px",
+                                fontWeight: "800",
+                                padding: "4px 8px",
+                                borderRadius: "6px",
+                                textTransform: "uppercase",
+                                background: questions[currentQIdx].difficulty === "Easy" ? "rgba(16, 185, 129, 0.15)" : questions[currentQIdx].difficulty === "Hard" ? "rgba(239, 68, 68, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                                color: questions[currentQIdx].difficulty === "Easy" ? "#10b981" : questions[currentQIdx].difficulty === "Hard" ? "#ef4444" : "#f59e0b"
+                              }}>
+                                {questions[currentQIdx].difficulty}
+                              </span>
+                            </div>
+                            
+                            <div 
+                              style={{ fontSize: "14px", lineHeight: "1.6", textAlign: "left", opacity: 0.9 }}
+                              dangerouslySetInnerHTML={{ __html: parseMarkdownToHTML(questions[currentQIdx].question) }}
+                            />
+                          </div>
+
+                          {/* Test Cases Panel */}
+                          <div style={{ marginTop: "12px" }}>
+                            <h3 style={{ fontSize: "14px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", color: isDarkMode ? "#ffb300" : "#ea580c", marginBottom: "10px" }}>
+                              Test Cases
+                            </h3>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                              {questions[currentQIdx].testCases.map((tc, tcIdx) => {
+                                const result = testResults ? testResults[tcIdx] : null;
+                                return (
+                                  <div key={tcIdx} style={{
+                                    padding: "12px",
+                                    borderRadius: "8px",
+                                    background: isDarkMode ? "rgba(255, 255, 255, 0.02)" : "#f8fafc",
+                                    border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.05)" : "1px solid #cbd5e1",
+                                    fontSize: "12.5px"
+                                  }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                                      <span style={{ fontWeight: "700", color: "var(--text-muted)" }}>Case {tcIdx + 1}</span>
+                                      {result && (
+                                        <span style={{ fontWeight: "800", color: result.passed ? "#10b981" : "#ef4444" }}>
+                                          {result.passed ? "✅ Passed" : "❌ Failed"}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontFamily: "monospace" }}>
+                                      <div><span style={{ color: "#a78bfa" }}>Input:</span> {tc.input}</div>
+                                      <div><span style={{ color: "#38bdf8" }}>Expected:</span> {JSON.stringify(result ? result.expected : tc.expected)}</div>
+                                      {result && !result.passed && (
+                                        <div style={{ color: "#f87171" }}><span style={{ color: "#f87171" }}>Got:</span> {JSON.stringify(result.got)}</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right Half: Monospace Code Editor & Controls */}
+                        <div style={{
+                          width: "50%",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "16px"
+                        }}>
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "260px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", fontSize: "11px", color: "var(--text-muted)", fontWeight: "700" }}>
+                              <span>JAVASCRIPT EDITOR</span>
+                              <span>solve(input)</span>
+                            </div>
+                            
+                            <textarea
+                              value={currentCode}
+                              onChange={(e) => setCurrentCode(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Tab') {
+                                  e.preventDefault();
+                                  const { selectionStart, selectionEnd, value } = e.target;
+                                  const newValue = value.substring(0, selectionStart) + "  " + value.substring(selectionEnd);
+                                  setCurrentCode(newValue);
+                                  setTimeout(() => {
+                                    e.target.selectionStart = e.target.selectionEnd = selectionStart + 2;
+                                  }, 0);
+                                }
+                              }}
+                              placeholder="Write your code here..."
+                              style={{
+                                width: "100%",
+                                flex: 1,
+                                backgroundColor: "#090d16",
+                                color: "#38bdf8",
+                                fontFamily: "'Fira Code', 'Courier New', monospace",
+                                fontSize: "13.5px",
+                                lineHeight: "1.6",
+                                padding: "16px",
+                                border: "1px solid rgba(255, 106, 0, 0.3)",
+                                borderRadius: "12px",
+                                outline: "none",
+                                resize: "none"
+                              }}
+                            />
+                          </div>
+
+                          {/* Control Buttons */}
+                          <div style={{ display: "flex", gap: "12px" }}>
+                            <button
+                              onClick={handleRunCode}
+                              style={{
+                                flex: 1,
+                                padding: "12px",
+                                borderRadius: "10px",
+                                border: "1.5px solid #ff6a00",
+                                background: "transparent",
+                                color: "#ff6a00",
+                                fontWeight: "800",
+                                cursor: "pointer",
+                                transition: "all 0.2s",
+                                clipPath: "polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%)"
+                              }}
+                              onMouseOver={e => e.currentTarget.style.background = "rgba(255, 106, 0, 0.08)"}
+                              onMouseOut={e => e.currentTarget.style.background = "transparent"}
+                            >
+                              ▶ Run Code
+                            </button>
+                            <button
+                              onClick={handleSubmitCode}
+                              style={{
+                                flex: 1,
+                                padding: "12px",
+                                borderRadius: "10px",
+                                border: "none",
+                                background: "linear-gradient(135deg, #10b981, #059669)",
+                                color: "#ffffff",
+                                fontWeight: "900",
+                                cursor: "pointer",
+                                transition: "all 0.2s",
+                                clipPath: "polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%)"
+                              }}
+                              onMouseOver={e => e.currentTarget.style.filter = "brightness(1.1)"}
+                              onMouseOut={e => e.currentTarget.style.filter = "none"}
+                            >
+                              🚀 Submit Solution
+                            </button>
+                          </div>
+
+                          {/* Console / Feedback Box */}
+                          <div style={{
+                            height: "100px",
+                            backgroundColor: isDarkMode ? "#1e293b" : "#f1f5f9",
+                            border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #cbd5e1",
+                            borderRadius: "10px",
+                            padding: "12px",
+                            fontSize: "12.5px",
+                            fontFamily: "monospace",
+                            overflowY: "auto",
+                            textAlign: "left"
+                          }} className="custom-scrollbar">
+                            <div style={{ color: "var(--text-muted)", fontWeight: "700", marginBottom: "4px" }}>Console Output:</div>
+                            {consoleError ? (
+                              <div style={{ color: "#f87171" }}>{consoleError}</div>
+                            ) : testResults && testResults.every(r => r.passed) ? (
+                              <div style={{ color: "#34d399" }}>🎉 All test cases passed! Submit your solution to proceed.</div>
+                            ) : testResults ? (
+                              <div style={{ color: "#fb7185" }}>❌ Output mismatch. Some test cases failed.</div>
+                            ) : (
+                              <div style={{ color: "var(--text-muted)" }}>Write code and click 'Run Code' or 'Submit Solution' to test.</div>
+                            )}
+                          </div>
+
+                          {/* Next Question Navigation */}
+                          {gradedAnswers[currentQIdx] === "correct" && (
+                            <button
+                              onClick={handleNextQ}
+                              style={{
+                                padding: "14px",
+                                borderRadius: "12px",
+                                border: "none",
+                                background: "linear-gradient(135deg, #ffd700, #ff8c00)",
+                                color: "#0f172a",
+                                fontWeight: "900",
+                                cursor: "pointer",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.5px"
+                              }}
+                            >
+                              {currentQIdx < questions.length - 1 ? "Next Challenge →" : "Claim Victory & Complete Quiz"}
+                            </button>
+                          )}
+                        </div>
+
+                      </div>
+                    ) : (
+                      /* Standard MCQ Layout */
+                      <div style={{ display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between" }}>
+                        
+                        <div>
+                          {/* Question card */}
+                          <div style={{
+                            background: isDarkMode ? "#1e293b" : "#f8fafc",
+                            border: isDarkMode ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0",
+                            borderRadius: "16px",
+                            padding: "24px",
+                            marginBottom: "24px",
+                            lineHeight: "1.5",
+                            fontSize: "15.5px",
+                            fontWeight: "750"
+                          }}>
+                            {questions[currentQIdx].question}
+                          </div>
+
+                          {/* Options Grid */}
+                          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                            {questions[currentQIdx].options.map((opt, optIdx) => {
+                              const isSelected = selectedAnswers[currentQIdx] === optIdx;
+                              const correctIdx = questions[currentQIdx].answerIndex;
+                              const wasGraded = gradedAnswers[currentQIdx] !== null;
+
+                              let btnBg = isDarkMode ? "rgba(255,255,255,0.03)" : "#ffffff";
+                              let btnBorder = isDarkMode ? "1.5px solid rgba(255,255,255,0.08)" : "1.5px solid #cbd5e1";
+                              let btnColor = "var(--text-light)";
+
+                              if (wasGraded) {
+                                if (optIdx === correctIdx) {
+                                  // Correct answer glow
+                                  btnBg = "rgba(16,185,129,0.12)";
+                                  btnBorder = "1.5px solid #10b981";
+                                  btnColor = "#10b981";
+                                } else if (isSelected) {
+                                  // Incorrect selected answer red glow
+                                  btnBg = "rgba(239, 68, 68, 0.12)";
+                                  btnBorder = "1.5px solid #ef4444";
+                                  btnColor = "#ef4444";
+                                } else {
+                                  btnBg = isDarkMode ? "rgba(255,255,255,0.01)" : "#f8fafc";
+                                  btnBorder = isDarkMode ? "1.5px solid rgba(255,255,255,0.03)" : "1.5px solid #e2e8f0";
+                                  btnColor = "var(--text-muted)";
+                                }
+                              }
+
+                              return (
+                                <button
+                                  key={optIdx}
+                                  disabled={wasGraded}
+                                  onClick={() => handleSelectOption(optIdx)}
+                                  style={{
+                                    width: "100%",
+                                    padding: "16px 20px",
+                                    borderRadius: "12px",
+                                    background: btnBg,
+                                    border: btnBorder,
+                                    color: btnColor,
+                                    fontSize: "14px",
+                                    fontWeight: "700",
+                                    textAlign: "left",
+                                    cursor: wasGraded ? "default" : "pointer",
+                                    transition: "all 0.15s",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "12px"
+                                  }}
+                                  onMouseOver={e => {
+                                    if (!wasGraded) {
+                                      e.currentTarget.style.borderColor = "#10b981";
+                                      e.currentTarget.style.background = isDarkMode ? "rgba(16,185,129,0.06)" : "#f0fdf4";
+                                    }
+                                  }}
+                                  onMouseOut={e => {
+                                    if (!wasGraded) {
+                                      e.currentTarget.style.borderColor = isDarkMode ? "rgba(255,255,255,0.08)" : "#cbd5e1";
+                                      e.currentTarget.style.background = btnBg;
+                                    }
+                                  }}
+                                >
+                                  <span style={{
+                                    width: "24px", height: "24px",
+                                    borderRadius: "50%",
+                                    background: isSelected ? "#10b981" : (isDarkMode ? "rgba(255,255,255,0.06)" : "#f1f5f9"),
+                                    border: "1px solid #cbd5e1",
+                                    color: isSelected ? "#fff" : "var(--text-muted)",
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    fontSize: "11px", fontWeight: "900", flexShrink: 0
+                                  }}>
+                                    {String.fromCharCode(65 + optIdx)}
+                                  </span>
+                                  <span>{opt}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Bottom Action (Next Q / Submit) */}
+                        {gradedAnswers[currentQIdx] !== null && (
+                          <div style={{ marginTop: "24px" }}>
+                            <button
+                              onClick={handleNextQ}
+                              style={{
+                                width: "100%",
+                                padding: "16px",
+                                borderRadius: "12px",
+                                border: "none",
+                                background: "linear-gradient(135deg, #10b981, #059669)",
+                                color: "#ffffff",
+                                fontWeight: "800",
+                                fontSize: "14.5px",
+                                cursor: "pointer",
+                                boxShadow: "0 6px 18px rgba(16,185,129,0.25)",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.5px"
+                              }}
+                            >
+                              {currentQIdx < questions.length - 1 ? "Next Question →" : "Submit Quiz & Score"}
+                            </button>
+                          </div>
+                        )}
+
                       </div>
                     )}
 

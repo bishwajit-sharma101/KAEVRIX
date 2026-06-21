@@ -153,3 +153,16 @@ updateBossModal2.js
 inject.js
 server/createDummyUsers.js
 
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS Files
+.DS_Store
+Thumbs.db
+

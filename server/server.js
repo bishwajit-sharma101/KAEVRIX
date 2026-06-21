@@ -44,3 +44,4 @@ connectDB().then(() => {
     console.log(`========================================`);
   });
 });
+// Trigger nodemon watch reload v2

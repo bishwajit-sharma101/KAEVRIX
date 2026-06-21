@@ -733,6 +733,10 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
   const profileEffect = profile?.cosmetics?.profileEffect;
   const avatarFrame = profile?.cosmetics?.avatarFrame;
 
+  const savedRoadmapStr = localStorage.getItem(`kaevrix_roadmap_progress_${username}`);
+  const savedRoadmap = savedRoadmapStr ? JSON.parse(savedRoadmapStr) : null;
+  const isHellMode = savedRoadmap?.difficulty === "Hell";
+
   useEffect(() => {
     fetchProfile();
   }, [username]);
@@ -1917,6 +1921,12 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
               <span style={{ fontSize: "14px", fontWeight: "800", color: "var(--neon-orange)", letterSpacing: "1px", textTransform: "uppercase" }}>Combatant Class</span>
               <span style={{ color: "var(--text-muted)", fontSize: "14px" }}>|</span>
               <span style={{ fontSize: "14px", fontWeight: "600", color: "var(--text-muted)" }}>Global Rank <strong style={{ color: "var(--text-light)" }}>{level}</strong></span>
+              {(isHellMode || localStorage.getItem("hellMode") === "true") && (
+                <>
+                  <span style={{ color: "var(--text-muted)", fontSize: "14px" }}>|</span>
+                  <span style={{ fontSize: "12px", fontWeight: "800", color: "#ef4444", border: "1px solid #ef4444", padding: "2px 8px", borderRadius: "12px", background: "rgba(239, 68, 68, 0.1)", letterSpacing: "1px" }}>🔥 HELL MODE</span>
+                </>
+              )}
             </div>
           </div>
 

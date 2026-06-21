@@ -244,7 +244,136 @@ export default function PathfinderScheduler({
     }
   }, [completedToday, dailyTarget, todayDateStr, username, schedule]);
 
-  if (!roadmap || !schedule) return null;
+  if (!roadmap) {
+    return (
+      <div style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "80px 24px",
+        textAlign: "center",
+        width: "100%",
+        maxWidth: "700px",
+        margin: "0 auto"
+      }}>
+        {/* Top Pill Tag */}
+        <div style={{
+          background: "rgba(255, 106, 0, 0.07)",
+          border: "1px solid rgba(255, 106, 0, 0.35)",
+          padding: "6px 16px",
+          borderRadius: "20px",
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          marginBottom: "24px"
+        }}>
+          <span style={{ fontSize: "12px" }}>⏱️</span>
+          <span style={{
+            fontFamily: "var(--font-gamer), 'Orbitron', monospace",
+            fontSize: "11px",
+            fontWeight: "900",
+            letterSpacing: "1.5px",
+            color: "#ff6a00",
+            textTransform: "uppercase"
+          }}>CHRONOS REACTOR</span>
+        </div>
+
+        {/* Big Premium Gaming Text Title */}
+        <h2 style={{
+          fontFamily: "var(--font-gamer), 'Orbitron', monospace",
+          fontSize: "56px",
+          fontWeight: "900",
+          lineHeight: "1.05",
+          letterSpacing: "3px",
+          margin: "0 0 24px 0",
+          textTransform: "uppercase",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center"
+        }}>
+          <span style={{ color: isDarkMode ? "#ffffff" : "#0f172a", marginBottom: "4px" }}>CHRONOS</span>
+          <span style={{
+            background: "linear-gradient(to right, #ff6a00, #ffb300)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text"
+          }}>TIMELINE</span>
+        </h2>
+
+        {/* Description Subtext */}
+        <p style={{
+          fontFamily: "var(--font-sans), system-ui, sans-serif",
+          fontSize: "14.5px",
+          color: isDarkMode ? "rgba(255, 255, 255, 0.55)" : "var(--text-muted)",
+          lineHeight: "1.65",
+          maxWidth: "520px",
+          margin: "0 0 24px 0",
+          fontWeight: "400"
+        }}>
+          Sync your study schedule and calibrate tracking directives. Set daily target metrics, monitor your progress velocity, and unlock chronological XP streaks.
+        </p>
+
+        {/* Small Specs Row */}
+        <div style={{
+          fontFamily: "var(--font-gamer), 'Orbitron', monospace",
+          fontSize: "10.5px",
+          fontWeight: "900",
+          color: isDarkMode ? "rgba(255, 255, 255, 0.35)" : "var(--text-muted)",
+          letterSpacing: "1.5px",
+          textTransform: "uppercase",
+          display: "flex",
+          gap: "12px",
+          alignItems: "center",
+          marginBottom: "40px"
+        }}>
+          <span>DAILY TARGETS</span>
+          <span>•</span>
+          <span>VELOCITY MATRIX</span>
+          <span>•</span>
+          <span>XP BOOSTERS</span>
+        </div>
+
+        {/* Outline Glow Button */}
+        <button
+          onClick={() => {
+            sound.playClockTick();
+            if (onSelectMilestone) onSelectMilestone(null);
+          }}
+          style={{
+            position: "relative",
+            padding: "16px 44px",
+            fontSize: "14px",
+            fontWeight: "900",
+            fontFamily: "var(--font-gamer), 'Orbitron', monospace",
+            color: "#ff6a00",
+            background: isDarkMode ? "rgba(255, 106, 0, 0.02)" : "rgba(255, 106, 0, 0.05)",
+            border: "2px solid #ff6a00",
+            borderRadius: "15px",
+            cursor: "pointer",
+            boxShadow: "0 0 20px rgba(255, 106, 0, 0.25), inset 0 0 10px rgba(255, 106, 0, 0.1)",
+            textTransform: "uppercase",
+            letterSpacing: "1.5px",
+            transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px) scale(1.02)";
+            e.currentTarget.style.boxShadow = "0 0 35px rgba(255, 106, 0, 0.65), inset 0 0 15px rgba(255, 106, 0, 0.25)";
+            e.currentTarget.style.background = "rgba(255, 106, 0, 0.08)";
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = "none";
+            e.currentTarget.style.boxShadow = "0 0 20px rgba(255, 106, 0, 0.25), inset 0 0 10px rgba(255, 106, 0, 0.1)";
+            e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.02)" : "rgba(255, 106, 0, 0.05)";
+          }}
+        >
+          Initialize Chronos &nbsp;→
+        </button>
+      </div>
+    );
+  }
+
+  if (!schedule) return null;
 
   const getCompletedDates = () => {
     const completedDatesKey = `kaevrix_completed_dates_${username}`;
@@ -647,6 +776,18 @@ export default function PathfinderScheduler({
       )}
 
       <style>{`
+        @keyframes scanline {
+          0% { top: 0%; }
+          100% { top: 100%; }
+        }
+        @keyframes pulseBorder {
+          0%, 100% { border-color: rgba(255, 106, 0, 0.35); box-shadow: ${isDarkMode ? "0 24px 64px rgba(0, 0, 0, 0.7), 0 0 30px rgba(255, 106, 0, 0.1)" : "0 24px 64px rgba(0,0,0,0.06)"}; }
+          50% { border-color: rgba(255, 106, 0, 0.75); box-shadow: ${isDarkMode ? "0 24px 64px rgba(0, 0, 0, 0.7), 0 0 45px rgba(255, 106, 0, 0.25)" : "0 24px 64px rgba(0,0,0,0.08)"}; }
+        }
+        @keyframes techBlink {
+          0%, 100% { opacity: 0.45; }
+          50% { opacity: 0.95; }
+        }
         @keyframes gracePulse {
           0%, 100% { opacity: 0.85; transform: scale(1); filter: brightness(1); }
           50% { opacity: 1; transform: scale(1.03); filter: brightness(1.2); }
@@ -729,6 +870,53 @@ export default function PathfinderScheduler({
           border-left-color: #ff6a00;
           padding-left: 28px;
         }
+        .hud-panel-wrapper {
+          position: relative;
+          padding: 20px;
+          background: ${isDarkMode ? "rgba(255, 255, 255, 0.005)" : "rgba(0, 0, 0, 0.003)"};
+          border: 1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.03)"};
+          border-radius: 12px;
+          transition: border-color 0.3s ease;
+        }
+        .hud-panel-wrapper:hover {
+          border-color: ${isDarkMode ? "rgba(255, 106, 0, 0.15)" : "rgba(255, 106, 0, 0.15)"};
+        }
+        .hud-corner-bracket {
+          position: absolute;
+          width: 8px;
+          height: 8px;
+          border-color: #ff6a00;
+          border-style: solid;
+          opacity: 0.35;
+          pointer-events: none;
+          transition: all 0.3s ease;
+        }
+        .hud-panel-wrapper:hover .hud-corner-bracket {
+          opacity: 0.85;
+          filter: drop-shadow(0 0 4px #ff6a00);
+        }
+        .hud-bracket-tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+        .hud-bracket-tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+        .hud-bracket-bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+        .hud-bracket-br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+        
+        .pulsing-dot {
+          display: inline-block;
+          width: 6px;
+          height: 6px;
+          background: #10b981;
+          border-radius: 50%;
+          box-shadow: 0 0 8px #10b981;
+          animation: pulseDot 2s infinite ease-in-out;
+        }
+        @keyframes pulseDot {
+          0%, 100% { opacity: 0.4; transform: scale(0.9); }
+          50% { opacity: 1; transform: scale(1.3); }
+        }
+        @keyframes redGlowPulse {
+          0%, 100% { opacity: 0.85; filter: brightness(1); box-shadow: 0 0 10px rgba(239, 68, 68, 0.65), inset 0 1px 1px rgba(255,255,255,0.2); }
+          50% { opacity: 1; filter: brightness(1.25); box-shadow: 0 0 20px rgba(239, 68, 68, 0.95), inset 0 1px 1px rgba(255,255,255,0.35); }
+        }
       `}</style>
 
       {/* 3. Main Dashboard: Bar Chart (Focus) + Telemetry Stack (Sidebar) */}
@@ -740,15 +928,31 @@ export default function PathfinderScheduler({
         marginBottom: "40px" 
       }}>
         
-        {/* Left/Center Area: Focus Bar Chart */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
+        {/* Left/Center Area: Focus Bar Chart wrapped in HUD corners panel */}
+        <div className="hud-panel-wrapper" style={{ display: "flex", flexDirection: "column", gap: "16px", flex: 1 }}>
+          <div className="hud-corner-bracket hud-bracket-tl" />
+          <div className="hud-corner-bracket hud-bracket-tr" />
+          <div className="hud-corner-bracket hud-bracket-bl" />
+          <div className="hud-corner-bracket hud-bracket-br" />
+
+          {/* High-tech Header */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.05)", paddingBottom: "10px", marginBottom: "8px" }}>
+            <span style={{ fontSize: "10px", fontWeight: "900", color: "#ff6a00", letterSpacing: "1.5px", textTransform: "uppercase" }}>
+              📊 TIMELINE CHRONOS SYNC MATRIX
+            </span>
+            <span style={{ fontSize: "9px", color: "var(--neon-green)", display: "flex", alignItems: "center", gap: "6px", fontWeight: "900", letterSpacing: "1px" }}>
+              <span className="pulsing-dot" />
+              SYSTEM ACTIVE
+            </span>
+          </div>
+
           {/* Adaptive Vertical Bar Chart (Enlarged Premium Grid) */}
           <div style={{ 
             display: "flex", 
             alignItems: "flex-end", // Align columns directly to the bottom of the container
             justifyContent: "space-between", 
             minHeight: "320px", // Increased to push baseline down to align with the 4th telemetry card
-            padding: "24px 20px 0px 20px", // No bottom padding so bars touch the line!
+            padding: "16px 10px 0px 10px", // No bottom padding so bars touch the line!
             background: isDarkMode 
               ? "repeating-linear-gradient(0deg, transparent, transparent 33px, rgba(255,255,255,0.025) 33px, rgba(255,255,255,0.025) 34px)" 
               : "repeating-linear-gradient(0deg, transparent, transparent 33px, rgba(0,0,0,0.025) 33px, rgba(0,0,0,0.025) 34px)",
@@ -797,13 +1001,26 @@ export default function PathfinderScheduler({
                       };
 
                       if (cell.isOverdrive) {
-                        cellStyle = {
-                          ...cellStyle,
-                          background: "linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)",
-                          boxShadow: "0 0 14px rgba(124,58,237,0.65), inset 0 1px 1px rgba(255,255,255,0.2)",
-                          border: "none",
-                          animation: "gracePulse 2s infinite ease-in-out"
-                        };
+                        const overdriveIdx = cIdx - target;
+                        if (overdriveIdx >= 2) {
+                          // Glowing Red (Nuclear Overdrive)
+                          cellStyle = {
+                            ...cellStyle,
+                            background: "linear-gradient(135deg, #f87171 0%, #ef4444 100%)",
+                            boxShadow: "0 0 16px rgba(239,68,68,0.75), inset 0 1px 1px rgba(255,255,255,0.3)",
+                            border: "none",
+                            animation: "redGlowPulse 1.5s infinite ease-in-out"
+                          };
+                        } else {
+                          // Violet
+                          cellStyle = {
+                            ...cellStyle,
+                            background: "linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)",
+                            boxShadow: "0 0 14px rgba(124,58,237,0.65), inset 0 1px 1px rgba(255,255,255,0.2)",
+                            border: "none",
+                            animation: "gracePulse 2s infinite ease-in-out"
+                          };
+                        }
                       } else if (cell.isCompleted) {
                         cellStyle = {
                           ...cellStyle,
@@ -846,7 +1063,7 @@ export default function PathfinderScheduler({
           <div style={{
             display: "flex",
             justifyContent: "space-between",
-            padding: "8px 20px 0 20px"
+            padding: "8px 10px 0 10px"
           }}>
             {chartData.map((item, idx) => (
               <div 
@@ -870,14 +1087,31 @@ export default function PathfinderScheduler({
               </div>
             ))}
           </div>
+
+          {/* Extra High-tech coordinate label to fill the bottom layout space */}
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "8px", color: "var(--text-muted)", letterSpacing: "1px", marginTop: "8px", borderTop: isDarkMode ? "1px solid rgba(255,255,255,0.03)" : "1px solid rgba(0,0,0,0.03)", paddingTop: "8px" }}>
+            <span>[SYS-COORD: LOG_GRID_A]</span>
+            <span>SCALE: segments_30px</span>
+            <span>LOC: c_dashboard_scheduler</span>
+          </div>
         </div>
 
-        {/* Right Sidebar: Telemetry Cards Stacked Vertically */}
-        <div style={{ 
+        {/* Right Sidebar: Telemetry Cards Stacked Vertically inside HUD panel */}
+        <div className="hud-panel-wrapper" style={{ 
           display: "flex", 
           flexDirection: "column", 
           gap: "16px",
         }}>
+          <div className="hud-corner-bracket hud-bracket-tl" />
+          <div className="hud-corner-bracket hud-bracket-tr" />
+          <div className="hud-corner-bracket hud-bracket-bl" />
+          <div className="hud-corner-bracket hud-bracket-br" />
+
+          {/* High-tech Sidebar Header */}
+          <div style={{ fontSize: "10px", fontWeight: "900", color: "#ff6a00", letterSpacing: "1.5px", borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.05)", paddingBottom: "10px", marginBottom: "8px", textTransform: "uppercase" }}>
+            📈 SYNC READOUTS
+          </div>
+
           <div className="telemetry-card" style={{ borderLeft: "3.5px solid #ff6a00", borderTop: "none", borderRight: "none", borderBottom: "none" }}>
             <span style={{ fontSize: "10px", fontWeight: "850", color: "var(--text-muted)", letterSpacing: "1px", textTransform: "uppercase" }}>
               ⏱️ Study Speed
@@ -926,6 +1160,17 @@ export default function PathfinderScheduler({
             <span style={{ fontSize: "10.5px", color: "var(--text-muted)", lineHeight: "1.3" }}>
               {schedule.streak > 0 ? `Active: ${schedule.streak}D streak reward active!` : "Gain streak by meeting daily targets"}
             </span>
+          </div>
+
+          {/* Premium Bottom Sync XP Progress Bar */}
+          <div style={{ marginTop: "8px", borderTop: isDarkMode ? "1px solid rgba(255,255,255,0.03)" : "1px solid rgba(0,0,0,0.03)", paddingTop: "12px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", fontWeight: "900", color: "var(--text-muted)", marginBottom: "6px" }}>
+              <span>SYNC LEVEL</span>
+              <span style={{ color: completedPercentage >= elapsedPercentage ? "var(--neon-green)" : "#ef4444" }}>{syncPercent}% SECURE</span>
+            </div>
+            <div style={{ width: "100%", height: "4px", background: isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.05)", borderRadius: "2px", overflow: "hidden", position: "relative" }}>
+              <div style={{ height: "100%", width: `${syncPercent}%`, background: "linear-gradient(90deg, #ff6a00 0%, #a78bfa 100%)", boxShadow: "0 0 8px rgba(255,106,0,0.45)", transition: "width 0.4s ease" }} />
+            </div>
           </div>
         </div>
 

@@ -85,15 +85,11 @@ router.post("/personalized-feed", async (req, res) => {
     const cleanTopic = topic.trim();
     const isJobSeeker = why ? /job|career|interview|work|resume/i.test(why) : false;
     
-    // Customize search query depending on whether user is seeking a job
-    const interviewQuery = isJobSeeker 
-      ? `${cleanTopic} job coding interview questions preparation`
-      : `${cleanTopic} practice coding exercises interview questions`;
-
+    // Customize queries to search for topic-level shortcuts, tricks, hacks, and conceptual explanations
     const queries = {
-      core: `${cleanTopic} full course tutorial playlist`,
-      interview: interviewQuery,
-      tips: `${cleanTopic} best practices tips and tricks hack`
+      core: `${cleanTopic} shortcuts cheat sheet tricks cheat sheet tips`,
+      interview: `${cleanTopic} hacks secrets best practices tips and tricks`,
+      tips: `${cleanTopic} advanced concepts deep dive explanation visualization mental models`
     };
 
     // Run searches in parallel
@@ -115,9 +111,9 @@ router.post("/personalized-feed", async (req, res) => {
       }));
     };
 
-    const coreVideos = formatVideos(coreRes, "Core Tutorial");
-    const interviewVideos = formatVideos(interviewRes, "Interview Prep");
-    const tipsVideos = formatVideos(tipsRes, "Pro Tips");
+    const coreVideos = formatVideos(coreRes, "Shortcuts & Cheat Sheets");
+    const interviewVideos = formatVideos(interviewRes, "Hacks & Tricks");
+    const tipsVideos = formatVideos(tipsRes, "Conceptual Deep Dives");
 
     const recommendations = [];
     let coreIdx = 0;
@@ -162,13 +158,13 @@ router.post("/personalized-feed", async (req, res) => {
 router.post("/pathfinder/generate", async (req, res) => {
   req.setTimeout(600000);
   res.setTimeout(600000);
-  const { answers, pathfinderMode } = req.body;
+  const { answers, pathfinderMode, isEngineer, devGoal, devLanguage, difficulty } = req.body;
   if (!answers || !Array.isArray(answers)) {
     return res.status(400).json({ error: "answers array required" });
   }
 
   try {
-    const roadmap = await generateRoadmapFromAnswers(answers, pathfinderMode);
+    const roadmap = await generateRoadmapFromAnswers(answers, pathfinderMode, { isEngineer, devGoal, devLanguage, difficulty });
     res.json(roadmap);
   } catch (err) {
     console.error("[Pathfinder] Roadmap generation failed:", err.message);
@@ -217,13 +213,13 @@ router.post("/pathfinder/study-notes", async (req, res) => {
 router.post("/quiz/generate", async (req, res) => {
   req.setTimeout(600000);
   res.setTimeout(600000);
-  const { videoId, title, duration } = req.body;
+  const { videoId, title, duration, topic, why, isDeveloper, completedMilestones, difficulty, devGoal } = req.body;
   if (!title) {
     return res.status(400).json({ error: "video title required" });
   }
 
   try {
-    const quiz = await generateQuizForVideo(videoId, title, duration);
+    const quiz = await generateQuizForVideo(videoId, title, duration, topic, why, isDeveloper, completedMilestones, difficulty, devGoal);
     res.json(quiz);
   } catch (err) {
     console.error("[Quiz] Quiz generation failed:", err.message);

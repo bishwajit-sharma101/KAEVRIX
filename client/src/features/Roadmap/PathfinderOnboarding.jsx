@@ -67,12 +67,51 @@ const DETAILED_QUESTIONS = [
   }
 ];
 
-export default function PathfinderOnboarding({ username, backendUrl, onRoadmapReady }) {
-  const [pathfinderMode, setPathfinderMode] = useState(null); // 'quick' | 'detailed'
-  const activeQuestions = pathfinderMode === 'detailed' ? DETAILED_QUESTIONS : QUICK_QUESTIONS;
+const ENGINEER_QUESTIONS = [
+  {
+    id: "why",
+    question: "Why do you want to learn this?",
+    hint: "This shapes your roadmap's focus.",
+    type: "options",
+    options: ["Job", "School / College", "Knowledge"]
+  },
+  {
+    id: "topic",
+    question: "What language or technology do you wanna use?",
+    hint: "Be specific — e.g. 'JavaScript', 'Python', 'React', 'Rust'",
+    placeholder: "I want to learn...",
+    type: "text"
+  },
+  {
+    id: "specialty",
+    question: "What specific area do you want to focus on?",
+    hint: "e.g. 'Backend', 'Frontend', 'Data Science', 'Game Dev'",
+    placeholder: "I want to focus on...",
+    type: "text"
+  },
+  {
+    id: "difficulty",
+    question: "Choose your difficulty level.",
+    hint: "Easy covers basics. Hell Mode ensures maximum practical mastery.",
+    type: "options",
+    options: ["Easy", "Medium", "Hell"]
+  }
+];
+
+export default function PathfinderOnboarding({ username, backendUrl, onRoadmapReady, initialTopic }) {
+  const [role, setRole] = useState(initialTopic ? "non-engineer" : null); // 'engineer' | 'non-engineer'
+  const [pathfinderMode, setPathfinderMode] = useState(initialTopic ? "quick" : null); // 'quick' | 'detailed' | 'engineer'
   
-  const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState(Array(5).fill(""));
+  const activeQuestions = pathfinderMode === 'engineer' ? ENGINEER_QUESTIONS : pathfinderMode === 'detailed' ? DETAILED_QUESTIONS : QUICK_QUESTIONS;
+  
+  const [currentQ, setCurrentQ] = useState(initialTopic ? 1 : 0);
+  const [answers, setAnswers] = useState(() => {
+    const saved = Array(5).fill("");
+    if (initialTopic) {
+      saved[0] = initialTopic;
+    }
+    return saved;
+  });
   const [inputVal, setInputVal] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [genLog, setGenLog] = useState([]);
@@ -147,11 +186,20 @@ export default function PathfinderOnboarding({ username, backendUrl, onRoadmapRe
           question: q.question,
           answer: newAnswers[i] || answers[i]
         }));
+        
+        let reqBody = { answers: payload, pathfinderMode };
+        if (pathfinderMode === 'engineer') {
+          reqBody.isEngineer = true;
+          reqBody.devGoal = newAnswers[0];
+          reqBody.devLanguage = newAnswers[1];
+          // newAnswers[2] is the specialty, which is automatically included in the QA string sent to the LLM
+          reqBody.difficulty = newAnswers[3];
+        }
 
         const res = await fetch(`${backendUrl}/api/pathfinder/generate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ answers: payload, pathfinderMode })
+          body: JSON.stringify(reqBody)
         });
 
         const roadmap = await res.json();
@@ -178,11 +226,14 @@ export default function PathfinderOnboarding({ username, backendUrl, onRoadmapRe
 
   const handleBack = () => {
     sound.playClockTick();
-    if (pathfinderMode && currentQ === 0) {
-      setPathfinderMode(null);
-    } else if (currentQ > 0) {
+    if (currentQ > 0) {
       setCurrentQ(prev => prev - 1);
       setInputVal(answers[currentQ - 1]);
+    } else if (pathfinderMode) {
+      setPathfinderMode(null);
+      if (role === 'engineer') setRole(null);
+    } else if (role) {
+      setRole(null);
     }
   };
 
@@ -194,57 +245,85 @@ export default function PathfinderOnboarding({ username, backendUrl, onRoadmapRe
       }}>
         {/* Brain animation */}
         <div style={{
-          width: "100px", height: "100px", borderRadius: "50%",
+          width: "90px", height: "90px", borderRadius: "50%",
           background: "linear-gradient(135deg, #ff6a00, #ffb300)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: "48px", marginBottom: "32px",
-          boxShadow: "0 0 40px rgba(255,106,0,0.4)",
+          fontSize: "44px", marginBottom: "32px",
+          boxShadow: "0 10px 30px rgba(255,106,0,0.3)",
           animation: "pulse 1.5s infinite"
         }}>
           🧠
         </div>
 
-        <h2 style={{ fontSize: "24px", fontWeight: "800", color: "var(--text-light)", marginBottom: "8px", textAlign: "center" }}>
+        <h2 style={{ 
+          fontSize: "28px", 
+          fontWeight: "900", 
+          fontFamily: "var(--font-outfit), sans-serif",
+          color: "var(--text-light)", 
+          marginBottom: "8px", 
+          textAlign: "center" 
+        }}>
           Building Your Personalized Roadmap
         </h2>
-        <p style={{ color: "var(--text-muted)", marginBottom: "32px", textAlign: "center" }}>
+        <p style={{ 
+          color: "var(--text-muted)", 
+          fontSize: "15px",
+          fontFamily: "var(--font-sans)",
+          marginBottom: "40px", 
+          textAlign: "center" 
+        }}>
           Gemma AI is reading your profile and crafting your learning path...
         </p>
 
-        {/* Terminal log */}
+        {/* Clean, open SaaS-style processing list */}
         <div style={{
-          width: "100%", maxWidth: "520px",
-          background: "#0f172a", borderRadius: "16px",
-          padding: "24px", border: "1px solid rgba(255,106,0,0.2)",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.3)"
+          width: "100%",
+          maxWidth: "480px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px"
         }}>
-          <div style={{ display: "flex", gap: "6px", marginBottom: "16px" }}>
-            {["#ef4444","#f59e0b","#10b981"].map((c,i) => (
-              <div key={i} style={{ width: "10px", height: "10px", borderRadius: "50%", background: c }} />
-            ))}
-            <span style={{ marginLeft: "8px", fontSize: "11px", color: "#64748b", fontFamily: "monospace" }}>
-              cognitive_pathfinder.sh
-            </span>
-          </div>
           {genLog.map((log, i) => (
             <div key={i} style={{
-              fontFamily: "monospace", fontSize: "13px",
-              color: i === genLog.length - 1 ? "#ff6a00" : "#94a3b8",
-              marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px"
+              fontSize: "14px",
+              fontWeight: "700",
+              fontFamily: "var(--font-outfit), sans-serif",
+              color: i === genLog.length - 1 ? "#ff6a00" : "var(--text-muted)",
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              padding: "12px 18px",
+              borderRadius: "12px",
+              background: i === genLog.length - 1 
+                ? "rgba(255, 106, 0, 0.05)"
+                : "transparent",
+              border: i === genLog.length - 1
+                ? "1px solid rgba(255, 106, 0, 0.15)"
+                : "1px solid transparent",
+              transition: "all 0.3s ease"
             }}>
-              <span style={{ color: i < genLog.length - 1 ? "#10b981" : "#ff6a00" }}>
+              <span style={{
+                fontSize: "14px",
+                color: i < genLog.length - 1 ? "#10b981" : "#ff6a00",
+                fontWeight: "900"
+              }}>
                 {i < genLog.length - 1 ? "✓" : "⚡"}
               </span>
-              {log}
+              <span>{log}</span>
             </div>
           ))}
           {genStep < GEN_LOGS.length && (
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 18px" }}>
               <div style={{
-                width: "8px", height: "8px", borderRadius: "50%",
+                width: "6px", height: "6px", borderRadius: "50%",
                 background: "#ff6a00", animation: "pulse 0.8s infinite"
               }} />
-              <span style={{ fontFamily: "monospace", fontSize: "12px", color: "#64748b" }}>
+              <span style={{ 
+                fontFamily: "var(--font-sans)", 
+                fontSize: "13px", 
+                color: "var(--text-muted)",
+                fontWeight: "500" 
+              }}>
                 processing...
               </span>
             </div>
@@ -281,10 +360,53 @@ export default function PathfinderOnboarding({ username, backendUrl, onRoadmapRe
         </p>
       </div>
 
-      {!pathfinderMode && (
+      {!role && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "24px" }}>
+          <h2 style={{ textAlign: "center", fontSize: "20px", fontWeight: "800", color: "var(--text-light)", marginBottom: "8px" }}>What is your background?</h2>
+          <button
+            onClick={() => { sound.playClockTick(); setRole("engineer"); setPathfinderMode("engineer"); setCurrentQ(0); setInputVal(""); setAnswers(Array(3).fill("")); }}
+            style={{
+              background: "#ffffff", border: "1px solid #e2e8f0",
+              borderRadius: "16px", padding: "24px",
+              textAlign: "left", cursor: "pointer", transition: "all 0.2s",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
+            }}
+            onMouseOver={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = "#ff6a00"; }}
+            onMouseOut={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
+          >
+            <div style={{ fontSize: "18px", fontWeight: "900", color: "var(--text-light)", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span>💻</span> Engineer / Comp Science
+            </div>
+            <div style={{ fontSize: "14px", color: "var(--text-muted)", lineHeight: "1.5" }}>
+              Tailored paths for developers with specialized technical depths and rigorous capabilities.
+            </div>
+          </button>
+
+          <button
+            onClick={() => { sound.playClockTick(); setRole("non-engineer"); }}
+            style={{
+              background: "#ffffff", border: "1px solid #e2e8f0",
+              borderRadius: "16px", padding: "24px",
+              textAlign: "left", cursor: "pointer", transition: "all 0.2s",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
+            }}
+            onMouseOver={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = "#ff6a00"; }}
+            onMouseOut={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
+          >
+            <div style={{ fontSize: "18px", fontWeight: "900", color: "var(--text-light)", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span>🌍</span> Non-Engineer
+            </div>
+            <div style={{ fontSize: "14px", color: "var(--text-muted)", lineHeight: "1.5" }}>
+              Learn anything else—languages, sciences, history, or business.
+            </div>
+          </button>
+        </div>
+      )}
+
+      {role === "non-engineer" && !pathfinderMode && (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "24px" }}>
           <button
-            onClick={() => { sound.playClockTick(); setPathfinderMode("quick"); setCurrentQ(0); setInputVal(""); }}
+            onClick={() => { sound.playClockTick(); setPathfinderMode("quick"); setCurrentQ(0); setInputVal(""); setAnswers(Array(5).fill("")); }}
             style={{
               background: "#ffffff", border: "1px solid #e2e8f0",
               borderRadius: "16px", padding: "24px",
@@ -303,7 +425,7 @@ export default function PathfinderOnboarding({ username, backendUrl, onRoadmapRe
           </button>
 
           <button
-            onClick={() => { sound.playClockTick(); setPathfinderMode("detailed"); setCurrentQ(0); setInputVal(""); }}
+            onClick={() => { sound.playClockTick(); setPathfinderMode("detailed"); setCurrentQ(0); setInputVal(""); setAnswers(Array(5).fill("")); }}
             style={{
               background: "#ffffff", border: "1px solid #e2e8f0",
               borderRadius: "16px", padding: "24px",
@@ -391,33 +513,69 @@ export default function PathfinderOnboarding({ username, backendUrl, onRoadmapRe
         </p>
 
         {/* Input */}
-        <textarea
-          ref={inputRef}
-          value={inputVal}
-          onChange={e => setInputVal(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={activeQuestions[currentQ]?.placeholder}
-          rows={3}
-          style={{
-            width: "100%", padding: "16px 20px",
-            fontSize: "16px", color: "var(--text-light)",
-            background: "#f8fafc", border: "2px solid #e2e8f0",
-            borderRadius: "14px", outline: "none", resize: "none",
-            fontFamily: "var(--font-sans)", lineHeight: "1.6",
-            transition: "border-color 0.2s, box-shadow 0.2s",
-            boxSizing: "border-box"
-          }}
-          onFocus={e => {
-            e.target.style.borderColor = "#ff6a00";
-            e.target.style.boxShadow = "0 0 0 3px rgba(255,106,0,0.1)";
-            e.target.style.background = "#ffffff";
-          }}
-          onBlur={e => {
-            e.target.style.borderColor = "#e2e8f0";
-            e.target.style.boxShadow = "none";
-            e.target.style.background = "#f8fafc";
-          }}
-        />
+        {activeQuestions[currentQ]?.type === "options" ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {activeQuestions[currentQ].options.map(opt => (
+              <button
+                key={opt}
+                onClick={() => {
+                  setInputVal(opt);
+                  sound.playClockTick();
+                }}
+                style={{
+                  padding: "16px", borderRadius: "14px", textAlign: "left",
+                  fontSize: "16px", fontWeight: "700", color: inputVal === opt ? "#fff" : "var(--text-light)",
+                  background: inputVal === opt ? "linear-gradient(135deg, #ff6a00, #ffb300)" : "#f8fafc",
+                  border: inputVal === opt ? "2px solid #ff6a00" : "2px solid #e2e8f0",
+                  cursor: "pointer", transition: "all 0.2s",
+                  boxShadow: inputVal === opt ? "0 4px 12px rgba(255,106,0,0.2)" : "none"
+                }}
+                onMouseOver={e => {
+                  if (inputVal !== opt) {
+                    e.currentTarget.style.borderColor = "#ff6a00";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                  }
+                }}
+                onMouseOut={e => {
+                  if (inputVal !== opt) {
+                    e.currentTarget.style.borderColor = "#e2e8f0";
+                    e.currentTarget.style.transform = "none";
+                  }
+                }}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <textarea
+            ref={inputRef}
+            value={inputVal}
+            onChange={e => setInputVal(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={activeQuestions[currentQ]?.placeholder}
+            rows={3}
+            style={{
+              width: "100%", padding: "16px 20px",
+              fontSize: "16px", color: "var(--text-light)",
+              background: "#f8fafc", border: "2px solid #e2e8f0",
+              borderRadius: "14px", outline: "none", resize: "none",
+              fontFamily: "var(--font-sans)", lineHeight: "1.6",
+              transition: "border-color 0.2s, box-shadow 0.2s",
+              boxSizing: "border-box"
+            }}
+            onFocus={e => {
+              e.target.style.borderColor = "#ff6a00";
+              e.target.style.boxShadow = "0 0 0 3px rgba(255,106,0,0.1)";
+              e.target.style.background = "#ffffff";
+            }}
+            onBlur={e => {
+              e.target.style.borderColor = "#e2e8f0";
+              e.target.style.boxShadow = "none";
+              e.target.style.background = "#f8fafc";
+            }}
+          />
+        )}
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px" }}>
           <button

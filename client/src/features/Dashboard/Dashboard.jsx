@@ -23,8 +23,14 @@ const getCategoryStyle = (category) => {
       return { color: "#065f46", bg: "#d1fae5" };
     case "Pro Tips":
       return { color: "#92400e", bg: "#fef3c7" };
+    case "Shortcuts & Cheat Sheets":
+      return { color: "#06b6d4", bg: "rgba(6,182,212,0.1)" };
+    case "Hacks & Tricks":
+      return { color: "#f59e0b", bg: "rgba(245,158,11,0.1)" };
+    case "Conceptual Deep Dives":
+      return { color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" };
     default:
-      return { color: "#ea580c", bg: "#ffedd5" };
+      return { color: "#ea580c", bg: "rgba(234,88,12,0.1)" };
   }
 };
 
@@ -156,6 +162,8 @@ export default function Dashboard({
   let todaysTasks = [];
   let activePendingTasks = [];
   let nextLimitBreakTask = null;
+  let completedTodayTasks = [];
+  let allIncompleteTasks = [];
 
   if (schedule && savedRoadmap) {
     let totalSubtopics = 0;
@@ -229,6 +237,28 @@ export default function Dashboard({
     todaysTasks = list.slice(0, Math.max(2, dailyTarget));
     activePendingTasks = todaysTasks.slice(completedToday);
     nextLimitBreakTask = list.length > 0 ? list[0] : null;
+    allIncompleteTasks = list;
+
+    // Get flat list of completed subtopics to extract completed today tasks
+    const completedList = [];
+    for (const lk of allLevels) {
+      const ms = savedRoadmap[lk]?.milestones || [];
+      for (const m of ms) {
+        if (m.isEncrypted) continue;
+        const keyPoints = m.keyPoints || [];
+        const completedCount = m.status === "completed" 
+          ? keyPoints.length 
+          : (m.status === "unlocked" || m.status === "revision" ? (m.subtopicIndex || 0) : 0);
+        
+        for (let i = 0; i < completedCount; i++) {
+          completedList.push({
+            milestone: m,
+            text: keyPoints[i]
+          });
+        }
+      }
+    }
+    completedTodayTasks = completedList.slice(-completedToday);
   }
 
   const cleanMilestoneTitle = (title) => {
@@ -337,12 +367,15 @@ export default function Dashboard({
     ];
   };
 
+  const activeMilestoneTitle = allIncompleteTasks && allIncompleteTasks[0] ? allIncompleteTasks[0].milestone.title : "";
+
   useEffect(() => {
     if (!topic || searchQuery) return;
     
     let isMounted = true;
     const fetchFeed = async () => {
-      const cacheKey = `kaevrix_feed_${username}_${encodeURIComponent(topic)}_${encodeURIComponent(why)}`;
+      const currentTopicFocus = activeMilestoneTitle ? `${topic} ${activeMilestoneTitle}` : topic;
+      const cacheKey = `kaevrix_feed_${username}_${encodeURIComponent(currentTopicFocus)}_${encodeURIComponent(why)}`;
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
         try {
@@ -364,7 +397,7 @@ export default function Dashboard({
         const res = await fetch(`${backendUrl}/api/personalized-feed`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic, why })
+          body: JSON.stringify({ topic: currentTopicFocus, why })
         });
         if (res.ok && isMounted) {
           const data = await res.json();
@@ -390,7 +423,7 @@ export default function Dashboard({
     return () => {
       isMounted = false;
     };
-  }, [topic, why, searchQuery, backendUrl, setSelectedVideo, username]);
+  }, [topic, activeMilestoneTitle, why, searchQuery, backendUrl, setSelectedVideo, username]);
 
   const handleTabChange = (tab) => {
     sound.playClockTick();
@@ -734,7 +767,7 @@ export default function Dashboard({
                   <div className="hud-feed-header" style={{ marginTop: "24px" }}>
                     <div className="hud-feed-header-line" style={{ background: "linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)", boxShadow: "0 0 10px #3b82f6" }} />
                     <h3 className="hud-feed-title" style={{ fontSize: "14px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "0.5px" }}>
-                      RADAR SCAN (EXPANDED RECON)
+                      KNOWLEDGE BOOSTER (HACKS, TRICKS & DEEP DIVES)
                     </h3>
                   </div>
 
@@ -1003,11 +1036,11 @@ export default function Dashboard({
             {/* Daily Quota Tracking Block */}
             {schedule && (
               <div style={{
-                background: isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc",
-                border: isDarkMode ? "1px solid var(--glass-border)" : "1px solid #e2e8f0",
-                borderRadius: "14px",
-                padding: "12px 14px",
-                marginBottom: "16px",
+                background: "transparent",
+                border: "none",
+                borderRadius: "0px",
+                padding: "0px",
+                marginBottom: "20px",
                 display: "flex",
                 flexDirection: "column",
                 gap: "8px"
@@ -1047,128 +1080,71 @@ export default function Dashboard({
 
             {/* Subtopic Objectives Checklist */}
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "40vh", overflowY: "auto", paddingRight: "4px" }} className="custom-scrollbar">
-              {activePendingTasks.length > 0 ? (
-                <>
-                  <div style={{ fontSize: "10.5px", fontWeight: "900", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>
-                    QUEST OBJECTIVES
-                  </div>
-                  {activePendingTasks.map((t, idx) => (
-                    <div 
-                      key={`${t.milestone.id}_${t.subtopicIndex}`} 
-                      onClick={() => {
-                        if (!t.isEncrypted && onSearch) {
-                          sound.playClockTick();
-                          onSearch(t.milestone.searchQuery || t.milestone.title);
-                        }
-                      }}
-                      className="hud-quest-row hud-quest-row-active"
-                      style={{
-                        cursor: t.isEncrypted ? "default" : "pointer",
-                        padding: "8px 10px",
-                        borderRadius: "8px",
-                        background: "rgba(255, 106, 0, 0.03)",
-                        border: "1px solid rgba(255, 106, 0, 0.12)"
-                      }}
-                    >
-                      <div style={{
-                        marginTop: "2px",
-                        color: "#ff6a00",
-                        flexShrink: 0,
-                        display: "flex",
-                        alignItems: "center"
-                      }}>
-                        <div style={{ 
-                          width: "12px", height: "12px", borderRadius: "50%", 
-                          border: "2.5px solid #ff6a00", background: "transparent"
-                        }} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ 
-                          fontSize: "11px", 
-                          fontWeight: "700", 
-                          color: "var(--text-light)",
-                          lineHeight: "1.4",
-                          fontFamily: "var(--font-outfit)"
-                        }}>
-                          {t.text}
-                        </div>
-                        <div style={{ fontSize: "9px", color: "var(--text-muted)", marginTop: "2px" }}>
-                          Node: {cleanMilestoneTitle(t.milestone.title)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </>
+              {completedToday >= dailyTarget && dailyTarget > 0 ? (
+                <div style={{ fontSize: "12px", fontWeight: "800", color: "#ff6a00", display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  ✓ Today's goal reached
+                </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <div style={{ 
-                    fontSize: "11.5px", 
-                    color: "var(--neon-green)", 
-                    fontWeight: "800", 
-                    textAlign: "center", 
-                    padding: "16px 12px",
-                    background: "rgba(16, 185, 129, 0.04)",
-                    border: "1px solid rgba(16, 185, 129, 0.15)",
-                    borderRadius: "10px"
+                <div style={{ fontSize: "10.5px", fontWeight: "900", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>
+                  QUEST OBJECTIVES
+                </div>
+              )}
+
+              {completedToday >= dailyTarget && dailyTarget > 0 && (
+                <div style={{ fontSize: "10.5px", fontWeight: "900", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginTop: "4px", marginBottom: "2px" }}>
+                  EXTRA
+                </div>
+              )}
+
+              {allIncompleteTasks && allIncompleteTasks[0] ? (
+                <div 
+                  onClick={() => {
+                    if (!allIncompleteTasks[0].isEncrypted && onSearch) {
+                      sound.playClockTick();
+                      onSearch(allIncompleteTasks[0].milestone.searchQuery || allIncompleteTasks[0].milestone.title);
+                    }
+                  }}
+                  className="hud-quest-row hud-quest-row-active"
+                  style={{
+                    cursor: allIncompleteTasks[0].isEncrypted ? "default" : "pointer",
+                    padding: "8px 10px",
+                    borderRadius: "8px",
+                    background: "rgba(255, 106, 0, 0.03)",
+                    border: "1px solid rgba(255, 106, 0, 0.12)",
+                    display: "flex",
+                    gap: "8px"
+                  }}
+                >
+                  <div style={{
+                    marginTop: "2px",
+                    color: "#ff6a00",
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center"
                   }}>
-                    🏆 DAILY OBJECTIVES MET!
-                    <div style={{ fontSize: "10px", fontWeight: "600", color: "var(--text-muted)", marginTop: "4px" }}>
-                      Neural synchronization: 100%. Limit break is active.
+                    <div style={{ 
+                      width: "12px", height: "12px", borderRadius: "50%", 
+                      border: "2.5px solid #ff6a00", background: "transparent"
+                    }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ 
+                      fontSize: "11px", 
+                      fontWeight: "700", 
+                      color: "var(--text-light)",
+                      lineHeight: "1.4",
+                      fontFamily: "var(--font-outfit)"
+                    }}>
+                      {allIncompleteTasks[0].text}
+                    </div>
+                    <div style={{ fontSize: "9px", color: "var(--text-muted)", marginTop: "2px" }}>
+                      Node: {cleanMilestoneTitle(allIncompleteTasks[0].milestone.title)}
                     </div>
                   </div>
-
-                  {nextLimitBreakTask && (
-                    <div 
-                      onClick={() => {
-                        if (!nextLimitBreakTask.isEncrypted && onSearch) {
-                          sound.playClockTick();
-                          onSearch(nextLimitBreakTask.milestone.searchQuery || nextLimitBreakTask.milestone.title);
-                        }
-                      }}
-                      className="hud-quest-row hud-quest-row-active"
-                      style={{
-                        cursor: nextLimitBreakTask.isEncrypted ? "default" : "pointer",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        background: "rgba(139, 92, 246, 0.03)",
-                        border: "1px solid rgba(139, 92, 246, 0.20)",
-                        transition: "all 0.2s"
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                        <span style={{ fontSize: "8px", fontWeight: "900", color: "#8b5cf6", letterSpacing: "1px", textTransform: "uppercase" }}>
-                          ⚡ LIMIT BREAK DIRECTIVE
-                        </span>
-                      </div>
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <div style={{
-                          marginTop: "2px",
-                          color: "#8b5cf6",
-                          flexShrink: 0,
-                          display: "flex",
-                          alignItems: "center"
-                        }}>
-                          <div style={{ 
-                            width: "12px", height: "12px", borderRadius: "50%", 
-                            border: "2.5px solid #8b5cf6", background: "transparent"
-                          }} />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ 
-                            fontSize: "11px", 
-                            fontWeight: "750", 
-                            color: "var(--text-light)",
-                            lineHeight: "1.4"
-                          }}>
-                            {nextLimitBreakTask.text}
-                          </div>
-                          <div style={{ fontSize: "9px", color: "var(--text-muted)", marginTop: "2px" }}>
-                            Node: {cleanMilestoneTitle(nextLimitBreakTask.milestone.title)}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                </div>
+              ) : (
+                <div style={{ fontSize: "11px", color: "var(--text-muted)", fontStyle: "italic", textAlign: "center", padding: "12px" }}>
+                  No active objectives. Initialize Pathfinder roadmap to begin.
                 </div>
               )}
             </div>

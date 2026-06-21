@@ -1,6 +1,12 @@
 import dotenv from "dotenv";
 import { YoutubeTranscript } from "youtube-transcript";
-dotenv.config();
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 const OLLAMA_MODEL = "gemma4:e4b";
@@ -20,7 +26,7 @@ async function ollamaGenerate(prompt, format = "json") {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(480000) // 8 min timeout for local execution/first run model loads
+    signal: AbortSignal.timeout(300000) // 5 min timeout to allow local models to process
   });
 
   if (!res.ok) {
@@ -209,14 +215,24 @@ function buildFallbackRoadmap(topic, goal) {
  * Generates a personalized 3-level learning roadmap using Ollama gemma4:e4b or Gemini API.
  * Falls back to template if Ollama is unavailable.
  */
-export async function generateRoadmapFromAnswers(answers, pathfinderMode) {
+export async function generateRoadmapFromAnswers(answers, pathfinderMode, options = {}) {
+  const { isEngineer, devGoal, devLanguage, difficulty } = options;
+  
   const qa = answers.map(a => `Q: ${a.question}\nA: ${a.answer}`).join("\n\n");
-  const userTopicRaw = answers[0]?.answer || "General Learning";
-  const userGoal = answers[1]?.answer || "";
-  const userReason = pathfinderMode === 'detailed' ? (answers.find(a => a.question.toLowerCase().includes("dream"))?.answer || "achieve their dream outcome") : (answers.find(a => a.question.toLowerCase().includes("why"))?.answer || "learning");
+  
+  let userTopicRaw = answers[0]?.answer || "General Learning";
+  let userGoal = answers[1]?.answer || "";
+  let userReason = pathfinderMode === 'detailed' ? (answers.find(a => a.question.toLowerCase().includes("dream"))?.answer || "achieve their dream outcome") : (answers.find(a => a.question.toLowerCase().includes("why"))?.answer || "learning");
+
+  if (isEngineer) {
+    userTopicRaw = devLanguage || userTopicRaw;
+    userGoal = devGoal || userGoal;
+    userReason = devGoal || userReason;
+  }
 
   // Dynamically extract a short topic from the long prompt to prevent massive text blocks
   const extractShortTopic = (raw) => {
+    if (!raw) return "General";
     if (raw.length <= 40) return raw;
     const words = raw.split(/\s+/);
     if (words.length > 5) return words.slice(0, 5).join(" ") + "...";
@@ -224,20 +240,34 @@ export async function generateRoadmapFromAnswers(answers, pathfinderMode) {
   };
   const userTopicShort = extractShortTopic(userTopicRaw);
 
-  const prompt = `You are an expert learning path designer for the Kaevrix educational gaming platform.
-A user has completed an onboarding interview. Based on their answers, generate a highly personalized, detailed 3-level learning roadmap.
-${pathfinderMode === 'detailed' ? 'This is a DEEP-DIVE mode interview. You must carefully analyze their specific problems, history, and constraints. Ensure the roadmap is incredibly comprehensive, leaving absolutely no topic out, so they feel fully confident and capable of achieving their dream outcome by the end of Level 3.' : 'Focus EXCLUSIVELY on teaching the BASICS / FOUNDATIONS of the topic extremely well.'}
+  dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
+  const apiKey = process.env.GEMINI_API_KEY;
+  const useGemini = apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE";
 
-USER INTERVIEW:
-${qa}
+  let modePrompt = "";
+  let levelsCount = 3;
+  let dynamicMilestonesInstruction = useGemini 
+    ? `EXACTLY 12 MILESTONES PER LEVEL: You will generate the detailed milestones for ALL levels (Level 1 to Level 3). Do NOT leave any levels empty.`
+    : "EXACTLY 12 MILESTONES FOR LEVEL 1: You will generate the detailed milestones for Level 1 ONLY. Leave Level 2 and Level 3 milestones arrays empty.";
+  
+  if (isEngineer) {
+    if (difficulty === 'Easy') {
+      modePrompt = `EASY MODE: Apply the Pareto Principle (80/20 rule). Focus ONLY on the 20% of topics that cover 80% of real-world usage. Ignore esoteric or advanced edge cases.`;
+    } else if (difficulty === 'Medium') {
+      modePrompt = `MEDIUM MODE: Create a standard, comprehensive developer roadmap.`;
+    } else if (difficulty === 'Hell') {
+      modePrompt = `HELL MODE (MAXIMUM PRACTICAL MASTERY): Generate a 5-level roadmap focused on Interview + Real World Mastery.
+ANTI-FILLER CONSTRAINT: Do not create filler milestones to reach 5 levels. If a topic cannot justify additional depth, expand practical applications, real-world scenarios, and project-based mastery instead of inventing artificial topics.`;
+      levelsCount = 5;
+    }
+    dynamicMilestonesInstruction = useGemini 
+      ? `DYNAMIC MILESTONES: You decide the appropriate number of milestones per level based on the topic's natural complexity. Do not force exactly 12 if the topic requires fewer or more. You MUST generate the detailed milestones for ALL levels (Level 1 to Level ${levelsCount}). Do NOT leave any levels empty.`
+      : `DYNAMIC MILESTONES: You decide the appropriate number of milestones per level based on the topic's natural complexity. Do not force exactly 12 if the topic requires fewer or more. Generate the detailed milestones for Level 1 ONLY. Leave the arrays for all subsequent levels (Level 2 to Level ${levelsCount}) empty.`;
+  } else {
+    modePrompt = pathfinderMode === 'detailed' ? 'This is a DEEP-DIVE mode interview. You must carefully analyze their specific problems, history, and constraints. Ensure the roadmap is incredibly comprehensive, leaving absolutely no topic out, so they feel fully confident and capable of achieving their dream outcome by the end of Level 3.' : 'Focus EXCLUSIVELY on teaching the BASICS / FOUNDATIONS of the topic extremely well.';
+  }
 
-CRITICAL REQUIREMENT:
-1. The generated roadmap MUST cover the fundamental aspects of the topic in extreme, granular detail. Ensure that no essential topic is left out, guaranteeing a complete learning journey.
-2. The 3 levels must be logically connected, starting from absolute basics (Level 1) to intermediate foundations (Level 2), and finally practical application/tests (Level 3), guaranteeing they achieve their goal: "${userReason}".
-3. EXACTLY 12 MILESTONES FOR LEVEL 1: You will generate the detailed milestones for Level 1 ONLY. Leave Level 2 and Level 3 milestones arrays empty.
-
-Generate a JSON roadmap with this EXACT structure:
-{
+  let jsonStructure = `{
   "topic": "short specific topic name (2-4 words)",
   "goal": "one sentence summarizing what they want to achieve",
   "summary": "2-3 sentences describing why this roadmap is tailored for them",
@@ -252,74 +282,109 @@ Generate a JSON roadmap with this EXACT structure:
       {
         "id": "1-0",
         "title": "specific basic sub-topic title",
-        "description": "2-3 sentences describing what this covers and why it matters",
-        "searchQuery": "Highly specific YouTube search query (e.g., '${userTopicShort} specific sub-topic tutorial', DO NOT use generic queries like 'Learn ${userTopicShort}')",
-        "keyPoints": ["Specific concept 1", "Specific concept 2", "Specific concept 3", "Specific concept 4"],
+        "description": "2-3 sentences describing what this covers",
+        "searchQuery": "Highly specific YouTube search query (DO NOT use generic queries)",
+        "keyPoints": ["Specific concept 1", "Specific concept 2"],
         "estimatedMinutes": 40,
         "status": "unlocked",
         "xpReward": 30,
         "isRevision": false
       }
-      // ... MUST HAVE EXACTLY 12 MILESTONES HERE
     ]
   },
   "level2": {
     "title": "Level 2 — Core Operations & Logic",
-    "subtitle": "Intermediate Foundations & Structural Concepts",
+    "subtitle": "Intermediate Foundations",
     "color": "#f59e0b",
-    "milestones": []
+    "milestones": ${useGemini ? `[ /* same array of milestones format as level 1 */ ]` : `[]`}
   },
   "level3": {
     "title": "Level 3 — Basic Applications & Preparation",
-    "subtitle": "Foundational practice, common questions and practical tasks",
+    "subtitle": "Foundational practice",
     "color": "#8b5cf6",
-    "milestones": []
+    "milestones": ${useGemini ? `[ /* same array of milestones format as level 1 */ ]` : `[]`}
+  }`;
+
+  if (levelsCount === 5) {
+    jsonStructure += `,
+  "level4": {
+    "title": "Level 4 — Advanced Architecture",
+    "subtitle": "Real World Mastery",
+    "color": "#ec4899",
+    "milestones": ${useGemini ? `[ /* same array of milestones format as level 1 */ ]` : `[]`}
+  },
+  "level5": {
+    "title": "Level 5 — Supreme Mastery",
+    "subtitle": "Interview Ready & Expert Applications",
+    "color": "#ef4444",
+    "milestones": ${useGemini ? `[ /* same array of milestones format as level 1 */ ]` : `[]`}
+  }`;
   }
-}
+  
+  jsonStructure += `\n}`;
+
+  const prompt = `You are an expert learning path designer for the Kaevrix educational gaming platform.
+A user has completed an onboarding interview. Based on their answers, generate a highly personalized, detailed ${levelsCount}-level learning roadmap.
+${modePrompt}
+
+USER INTERVIEW:
+${qa}
+
+CRITICAL REQUIREMENT:
+1. The generated roadmap MUST cover the essential aspects of the topic.
+2. The levels must be logically connected, starting from basics to practical application, guaranteeing they achieve their goal: "${userReason}".
+3. ${dynamicMilestonesInstruction}
+
+Generate a JSON roadmap with this EXACT structure:
+${jsonStructure}
 
 Rules:
-- You MUST generate EXACTLY 12 milestones for Level 1.
-- DO NOT generate milestones for Level 2 or Level 3 (leave the arrays empty).
-- The 12th milestone of Level 1 must be a Test or Capstone Project.
-- Do NOT hardcode generic keyPoints like "Understand core concepts". You must generate highly specific, dynamic subtopics for the keyPoints based on the milestone.
+${useGemini ? `- You MUST generate milestones for ALL levels (Level 1 to Level ${levelsCount}).` : `- DO NOT generate milestones for any level other than Level 1.`}
+- The final milestone of Level 1 must be a Test or Capstone Project.
+- Do NOT hardcode generic keyPoints like "Understand core concepts". You must generate highly specific, dynamic subtopics for the keyPoints.
 - Ensure searchQuery is highly specific so the user gets relevant YouTube videos for that exact subtopic.
 - Level 1 milestone 0 must have status "unlocked", all others "locked".
 - Be extremely detailed, practical, and tailored to the topic "${userTopicShort}".
 
 Return ONLY valid JSON, no markdown.`;
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  const useGemini = apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE";
-
   try {
     let raw;
+    let geminiFailed = false;
+
     if (useGemini) {
-      console.log(`[Pathfinder] Generating roadmap for: "${userTopicShort}" via Gemini API`);
-      raw = await callGeminiAPI(prompt, "application/json");
-    } else {
+      try {
+        console.log(`[Pathfinder] Generating roadmap for: "${userTopicShort}" via Gemini API`);
+        raw = await callGeminiAPI(prompt, "application/json");
+      } catch (gemErr) {
+        console.error(`[Pathfinder] Gemini API failed (${gemErr.message}). Falling back to Ollama...`);
+        geminiFailed = true;
+      }
+    }
+    
+    if (!useGemini || geminiFailed) {
       console.log(`[Pathfinder] Generating roadmap for: "${userTopicShort}" via Ollama ${OLLAMA_MODEL}`);
       raw = await ollamaGenerate(prompt, "json");
     }
+
     const roadmap = JSON.parse(raw);
 
-    // Validate structure
     if (!roadmap.level1?.milestones) {
       throw new Error("Invalid roadmap structure from AI");
     }
 
-    // Use AI's generated topic if reasonable, otherwise use our extracted short topic
     if (!roadmap.topic || roadmap.topic.length > 50 || roadmap.topic.toLowerCase().includes("short specific topic name")) {
       roadmap.topic = userTopicShort;
     }
 
-    // Inject Encrypted Placeholders for Level 2 and Level 3
     const createPlaceholders = (levelNum) => {
-      return Array.from({ length: 12 }, (_, i) => ({
+      // Default to 12 if dynamic count isn't specified, but frontend renders whatever is in array
+      return Array.from({ length: 8 }, (_, i) => ({
         id: `${levelNum}-${i}`,
         title: `Encrypted Level ${levelNum} Node`,
         description: "This advanced topic is currently encrypted. Complete the previous level to establish the neural link and decrypt this curriculum.",
         searchQuery: "Encrypted Data",
-        keyPoints: ["Classified", "Classified", "Classified", "Classified"],
+        keyPoints: ["Classified", "Classified"],
         estimatedMinutes: 45,
         status: "locked",
         xpReward: 50 * levelNum,
@@ -328,13 +393,32 @@ Return ONLY valid JSON, no markdown.`;
       }));
     };
 
-    roadmap.level2 = roadmap.level2 || { title: "Level 2 — Core Operations & Logic", subtitle: "Intermediate Foundations", color: "#f59e0b" };
+    roadmap.level2 = roadmap.level2 || { title: "Level 2 — Core Operations", subtitle: "Intermediate Foundations", color: "#f59e0b" };
     roadmap.level3 = roadmap.level3 || { title: "Level 3 — Advanced Mastery", subtitle: "Preparation & Tests", color: "#8b5cf6" };
     
-    roadmap.level2.milestones = createPlaceholders(2);
-    roadmap.level3.milestones = createPlaceholders(3);
+    if (!useGemini || !roadmap.level2.milestones || roadmap.level2.milestones.length === 0) {
+      roadmap.level2.milestones = createPlaceholders(2);
+    }
+    if (!useGemini || !roadmap.level3.milestones || roadmap.level3.milestones.length === 0) {
+      roadmap.level3.milestones = createPlaceholders(3);
+    }
 
-    // Enforce unlock rules for Level 1
+    roadmap.isEngineer = !!isEngineer;
+    roadmap.devGoal = devGoal || "";
+    roadmap.difficulty = difficulty || "Medium";
+
+    if (levelsCount === 5) {
+      roadmap.level4 = roadmap.level4 || { title: "Level 4 — Real World Mastery", subtitle: "Architecture", color: "#ec4899" };
+      roadmap.level5 = roadmap.level5 || { title: "Level 5 — Supreme Mastery", subtitle: "Interview Ready", color: "#ef4444" };
+      
+      if (!useGemini || !roadmap.level4.milestones || roadmap.level4.milestones.length === 0) {
+        roadmap.level4.milestones = createPlaceholders(4);
+      }
+      if (!useGemini || !roadmap.level5.milestones || roadmap.level5.milestones.length === 0) {
+        roadmap.level5.milestones = createPlaceholders(5);
+      }
+    }
+
     roadmap.level1.milestones.forEach((m, i) => { m.status = i === 0 ? "unlocked" : "locked"; });
 
     console.log(`[Pathfinder] Successfully generated lazy roadmap: "${roadmap.topic}"`);
@@ -499,18 +583,29 @@ Ensure the tone is professional, encouraging, and highly educational.
 Output ONLY the final Markdown formatted study guide. Use beautiful typography, bolding, and structuring. Make the notes visually stunning and awesome.`;
   }
 
+  dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
   const apiKey = process.env.GEMINI_API_KEY;
   const useGemini = apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE";
 
   try {
     let notes;
+    let geminiFailed = false;
+
     if (useGemini) {
-      console.log(`[StudyNotes] Generating study notes for: "${milestone.title}" via Gemini API`);
-      notes = await callGeminiAPI(prompt, "text/plain");
-    } else {
+      try {
+        console.log(`[StudyNotes] Generating study notes for: "${milestone.title}" via Gemini API`);
+        notes = await callGeminiAPI(prompt, "text/plain");
+      } catch (gemErr) {
+        console.error(`[StudyNotes] Gemini API failed (${gemErr.message}). Falling back to Ollama...`);
+        geminiFailed = true;
+      }
+    }
+    
+    if (!useGemini || geminiFailed) {
       console.log(`[StudyNotes] Generating study notes for: "${milestone.title}" via Ollama ${OLLAMA_MODEL}`);
       notes = await ollamaGenerate(prompt, "text");
     }
+    
     return notes.trim();
   } catch (err) {
     console.error(`[StudyNotes] AI study notes generation failed: ${err.message}`);
@@ -802,13 +897,130 @@ function getTranscriptSegments(transcriptList, duration, numQuestions, title) {
   return segments;
 }
 
+function checkIsDeveloper(title, topic, why) {
+  const text = `${title || ""} ${topic || ""} ${why || ""}`.toLowerCase();
+  const devKeywords = [
+    "developer", "engineer", "programming", "coding", "software", "web dev",
+    "frontend", "backend", "fullstack", "full stack", "javascript", "python",
+    "react", "node", "java", "c++", "c#", "rust", "go language", "golang", "devops",
+    "data science", "machine learning", "database", "sql", "html", "css", "git", "leet", "leetcode", "hacker", "hackerrank"
+  ];
+  return devKeywords.some(keyword => text.includes(keyword));
+}
+
+function generateFallbackDevQuiz(title, duration = 300) {
+  const parsedDuration = Number(duration) || 300;
+  
+  const postVideoQuestions = [
+    {
+      type: "coding",
+      title: "Reverse a String",
+      difficulty: "Easy",
+      question: "Write a function `solve(str)` that takes a string `str` and returns the string reversed.\n\n### Examples:\n- `solve(\"hello\")` should return `\"olleh\"`\n- `solve(\"world\")` should return `\"dlrow\"`",
+      starterCode: "function solve(str) {\n  // Write your code here\n  \n}",
+      testCases: [
+        { input: JSON.stringify("hello"), expected: JSON.stringify("olleh") },
+        { input: JSON.stringify("world"), expected: JSON.stringify("dlrow") },
+        { input: JSON.stringify(""), expected: JSON.stringify("") }
+      ],
+      solution: "function solve(str) { return str.split('').reverse().join(''); }",
+      points: 100
+    },
+    {
+      type: "coding",
+      title: "Sum of Array Elements",
+      difficulty: "Easy",
+      question: "Write a function `solve(arr)` that takes an array of numbers and returns the sum of all elements.\n\n### Examples:\n- `solve([1, 2, 3])` should return `6`\n- `solve([-1, 5])` should return `4`",
+      starterCode: "function solve(arr) {\n  // Write your code here\n  \n}",
+      testCases: [
+        { input: JSON.stringify([1, 2, 3]), expected: JSON.stringify(6) },
+        { input: JSON.stringify([-1, 5]), expected: JSON.stringify(4) },
+        { input: JSON.stringify([]), expected: JSON.stringify(0) }
+      ],
+      solution: "function solve(arr) { return arr.reduce((a, b) => a + b, 0); }",
+      points: 100
+    },
+    {
+      type: "conceptual",
+      title: "Scope in JavaScript",
+      question: "Which of the following keywords declares a block-scoped local variable in modern JavaScript?",
+      options: ["var", "let", "define", "global"],
+      answerIndex: 1,
+      explanation: "The `let` and `const` keywords declare variables that are block-scoped, meaning they are only accessible within the block in which they are defined. `var` is function-scoped.",
+      points: 100
+    },
+    {
+      type: "coding",
+      title: "Check Even Number",
+      difficulty: "Easy",
+      question: "Write a function `solve(n)` that returns `true` if the integer `n` is even, and `false` if it is odd.\n\n### Examples:\n- `solve(4)` should return `true`\n- `solve(7)` should return `false`",
+      starterCode: "function solve(n) {\n  // Write your code here\n  \n}",
+      testCases: [
+        { input: "4", expected: "true" },
+        { input: "7", expected: "false" },
+        { input: "0", expected: "true" }
+      ],
+      solution: "function solve(n) { return n % 2 === 0; }",
+      points: 100
+    },
+    {
+      type: "conceptual",
+      title: "Promises and Async/Await",
+      question: "What does an `async` function always return in JavaScript?",
+      options: ["A Promise", "The resolved value", "undefined", "A callback function"],
+      answerIndex: 0,
+      explanation: "An async function always returns a Promise. If the function returns a value, the Promise is resolved with that value. If it throws an error, the Promise is rejected with that error.",
+      points: 100
+    }
+  ];
+
+  // Generate in-video questions dynamically based on duration (minimum 1)
+  const numInVideoQuestions = Math.min(20, Math.max(1, Math.round(parsedDuration / 200)));
+  const halfDuration = parsedDuration / 2;
+  const endLimit = parsedDuration - Math.min(30, parsedDuration * 0.15);
+  
+  const inVideoQuestions = [];
+  for (let i = 0; i < numInVideoQuestions; i++) {
+    let timestamp;
+    if (numInVideoQuestions === 1) {
+      timestamp = Math.round((halfDuration + endLimit) / 2);
+    } else {
+      timestamp = Math.round(halfDuration + i * ((endLimit - halfDuration) / (numInVideoQuestions - 1)));
+    }
+    timestamp = Math.max(1, Math.min(parsedDuration - 2, timestamp));
+
+    inVideoQuestions.push({
+      question: `Segment Pop Quiz ${i + 1}: Based on the information presented leading up to the ${Math.floor(timestamp / 60)}m ${timestamp % 60}s mark, what is the correct takeaway?`,
+      options: [
+        "Pay active attention to the key points and explanation details",
+        "Assume the narrator is incorrect and skip to the end",
+        "Answer as fast as possible without reading the question text",
+        "Rely solely on luck and select the last option"
+      ],
+      answerIndex: 0,
+      points: 50,
+      timestamp
+    });
+  }
+
+  return {
+    postVideoQuestions,
+    inVideoQuestions,
+    captions: []
+  };
+}
+
 /**
  * Generates quiz questions for a video (both post-video and in-video pop quizzes).
  * It first tries to fetch the transcript, then calls Ollama (gemma4:e4b) to create the quiz.
  * Falls back to Gemini API or smart default questions if necessary.
  */
-export async function generateQuizForVideo(videoId, title, duration = 300) {
+export async function generateQuizForVideo(videoId, title, duration = 300, topic = "", why = "", isDeveloper = false, completedMilestones = [], difficulty = "Medium", devGoal = "") {
   const parsedDuration = Number(duration) || 300;
+  
+  // Detect developer topic
+  const isDev = isDeveloper || checkIsDeveloper(title, topic, why);
+  
   // 1. Try to fetch video transcript
   let transcriptText = "";
   let transcriptList = [];
@@ -832,7 +1044,99 @@ export async function generateQuizForVideo(videoId, title, duration = 300) {
   ).join("\n\n");
 
   // 2. Formulate the quiz prompt
-  const prompt = `You are an expert quiz generator for the Kaevrix educational platform.
+  let prompt = "";
+  if (isDev) {
+    let completedList = "";
+    if (completedMilestones && completedMilestones.length > 0) {
+      completedList = `Here are the concepts the user has ALREADY studied/completed in previous roadmap nodes:
+${completedMilestones.map(m => `- ${m}`).join("\n")}`;
+    }
+
+    let goalSteering = "";
+    if (devGoal === "Job") {
+      goalSteering = `Prioritize interview readiness and real-world implementation.
+Favor: Coding challenges, Debugging, Feature building, Code review, Modification tasks.
+Generate questions similar to those encountered in junior developer interviews and take-home assignments.`;
+    } else if (devGoal === "School / College") {
+      goalSteering = `Prioritize academic understanding.
+Favor: Concepts, Definitions, Theory, Explanations, Exam-style questions.`;
+    } else if (devGoal === "Knowledge" || !devGoal) {
+      goalSteering = `Prioritize practical understanding and curiosity.
+Favor: Understanding why things work, Real-world usage, Practical applications.
+Avoid excessive interview-style difficulty.`;
+    }
+
+    let difficultySteering = "";
+    if (difficulty === "Hell") {
+      difficultySteering = `HELL MODE CONSTRAINTS:
+1. Verify capability, not completion: Do NOT verify if they watched the video. Test if they can DO the thing. Build a component, write a function, debug this snippet. Do not ask "What did the instructor say about X".
+2. Question Count: Generate the minimum number of questions required to verify mastery. Do not force exactly 5. It can be 4, 8, 12, etc. Do not generate repetitive questions. Every question must test a unique skill.
+3. Category Prioritization: The seven categories (Concept, Interview, Coding, Debugging, Code Review, Feature Building, Modification Tasks) are available. Use ONLY categories that are relevant to the topic. Prioritize categories that best verify mastery.
+4. Spaced Repetition (Crucial): Provide a mix of questions: 70% testing the Current Topic, 20% testing Previous Topics (from the completed milestones list), and 10% Integrated Topics combining current and past knowledge.`;
+    } else {
+      difficultySteering = `STANDARD MODE CONSTRAINTS:
+Generate EXACTLY 5 questions for the END of the video. Focus on the core basics covered in the video.`;
+    }
+
+    prompt = `You are an expert technical interviewer and quiz generator for the Kaevrix platform.
+Your task is to generate a comprehensive developer-centric assessment (postVideoQuestions) and some short pop quizzes (inVideoQuestions).
+
+${goalSteering}
+
+${difficultySteering}
+
+${completedList}
+
+VIDEO DETAILS:
+Title: "${title}"
+${transcriptText ? `Transcript Summary:\n"""\n${transcriptText.substring(0, 5000)}\n"""` : "(No transcript available)"}
+
+IN-VIDEO TRANSCRIPT SEGMENTS:
+${segmentsText || "(No transcript segments available)"}
+
+Instructions for postVideoQuestions:
+- For "coding", "debugging", "feature building", "code review", or "modification" tasks where the user writes code, structure the JSON object as:
+  {
+    "type": "coding",
+    "title": "Short challenge title",
+    "difficulty": "Easy" | "Medium" | "Hard" | "Hell",
+    "question": "LeetCode-style markdown description with examples, constraints, and instructions.",
+    "starterCode": "JavaScript function template",
+    "testCases": [
+      { "input": "[1, 2, 3]", "expected": "6" }
+    ],
+    "solution": "JavaScript solution code for reference",
+    "points": 100
+  }
+  Note: testCases's 'input' and 'expected' MUST be JSON-serializable strings. The 'solve' function receives parsed input.
+- For "conceptual" or "interview" non-coding tasks, structure the JSON object as:
+  {
+    "type": "conceptual",
+    "title": "Short title",
+    "question": "Conceptual multiple-choice question text?",
+    "options": ["Option 0", "Option 1", "Option 2", "Option 3"],
+    "answerIndex": 0,
+    "explanation": "Detailed technical explanation.",
+    "points": 100
+  }
+
+Format specification:
+Respond ONLY with a valid JSON object matching the format below. Do not include markdown blocks.
+{
+  "postVideoQuestions": [
+    // Array of questions. Length is dynamic based on difficulty mode.
+  ],
+  "inVideoQuestions": [
+    {
+      "question": "Pop quiz question?",
+      "options": ["Opt 0", "Opt 1", "Opt 2", "Opt 3"],
+      "answerIndex": 1,
+      "points": 50
+    }
+  ]
+}`;
+  } else {
+    prompt = `You are an expert quiz generator for the Kaevrix educational platform.
 Your task is to generate a comprehensive quiz consisting of two parts based on the content of a YouTube video:
 1. exactly 5 general multiple choice questions for the END of the video (postVideoQuestions).
 2. exactly ${numInVideoQuestions} in-video pop quiz questions (inVideoQuestions), each testing details presented in the corresponding segment transcript below.
@@ -871,6 +1175,7 @@ Format specification:
   ]
 }
 `;
+  }
 
   const validateQuizData = (data) => {
     if (!data || typeof data !== "object") {
@@ -879,19 +1184,42 @@ Format specification:
     const postVideo = Array.isArray(data.postVideoQuestions) ? data.postVideoQuestions : [];
     const inVideo = Array.isArray(data.inVideoQuestions) ? data.inVideoQuestions : [];
     
-    if (postVideo.length !== 5) {
-      throw new Error(`Expected exactly 5 post-video questions, got ${postVideo.length}`);
+    if (postVideo.length === 0) {
+      throw new Error(`Expected at least 1 post-video question, got 0`);
     }
-    if (inVideo.length !== numInVideoQuestions) {
-      throw new Error(`Expected exactly ${numInVideoQuestions} in-video questions, got ${inVideo.length}`);
+    if (inVideo.length === 0) {
+      console.warn("No in-video questions generated. Ignoring validation failure.");
     }
     
-    const validatedPostVideo = postVideo.map((q) => ({
-      question: q.question || "Trivia Question",
-      options: Array.isArray(q.options) && q.options.length === 4 ? q.options : ["Option A", "Option B", "Option C", "Option D"],
-      answerIndex: typeof q.answerIndex === "number" && q.answerIndex >= 0 && q.answerIndex <= 3 ? q.answerIndex : 0,
-      points: q.points || 100
-    }));
+    const validatedPostVideo = postVideo.map((q) => {
+      if (q.type === "coding") {
+        return {
+          type: "coding",
+          title: q.title || "Coding Challenge",
+          difficulty: q.difficulty || "Medium",
+          question: q.question || q.description || "Solve this coding problem.",
+          starterCode: q.starterCode || "function solve(input) {\n  // Write code here\n}",
+          testCases: Array.isArray(q.testCases) ? q.testCases.map(tc => ({
+            input: typeof tc.input === "string" ? tc.input : JSON.stringify(tc.input),
+            expected: typeof tc.expected === "string" ? tc.expected : JSON.stringify(tc.expected)
+          })) : [
+            { input: "1", expected: "1" }
+          ],
+          solution: q.solution || "",
+          points: q.points || 100
+        };
+      } else {
+        return {
+          type: "conceptual",
+          title: q.title || "Conceptual Question",
+          question: q.question || q.question || "Trivia Question",
+          options: Array.isArray(q.options) && q.options.length === 4 ? q.options : ["Option A", "Option B", "Option C", "Option D"],
+          answerIndex: typeof q.answerIndex === "number" && q.answerIndex >= 0 && q.answerIndex <= 3 ? q.answerIndex : 0,
+          explanation: q.explanation || "No explanation provided.",
+          points: q.points || 100
+        };
+      }
+    });
     
     // Inject programmatic timestamps to guarantee alignment
     const validatedInVideo = inVideo.map((q, idx) => ({
@@ -933,13 +1261,9 @@ Format specification:
     }
   }
 
-  // 5. Ultimate Fallback to smart pre-defined / template questions
-  console.log(`[Quiz Generator Fallback] Using smart fallback quiz for: "${title}"`);
-  const fallback = generateFallbackQuiz(title, parsedDuration);
-  return {
-    ...fallback,
-    captions: transcriptList
-  };
+  // 5. No fallback available, throw error
+  console.error(`[Quiz Generator] Failed to generate quiz for: "${title}". Both Ollama and Gemini APIs failed.`);
+  throw new Error("Failed to generate quiz: Both local and remote AI engines failed.");
 }
 
 /**

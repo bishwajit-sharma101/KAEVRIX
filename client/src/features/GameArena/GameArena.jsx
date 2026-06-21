@@ -29,6 +29,7 @@ export default function GameArena({
   const [videoPlaybackRate, setVideoPlaybackRate] = useState(1);
   const isSpeedrunner = (selectedClass || "").toLowerCase() === "speedrunner";
   const [activeMilestones, setActiveMilestones] = useState([]);
+  const isHellMode = localStorage.getItem("hellMode") === "true" || (JSON.parse(localStorage.getItem(`kaevrix_roadmap_progress_${username}`) || '{}').difficulty === "Hell");
 
   useEffect(() => {
     if (!username) return;
@@ -36,6 +37,7 @@ export default function GameArena({
     if (saved) {
       try {
         const roadmap = JSON.parse(saved);
+        // Hell mode detection is handled synchronously above
         let milestones = [];
         if (roadmap.level1?.milestones?.some(m => m.status !== "completed")) {
           milestones = roadmap.level1.milestones;
@@ -477,7 +479,12 @@ export default function GameArena({
           
           <div className="progress-track-row">
             <div className="progress-track-info">
-              <span className="track-label player-indicator">👤 {username} (You)</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span className="track-label player-indicator">👤 {username} (You)</span>
+                {isHellMode && (
+                  <span style={{ fontSize: "10px", fontWeight: "800", color: "#ef4444", border: "1px solid #ef4444", padding: "1px 6px", borderRadius: "8px", background: "rgba(239, 68, 68, 0.1)", letterSpacing: "1px", marginLeft: "4px" }}>🔥 HELL</span>
+                )}
+              </div>
               <span style={{ color: "var(--neon-gold)", fontFamily: "var(--font-gamer)", fontWeight: "bold" }}>
                 {room?.players.find(p => p.username === username)?.score || 0} pts
               </span>

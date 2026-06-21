@@ -18,6 +18,9 @@ export default function CognitivePathfinder({ username, onTriggerSearch, onStart
   });
 
   const [view, setView] = useState(roadmap ? "roadmap" : "landing");
+  const [initialTopic, setInitialTopic] = useState("");
+  const [inputVal, setInputVal] = useState("");
+  const [activeNode, setActiveNode] = useState(1);
 
   const handleRoadmapReady = (newRoadmap) => {
     sound.playCorrect();
@@ -45,91 +48,198 @@ export default function CognitivePathfinder({ username, onTriggerSearch, onStart
   // Landing page — shown if no roadmap yet
   if (view === "landing") {
     return (
-      <div style={{ maxWidth: "720px", margin: "0 auto", padding: "40px 20px" }}>
-        {/* Hero */}
+      <div style={{ maxWidth: "800px", margin: "0 auto", padding: "24px 20px", position: "relative", minHeight: "78vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+        <style>{`
+          @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 200%; }
+          }
+          @keyframes breathe {
+            0%, 100% { 
+              box-shadow: 0 0 20px rgba(255,106,0,0.15), 0 0 40px rgba(255,106,0,0.05);
+            }
+            50% { 
+              box-shadow: 0 0 30px rgba(255,106,0,0.3), 0 0 60px rgba(255,106,0,0.1);
+            }
+          }
+          .ultra-btn-wrap {
+            position: relative;
+            padding: 2px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #ff6a00, #ff8f00, #ffb300, #ff8f00, #ff6a00);
+            background-size: 300% 300%;
+            animation: breathe 3s ease-in-out infinite;
+            transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+            cursor: pointer;
+          }
+          .ultra-btn-wrap:hover {
+            transform: translateY(-3px) scale(1.02);
+            animation: none;
+            box-shadow: 0 0 35px rgba(255,106,0,0.5), 0 12px 30px rgba(255,106,0,0.2);
+          }
+          .ultra-btn-wrap:active {
+            transform: translateY(0px) scale(0.99);
+          }
+          .ultra-btn-inner {
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 18px 48px;
+            border-radius: 12px;
+            background: var(--bg-dark-base);
+            font-size: 14px;
+            font-weight: 900;
+            font-family: var(--font-gamer), sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #ff6a00;
+            border: none;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+          }
+          .ultra-btn-wrap:hover .ultra-btn-inner {
+            background: linear-gradient(135deg, #ff6a00 0%, #ff8f00 100%);
+            color: #ffffff;
+          }
+          .ultra-btn-inner::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transform: skewX(-20deg);
+            animation: shimmer 4s ease-in-out infinite;
+            pointer-events: none;
+          }
+          .ultra-btn-wrap:hover .ultra-btn-inner::after {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation-duration: 1.5s;
+          }
+          .ultra-btn-arrow {
+            transition: transform 0.35s cubic-bezier(0.19, 1, 0.22, 1);
+            font-size: 16px;
+            display: inline-block;
+          }
+          .ultra-btn-wrap:hover .ultra-btn-arrow {
+            transform: translateX(6px);
+          }
+        `}</style>
+
+        {/* Ambient glow */}
         <div style={{
-          background: isDarkMode ? "linear-gradient(135deg, #0f172a 0%, #1e0a00 100%)" : "linear-gradient(135deg, #f8fafc 0%, #fff7ed 100%)",
-          borderRadius: "28px", padding: "48px 40px",
-          textAlign: "center", position: "relative", overflow: "hidden",
-          marginBottom: "32px",
-          border: isDarkMode ? "none" : "1px solid rgba(255, 106, 0, 0.25)",
-          boxShadow: isDarkMode ? "none" : "0 10px 30px rgba(255, 106, 0, 0.05)"
+          position: "absolute",
+          top: "30%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "600px",
+          height: "400px",
+          background: isDarkMode 
+            ? "radial-gradient(circle, rgba(255,106,0,0.04) 0%, transparent 60%)"
+            : "radial-gradient(circle, rgba(255,106,0,0.025) 0%, transparent 60%)",
+          zIndex: 0,
+          pointerEvents: "none"
+        }} />
+
+        {/* Badge */}
+        <div style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "7px",
+          background: isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed",
+          border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.2)" : "1px solid #fed7aa",
+          padding: "6px 16px",
+          borderRadius: "100px",
+          marginBottom: "24px",
+          fontSize: "10px",
+          fontWeight: "900",
+          color: "#ff6a00",
+          textTransform: "uppercase",
+          letterSpacing: "2px",
+          fontFamily: "var(--font-gamer), sans-serif",
+          position: "relative",
+          zIndex: 1
         }}>
-          <div style={{
-            position: "absolute", top: "-30px", right: "-30px",
-            width: "180px", height: "180px", borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(255,106,0,0.2) 0%, transparent 70%)",
-            pointerEvents: "none"
-          }} />
+          <span style={{ fontSize: "13px" }}>🧠</span> AI LEARNING ENGINE
+        </div>
 
-          <div style={{ fontSize: "64px", marginBottom: "20px" }}>🗺️</div>
-          <h1 style={{ fontSize: "36px", fontWeight: "900", color: isDarkMode ? "#ffffff" : "var(--text-light)", marginBottom: "12px", lineHeight: "1.2" }}>
-            Cognitive Pathfinder
-          </h1>
-          <p style={{ color: isDarkMode ? "rgba(255,255,255,0.6)" : "var(--text-muted)", fontSize: "16px", lineHeight: "1.6", marginBottom: "32px", maxWidth: "500px", margin: "0 auto 32px" }}>
-            Tell the AI what you want to learn. It builds you a personalized 3-level roadmap with YouTube videos, study notes, and XP rewards — unique to your goals.
-          </p>
+        {/* Title */}
+        <h1 style={{
+          fontSize: "56px",
+          fontWeight: "900",
+          fontFamily: "var(--font-gamer), sans-serif",
+          background: isDarkMode 
+            ? "linear-gradient(135deg, #ffffff 25%, #ff8f00 100%)" 
+            : "linear-gradient(135deg, #0f172a 25%, #ff6a00 100%)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          margin: "0 0 16px",
+          letterSpacing: "3px",
+          lineHeight: "1.1",
+          textTransform: "uppercase",
+          textAlign: "center",
+          position: "relative",
+          zIndex: 1
+        }}>
+          COGNITIVE<br />PATHFINDER
+        </h1>
 
-          <div style={{ display: "flex", gap: "16px", justifyContent: "center", marginBottom: "32px", flexWrap: "wrap" }}>
-            {[
-              { icon: "💬", text: "5 quick questions" },
-              { icon: "🧠", text: "AI builds your path" },
-              { icon: "⚔️", text: "Duel to level up" },
-            ].map((f, i) => (
-              <div key={i} style={{
-                display: "flex", alignItems: "center", gap: "8px",
-                background: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(255, 106, 0, 0.05)",
-                border: isDarkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(255, 106, 0, 0.15)",
-                padding: "10px 18px", borderRadius: "20px"
-              }}>
-                <span>{f.icon}</span>
-                <span style={{ fontSize: "13px", color: isDarkMode ? "rgba(255,255,255,0.8)" : "var(--text-light)", fontWeight: "600" }}>{f.text}</span>
-              </div>
-            ))}
+        {/* Tagline */}
+        <p style={{
+          color: isDarkMode ? "rgba(255,255,255,0.55)" : "var(--text-muted)",
+          fontSize: "16px",
+          lineHeight: "1.7",
+          textAlign: "center",
+          maxWidth: "480px",
+          fontFamily: "var(--font-sans)",
+          margin: "0 0 20px",
+          position: "relative",
+          zIndex: 1
+        }}>
+          Tell the AI what you want to master. It builds a personalized 3-level roadmap with curated videos, study notes, and XP rewards.
+        </p>
+
+        {/* Feature words */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          marginBottom: "44px",
+          fontSize: "11px",
+          fontWeight: "800",
+          fontFamily: "var(--font-outfit), sans-serif",
+          textTransform: "uppercase",
+          letterSpacing: "1.5px",
+          color: isDarkMode ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)",
+          position: "relative",
+          zIndex: 1
+        }}>
+          <span>5 Questions</span>
+          <span style={{ color: "#ff6a00", fontSize: "6px" }}>●</span>
+          <span>AI Synthesis</span>
+          <span style={{ color: "#ff6a00", fontSize: "6px" }}>●</span>
+          <span>Duel Mode</span>
+        </div>
+
+        {/* Ultra Premium Button */}
+        <div 
+          className="ultra-btn-wrap"
+          onClick={() => {
+            sound.playClockTick();
+            setView("onboarding");
+          }}
+          style={{ position: "relative", zIndex: 1 }}
+        >
+          <div className="ultra-btn-inner">
+            <span>INITIALIZE PATHFINDER</span>
+            <span className="ultra-btn-arrow">→</span>
           </div>
-
-          <button
-            onClick={() => { sound.playClockTick(); setView("onboarding"); }}
-            style={{
-              padding: "18px 40px", borderRadius: "16px",
-              border: "none", background: "linear-gradient(135deg, #ff6a00, #ffb300)",
-              color: "#fff", fontWeight: "900", fontSize: "16px",
-              cursor: "pointer", letterSpacing: "0.5px",
-              boxShadow: "0 8px 30px rgba(255,106,0,0.4)",
-              transition: "all 0.2s"
-            }}
-            onMouseOver={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(255,106,0,0.5)"; }}
-            onMouseOut={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 8px 30px rgba(255,106,0,0.4)"; }}
-          >
-            🚀 Start Building My Roadmap
-          </button>
         </div>
 
-        {/* Level preview cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
-          {[
-            { num: 1, emoji: "🌱", title: "Level 1", sub: "Basic → Intermediate", color: "#10b981", desc: "Build solid foundations, core concepts, and first projects." },
-            { num: 2, emoji: "⚡", title: "Level 2", sub: "Intermediate → Advanced", color: "#f59e0b", desc: "Master patterns, performance, and real-world applications." },
-            { num: 3, emoji: "🔥", title: "Level 3", sub: "Advanced → God Tier", color: "#8b5cf6", desc: "Architecture, internals, and production-grade mastery." },
-          ].map(l => (
-            <div key={l.num} style={{
-              background: "var(--bg-dark-surface)", borderRadius: "20px",
-              padding: "20px", border: "1px solid var(--glass-border)",
-              boxShadow: "var(--shadow-purple)"
-            }}>
-              <div style={{
-                width: "44px", height: "44px", borderRadius: "12px",
-                background: `${l.color}22`, display: "flex", alignItems: "center",
-                justifyContent: "center", fontSize: "22px", marginBottom: "12px"
-              }}>
-                {l.emoji}
-              </div>
-              <div style={{ fontSize: "15px", fontWeight: "900", color: l.color, marginBottom: "2px" }}>{l.title}</div>
-              <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: "700", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>{l.sub}</div>
-              <p style={{ fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.5" }}>{l.desc}</p>
-            </div>
-          ))}
-        </div>
       </div>
     );
   }
