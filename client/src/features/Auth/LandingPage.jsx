@@ -4,6 +4,100 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { BrainCircuit, Play, Users, History, Zap, Shield, Infinity } from 'lucide-react';
 import * as sound from "../../utils/audio";
 
+const SkillTree3D = () => {
+  const nodes = [
+    { title: "Full-Stack Web Dev", z: 0, x: 0, y: 0, color: "#eab308", scale: 1.1 },
+    { title: "HTML & CSS", z: 120, x: -140, y: -120, color: "#3b82f6", scale: 0.8 },
+    { title: "JavaScript ES6+", z: 80, x: -80, y: -50, color: "#facc15", scale: 0.9 },
+    { title: "React Ecosystem", z: -140, x: 160, y: -90, color: "#06b6d4", scale: 0.9 },
+    { title: "Node.js & Express", z: -160, x: 80, y: 60, color: "#10b981", scale: 0.9 },
+    { title: "PostgreSQL DB", z: 0, x: 180, y: 100, color: "#6366f1", scale: 0.85 },
+    { title: "Auth & Security", z: 100, x: 120, y: -40, color: "#8b5cf6", scale: 0.8 },
+    { title: "Docker & CI/CD", z: -100, x: -160, y: 60, color: "#ec4899", scale: 0.85 },
+    { title: "WebSockets", z: 140, x: -50, y: 130, color: "#f43f5e", scale: 0.8 },
+    { title: "System Architecture", z: -80, x: 0, y: -160, color: "#ff6a00", scale: 0.9 },
+  ];
+
+  return (
+    <div style={{ width: "100%", height: "400px", perspective: "1000px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      {/* The Central Rotating Axis */}
+      <motion.div
+        style={{ width: "2px", height: "2px", position: "relative", transformStyle: "preserve-3d" }}
+        animate={{ rotateY: 360 }}
+        transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
+      >
+        {/* XY Plane SVG Connections */}
+        <svg style={{ position: "absolute", top: "50%", left: "50%", overflow: "visible", transform: "translate(-50%, -50%) translateZ(0px)", width: "2px", height: "2px" }}>
+          {nodes.map((node, i) => {
+             if (node.x === 0 && node.y === 0) return null;
+             return (
+               <line key={`line-${i}`} x1="0" y1="0" x2={node.x} y2={node.y} stroke={`${node.color}50`} strokeWidth="1" strokeDasharray="4 4" />
+             );
+          })}
+        </svg>
+
+        {/* Z-Axis Glow Pillars */}
+        {nodes.map((node, i) => {
+          if (node.z === 0) return null;
+          return (
+            <div
+              key={`pillar-${i}`}
+              style={{
+                position: "absolute",
+                top: "50%", left: "50%",
+                width: "2px",
+                height: `${Math.abs(node.z)}px`,
+                background: `linear-gradient(to ${node.z > 0 ? 'top' : 'bottom'}, ${node.color}a0, transparent)`,
+                transform: `translate(-50%, -50%) translate3d(${node.x}px, ${node.y}px, ${node.z / 2}px) rotateX(90deg)`,
+                transformOrigin: "center center",
+              }}
+            />
+          );
+        })}
+        
+        {nodes.map((node, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              top: "50%", left: "50%",
+              transform: `translate(-50%, -50%) translate3d(${node.x}px, ${node.y}px, ${node.z}px) scale(${node.scale})`,
+              transformStyle: "preserve-3d"
+            }}
+          >
+             {/* The Billboarding Node (rotates inverse to parent so it always faces camera) */}
+             <motion.div
+               animate={{ rotateY: -360 }}
+               transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
+               style={{
+                 background: `rgba(255,255,255,0.02)`,
+                 border: `1px solid ${node.color}50`,
+                 padding: "16px 24px",
+                 borderRadius: "16px",
+                 backdropFilter: "blur(12px)",
+                 color: "#fff",
+                 fontSize: "14px",
+                 fontWeight: "600",
+                 boxShadow: `inset 0 0 20px ${node.color}20, 0 0 30px ${node.color}20`,
+                 whiteSpace: "nowrap",
+                 display: "flex",
+                 alignItems: "center",
+                 justifyContent: "center",
+                 position: "relative"
+               }}
+             >
+                <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: node.color, position: "absolute", top: "-6px", right: "-6px", boxShadow: `0 0 15px ${node.color}, 0 0 30px ${node.color}` }} />
+                {node.title}
+             </motion.div>
+          </div>
+        ))}
+      </motion.div>
+    </div>
+  );
+};
+
+
+
 export default function LandingPage({
   onStartSignUp,
   onStartSignIn,
@@ -251,10 +345,7 @@ export default function LandingPage({
                 </p>
              </motion.div>
              <motion.div style={{ x: pfCardX, opacity: pfOpacity }} className="responsive-card">
-                <div style={{ background: "rgba(16,185,129,0.05)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: "24px", padding: "60px", backdropFilter: "blur(12px)", textAlign: "center" }}>
-                  <div style={{ fontSize: "24px", fontWeight: "bold", color: "#10b981", marginBottom: "16px" }}>Goal: Quantum Physics</div>
-                  <div style={{ display: "inline-block", padding: "8px 16px", background: "rgba(16,185,129,0.2)", borderRadius: "8px", fontSize: "14px", fontWeight: "bold", color: "#fff" }}>DIFFICULTY: HELL MODE</div>
-                </div>
+                <SkillTree3D />
              </motion.div>
           </div>
         </section>
