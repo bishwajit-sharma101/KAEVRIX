@@ -12,6 +12,7 @@ import SurpassLimits from "./features/Dashboard/SurpassLimits";
 import DailyLogin from "./features/Dashboard/DailyLogin";
 import SoloStudyRoom from "./features/SoloStudy/SoloStudyRoom";
 import ModeSelection from "./features/GameArena/ModeSelection";
+import CommandCenter from "./features/Admin/CommandCenter";
 
 export default function AppRouter(props) {
   const { username, setUsername, avatar, setAvatar, selectedClass, setSelectedClass, isRegistered, setIsRegistered, xp, setXp, level, setLevel, wins, setWins, losses, setLosses, isDarkMode, setIsDarkMode, token, setToken, isMusicMuted, setIsMusicMuted, musicProfile, setMusicProfile, keepMusicInGame, setKeepMusicInGame, showMusicSettings, setShowMusicSettings, showSurpassLimits, setShowSurpassLimits, isExitIntercept, setIsExitIntercept, interceptTrackIdx, setInterceptTrackIdx, showDailyModal, setShowDailyModal, journeyDay, setJourneyDay, energy, setEnergy, isFrozen, setIsFrozen, isBlurred, setIsBlurred, progressAtQuizEntry, setProgressAtQuizEntry, doubleDownQuestions, setDoubleDownQuestions, disabledOptions, setDisabledOptions, leaderboard, setLeaderboard, curatedVideos, setCuratedVideos, selectedVideo, setSelectedVideo, selectedSoloVideo, setSelectedSoloVideo, vsBot, setVsBot, searchQuery, setSearchQuery, activeSearchQuery, setActiveSearchQuery, searchResults, setSearchResults, isSearching, setIsSearching, socket, setSocket, status, setStatus, room, setRoom, opponent, setOpponent, countdown, setCountdown, myProgress, setMyProgress, opponentProgress, setOpponentProgress, opponentWaiting, setOpponentWaiting, opponentSubmitted, setOpponentSubmitted, chatMessages, setChatMessages, chatInput, setChatInput, questions, setQuestions, currentQuestionIdx, setCurrentQuestionIdx, selectedAnswers, setSelectedAnswers, quizTimer, setQuizTimer, gameResults, setGameResults, xpGained, setXpGained, leveledUp, setLeveledUp, handleLogout, cancelMatchmaking, handleSearchSubmit, clearSearch, resetToDashboard, startMatchmaking, handleReadyToPlay, handleSendChat, handleVideoProgress, handleVideoFinished, handleUsePowerup, handleSelectOption, handleDoubleDown, handleHackersClue, submitQuizAnswers, handleNextQuestion, handleStartSoloStudy, handleAddSoloXp, exitAttemptsRef, BACKEND_URL, getRankTitle, triggerSearch, initializeSocketAndRegister } = props;
@@ -550,7 +551,7 @@ export default function AppRouter(props) {
     <div className="app-container">
       {/* Dynamic Hell Mode styles */}
       {hellModeStyles}
-      {(!isCodingMode || status !== "solo_study") && headerComponent}
+      {(!isCodingMode || status !== "solo_study") && status !== "command_center" && headerComponent}
 
       {/* 2. DASHBOARD OR GAME STATES */}
       {status === "idle" && (
@@ -702,6 +703,16 @@ export default function AppRouter(props) {
           onBack={resetToDashboard}
           onAddSoloXp={handleAddSoloXp}
           onCodingModeChange={setIsCodingMode}
+        />
+      )}
+
+      {status === "command_center" && (
+        <CommandCenter
+          backendUrl={BACKEND_URL}
+          onExit={() => {
+            window.history.pushState({}, '', '/');
+            resetToDashboard();
+          }}
         />
       )}
 

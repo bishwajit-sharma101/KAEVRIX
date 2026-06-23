@@ -152,6 +152,17 @@ updateBossModal.js
 updateBossModal2.js
 inject.js
 server/createDummyUsers.js
+elevateAdmin.js
+fix_script.js
+fix_script_2.js
+generate_report.js
+instrument.js
+refactorFetch.js
+replace_script.js
+test-telemetry.js
+server/elevateAdmin.js
+server/generate_report.js
+
 
 # IDEs and Editors
 .vscode/

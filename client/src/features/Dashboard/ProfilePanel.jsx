@@ -1610,7 +1610,10 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
       const BACKEND_URL = window.location.hostname === "localhost" ? "http://localhost:5000" : "";
       const res = await fetch(`${BACKEND_URL}/api/profile/cosmetics`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
+        },
         body: JSON.stringify({ username, ...nextCosmetics })
       });
       if (res.ok) fetchProfile();

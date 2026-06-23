@@ -86,6 +86,19 @@ const userSchema = new mongoose.Schema({
     banner: { type: String, default: "" },
     avatarFrame: { type: String, default: "" },
     profileEffect: { type: String, default: "" }
+  },
+  role: {
+    type: String,
+    enum: ["user", "admin"],
+    default: "user"
+  },
+  mfaEnabled: {
+    type: Boolean,
+    default: false
+  },
+  mfaSecret: {
+    type: String,
+    default: ""
   }
 });
 

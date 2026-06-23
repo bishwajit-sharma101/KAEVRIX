@@ -2,6 +2,8 @@ import dotenv from "dotenv";
 import { YoutubeTranscript } from "youtube-transcript";
 import path from "path";
 import { fileURLToPath } from "url";
+import TelemetryEvent from "./models/TelemetryEvent.js";
+import { trackAICost } from "./services/budgetTracker.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,7 +14,7 @@ const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 const OLLAMA_MODEL = "gemma4:e4b";
 
 // ── Ollama helpers ──────────────────────────────────────────────────────────
-async function ollamaGenerate(prompt, format = "json") {
+async function ollamaGenerate(prompt, format = "json", userId = null, endpoint = "unknown") {
   const body = {
     model: OLLAMA_MODEL,
     prompt,
@@ -21,55 +23,99 @@ async function ollamaGenerate(prompt, format = "json") {
   };
   if (format === "json") body.format = "json";
 
+  const startTime = Date.now();
   console.log(`[Ollama] Sending request to ${OLLAMA_URL}/api/generate for model ${OLLAMA_MODEL}...`);
-  const res = await fetch(`${OLLAMA_URL}/api/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(300000) // 5 min timeout to allow local models to process
-  });
+  try {
+    const res = await fetch(`${OLLAMA_URL}/api/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(300000) // 5 min timeout to allow local models to process
+    });
 
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "");
-    throw new Error(`Ollama HTTP ${res.status}: ${errorText || "Unknown error"}`);
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => "");
+      throw new Error(`Ollama HTTP ${res.status}: ${errorText || "Unknown error"}`);
+    }
+    const data = await res.json();
+    
+    TelemetryEvent.create({
+      username: "system",
+      eventType: "AI_REQUEST_EXECUTED",
+      metadata: { provider: "ollama", model: OLLAMA_MODEL, latencyMs: Date.now() - startTime }
+    }).catch(e => console.error(e));
+
+    const text = data.response || "";
+    const inputTokens = Math.ceil(prompt.length / 4);
+    const outputTokens = Math.ceil(text.length / 4);
+    trackAICost(userId, endpoint, inputTokens, outputTokens).catch(e => console.error("trackAICost failed:", e));
+
+    return text;
+  } catch (err) {
+    TelemetryEvent.create({
+      username: "system",
+      eventType: "AI_REQUEST_FAILED",
+      metadata: { provider: "ollama", model: OLLAMA_MODEL, errorMessage: err.message, latencyMs: Date.now() - startTime }
+    }).catch(e => console.error(e));
+    throw err;
   }
-  const data = await res.json();
-  return data.response;
 }
 
 // ── Gemini API helpers ────────────────────────────────────────────────────────
-async function callGeminiAPI(prompt, responseMimeType = "text/plain") {
+async function callGeminiAPI(prompt, responseMimeType = "text/plain", userId = null, endpoint = "unknown") {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY_HERE") {
     throw new Error("No Gemini API key configured");
   }
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType
-        }
-      })
+  const startTime = Date.now();
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType
+          }
+        })
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Gemini API HTTP Error ${response.status}`);
     }
-  );
 
-  if (!response.ok) {
-    throw new Error(`Gemini API HTTP Error ${response.status}`);
-  }
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) {
+      throw new Error("Empty response from Gemini API");
+    }
 
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) {
-    throw new Error("Empty response from Gemini API");
+    TelemetryEvent.create({
+      username: "system",
+      eventType: "AI_REQUEST_EXECUTED",
+      metadata: { provider: "gemini", model: "gemini-2.5-flash", latencyMs: Date.now() - startTime }
+    }).catch(e => console.error(e));
+
+    const usage = data.usageMetadata || {};
+    const inputTokens = usage.promptTokenCount || Math.ceil(prompt.length / 4);
+    const outputTokens = usage.candidatesTokenCount || Math.ceil(text.length / 4);
+    trackAICost(userId, endpoint, inputTokens, outputTokens).catch(e => console.error("trackAICost failed:", e));
+
+    return text;
+  } catch (err) {
+    TelemetryEvent.create({
+      username: "system",
+      eventType: "AI_REQUEST_FAILED",
+      metadata: { provider: "gemini", model: "gemini-2.5-flash", errorMessage: err.message, latencyMs: Date.now() - startTime }
+    }).catch(e => console.error(e));
+    throw err;
   }
-  return text;
 }
 
 function buildFallbackRoadmap(topic, goal) {
@@ -215,7 +261,7 @@ function buildFallbackRoadmap(topic, goal) {
  * Generates a personalized 3-level learning roadmap using Ollama gemma4:e4b or Gemini API.
  * Falls back to template if Ollama is unavailable.
  */
-export async function generateRoadmapFromAnswers(answers, pathfinderMode, options = {}) {
+export async function generateRoadmapFromAnswers(answers, pathfinderMode, options = {}, userId = null) {
   const { isEngineer, devGoal, devLanguage, difficulty } = options;
   
   const qa = answers.map(a => `Q: ${a.question}\nA: ${a.answer}`).join("\n\n");
@@ -355,7 +401,7 @@ Return ONLY valid JSON, no markdown.`;
     if (useGemini) {
       try {
         console.log(`[Pathfinder] Generating roadmap for: "${userTopicShort}" via Gemini API`);
-        raw = await callGeminiAPI(prompt, "application/json");
+        raw = await callGeminiAPI(prompt, "application/json", userId, "/pathfinder/generate");
       } catch (gemErr) {
         console.error(`[Pathfinder] Gemini API failed (${gemErr.message}). Falling back to Ollama...`);
         geminiFailed = true;
@@ -364,7 +410,7 @@ Return ONLY valid JSON, no markdown.`;
     
     if (!useGemini || geminiFailed) {
       console.log(`[Pathfinder] Generating roadmap for: "${userTopicShort}" via Ollama ${OLLAMA_MODEL}`);
-      raw = await ollamaGenerate(prompt, "json");
+      raw = await ollamaGenerate(prompt, "json", userId, "/pathfinder/generate");
     }
 
     const roadmap = JSON.parse(raw);
@@ -432,7 +478,7 @@ Return ONLY valid JSON, no markdown.`;
 /**
  * Lazily generates detailed milestones for Level 2 or Level 3 based on prior context.
  */
-export async function generateLevelMilestones(topic, level, previousMilestonesText) {
+export async function generateLevelMilestones(topic, level, previousMilestonesText, userId = null) {
   const prompt = `You are an expert learning path designer for the Kaevrix platform.
 The user is learning "${topic}". They have just completed the previous levels.
 Here are the topics they have ALREADY mastered:
@@ -468,10 +514,10 @@ Return ONLY valid JSON, no markdown.`;
   let raw;
   if (useGemini) {
     console.log(`[Pathfinder] Generating Level ${level} for: "${topic}" via Gemini API`);
-    raw = await callGeminiAPI(prompt, "application/json");
+    raw = await callGeminiAPI(prompt, "application/json", userId, "/pathfinder/generate-level");
   } else {
     console.log(`[Pathfinder] Generating Level ${level} for: "${topic}" via Ollama`);
-    raw = await ollamaGenerate(prompt, "json");
+    raw = await ollamaGenerate(prompt, "json", userId, "/pathfinder/generate-level");
   }
 
   const result = JSON.parse(raw);
@@ -488,7 +534,7 @@ Return ONLY valid JSON, no markdown.`;
 /**
  * Generates highly structured, beautiful markdown study notes for a specific roadmap milestone.
  */
-export async function generateStudyNotes(topic, milestone, answers = [], noteStyle = 'smart') {
+export async function generateStudyNotes(topic, milestone, answers = [], noteStyle = 'smart', userId = null) {
   const userReason = answers.find(a => a.question.toLowerCase().includes("why"))?.answer || "learning";
   const userGoal = answers.find(a => a.question.toLowerCase().includes("success"))?.answer || "mastery";
 
@@ -594,7 +640,7 @@ Output ONLY the final Markdown formatted study guide. Use beautiful typography, 
     if (useGemini) {
       try {
         console.log(`[StudyNotes] Generating study notes for: "${milestone.title}" via Gemini API`);
-        notes = await callGeminiAPI(prompt, "text/plain");
+        notes = await callGeminiAPI(prompt, "text/plain", userId, "/pathfinder/study-notes");
       } catch (gemErr) {
         console.error(`[StudyNotes] Gemini API failed (${gemErr.message}). Falling back to Ollama...`);
         geminiFailed = true;
@@ -603,7 +649,7 @@ Output ONLY the final Markdown formatted study guide. Use beautiful typography, 
     
     if (!useGemini || geminiFailed) {
       console.log(`[StudyNotes] Generating study notes for: "${milestone.title}" via Ollama ${OLLAMA_MODEL}`);
-      notes = await ollamaGenerate(prompt, "text");
+      notes = await ollamaGenerate(prompt, "text", userId, "/pathfinder/study-notes");
     }
     
     return notes.trim();
@@ -1015,7 +1061,7 @@ function generateFallbackDevQuiz(title, duration = 300) {
  * It first tries to fetch the transcript, then calls Ollama (gemma4:e4b) to create the quiz.
  * Falls back to Gemini API or smart default questions if necessary.
  */
-export async function generateQuizForVideo(videoId, title, duration = 300, topic = "", why = "", isDeveloper = false, completedMilestones = [], difficulty = "Medium", devGoal = "") {
+export async function generateQuizForVideo(videoId, title, duration = 300, topic = "", why = "", isDeveloper = false, completedMilestones = [], difficulty = "Medium", devGoal = "", userId = null) {
   const parsedDuration = Number(duration) || 300;
   
   // Detect developer topic
@@ -1245,7 +1291,7 @@ Format specification:
   if (useGemini) {
     try {
       console.log(`[Gemini Quiz Generator] Generating quiz via Gemini API for video: "${title}"`);
-      const responseText = await callGeminiAPI(prompt, "application/json");
+      const responseText = await callGeminiAPI(prompt, "application/json", userId, "/quiz/generate");
       const quizData = JSON.parse(responseText.trim());
       const validated = validateQuizData(quizData);
       return { ...validated, captions: transcriptList };
@@ -1259,7 +1305,7 @@ Format specification:
   if (!useGemini || geminiFailed) {
     try {
       console.log(`[Ollama Quiz Generator] Generating quiz via Ollama ${OLLAMA_MODEL} for video: "${title}"`);
-      const responseText = await ollamaGenerate(prompt, "json");
+      const responseText = await ollamaGenerate(prompt, "json", userId, "/quiz/generate");
       const quizData = JSON.parse(responseText.trim());
       const validated = validateQuizData(quizData);
       return { ...validated, captions: transcriptList };
@@ -1268,16 +1314,25 @@ Format specification:
     }
   }
 
-  // 5. No fallback available, throw error
-  console.error(`[Quiz Generator] Failed to generate quiz for: "${title}". Both Ollama and Gemini APIs failed.`);
-  throw new Error("Failed to generate quiz: Both local and remote AI engines failed.");
+  // 5. Fallback to pre-defined quiz templates if AI engines fail
+  console.log(`[Quiz Generator Fallback] Using fallback quiz template for: "${title}"`);
+  try {
+    const rawFallback = isDev 
+      ? generateFallbackDevQuiz(title, parsedDuration)
+      : generateFallbackQuiz(title, parsedDuration);
+    const validated = validateQuizData(rawFallback);
+    return { ...validated, captions: transcriptList || [] };
+  } catch (fallbackErr) {
+    console.error(`[Quiz Generator] Fallback quiz generation failed: ${fallbackErr.message}`);
+    throw new Error("Failed to generate quiz: Both local and remote AI engines failed.");
+  }
 }
 
 /**
  * Generates custom Boss Battle questions, boss type, and intro dialog JIT.
  * Prioritizes local Ollama gemma4:e4b, falling back to Gemini API or a high-quality template.
  */
-export async function generateBossQuestions(topic, milestone) {
+export async function generateBossQuestions(topic, milestone, userId = null) {
   const mTitle = milestone?.title || "Core Concepts";
   const mPoints = (milestone?.keyPoints || []).join(", ");
   const mDesc = milestone?.description || "";
@@ -1345,7 +1400,7 @@ Format specification:
   if (useGemini) {
     try {
       console.log(`[Gemini Boss Generator] Generating boss questions via Gemini API for milestone: "${mTitle}"`);
-      const responseText = await callGeminiAPI(prompt, "application/json");
+      const responseText = await callGeminiAPI(prompt, "application/json", userId, "/boss/generate");
       const bossData = JSON.parse(responseText.trim());
       return validateBossData(bossData);
     } catch (geminiErr) {
@@ -1358,7 +1413,7 @@ Format specification:
   if (!useGemini || geminiFailed) {
     try {
       console.log(`[Ollama Boss Generator] Generating boss questions via Ollama ${OLLAMA_MODEL} for milestone: "${mTitle}"`);
-      const responseText = await ollamaGenerate(prompt, "json");
+      const responseText = await ollamaGenerate(prompt, "json", userId, "/boss/generate");
       const bossData = JSON.parse(responseText.trim());
       return validateBossData(bossData);
     } catch (ollamaErr) {

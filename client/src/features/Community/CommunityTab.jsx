@@ -13,6 +13,7 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
   const [currentPage, setCurrentPage] = useState(1);
   const [sentThisSession, setSentThisSession] = useState([]);
   const [activeView, setActiveView] = useState("discover"); // discover | squad | requests | messages
+  const [sidebarSearchQuery, setSidebarSearchQuery] = useState("");
   const itemsPerPage = 8;
   
   // Chat & Presence State
@@ -21,6 +22,10 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const chatScrollRef = useRef(null);
+
+  const filteredFriendsForSidebar = useMemo(() => {
+    return friends.filter(f => f.username.toLowerCase().includes(sidebarSearchQuery.toLowerCase()));
+  }, [friends, sidebarSearchQuery]);
 
   // Socket Listeners
   useEffect(() => {
@@ -54,7 +59,9 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
   // Fetch DM History when activeChatUser changes
   useEffect(() => {
     if (activeChatUser && activeView === "messages") {
-      fetch(`${backendUrl}/api/chat/messages/${username}/${activeChatUser}`)
+      fetch(`${backendUrl}/api/chat/messages/${username}/${activeChatUser}`, {
+        headers: { "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}` }
+      })
         .then(res => res.json())
         .then(data => setChatMessages(data || []))
         .catch(err => console.error("Error fetching chat:", err));
@@ -77,7 +84,9 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
 
   const fetchFriendsData = async () => {
     try {
-      const res = await fetch(`${backendUrl}/api/community/friends/${username}`);
+      const res = await fetch(`${backendUrl}/api/community/friends/${username}`, {
+        headers: { "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}` }
+      });
       if (res.ok) {
         const data = await res.json();
         setFriends(data.friends || []);
@@ -88,7 +97,9 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
 
   const fetchDiscoverUsers = async (filter = "") => {
     try {
-      const res = await fetch(`${backendUrl}/api/community/discover/${username}?filter=${encodeURIComponent(filter)}`);
+      const res = await fetch(`${backendUrl}/api/community/discover/${username}?filter=${encodeURIComponent(filter)}`, {
+        headers: { "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}` }
+      });
       if (res.ok) {
         const data = await res.json();
         setDiscoverUsers(data || []);
@@ -139,7 +150,10 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
     try {
       const res = await fetch(`${backendUrl}/api/community/request`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
+        },
         body: JSON.stringify({ fromUser: username, toUser })
       });
       if (res.ok) {
@@ -158,7 +172,10 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
     try {
       const res = await fetch(`${backendUrl}/api/community/respond`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
+        },
         body: JSON.stringify({ username, fromUser, action })
       });
       if (res.ok) {
@@ -580,6 +597,307 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
       .cv4-username {
         transition: color 0.2s ease;
       }
+      
+      /* Modern DM Styling */
+      .cv4-chat-container {
+        display: flex;
+        height: 65vh;
+        background: rgba(10, 15, 30, 0.45);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-radius: 20px;
+        border: 1px solid var(--glass-border);
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      }
+      .cv4-chat-sidebar {
+        width: 280px;
+        border-right: 1px solid var(--glass-border);
+        display: flex;
+        flex-direction: column;
+        background: rgba(4, 8, 16, 0.35);
+      }
+      .cv4-chat-sidebar-header {
+        padding: 20px 16px;
+        border-bottom: 1px solid var(--glass-border);
+      }
+      .cv4-chat-sidebar-title {
+        font-size: 11px;
+        font-weight: 900;
+        color: var(--neon-orange);
+        font-family: var(--font-gamer);
+        letter-spacing: 2px;
+        text-shadow: 0 0 10px rgba(255, 106, 0, 0.35);
+      }
+      .cv4-chat-contact-search {
+        margin-top: 12px;
+        position: relative;
+      }
+      .cv4-chat-contact-search input {
+        width: 100%;
+        padding: 8px 12px 8px 30px;
+        border-radius: 8px;
+        border: 1px solid var(--glass-border);
+        background: rgba(0, 0, 0, 0.25);
+        color: var(--text-light);
+        font-size: 12px;
+        outline: none;
+        transition: all 0.2s ease;
+      }
+      .cv4-chat-contact-search input:focus {
+        border-color: var(--neon-orange);
+        box-shadow: 0 0 8px rgba(255,106,0,0.15);
+      }
+      .cv4-chat-contact-search::before {
+        content: '🔍';
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 11px;
+        opacity: 0.5;
+      }
+      .cv4-contact-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 8px;
+      }
+      .cv4-contact-list::-webkit-scrollbar {
+        width: 4px;
+      }
+      .cv4-contact-list::-webkit-scrollbar-thumb {
+        background: rgba(255,106,0,0.15);
+        border-radius: 2px;
+      }
+      .cv4-contact-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        margin-bottom: 4px;
+        border: 1px solid transparent;
+      }
+      .cv4-contact-item:hover {
+        background: rgba(255, 106, 0, 0.04);
+        transform: translateX(2px);
+      }
+      .cv4-contact-item-active {
+        background: linear-gradient(90deg, rgba(255, 106, 0, 0.12) 0%, rgba(255, 106, 0, 0.02) 100%);
+        border-color: rgba(255, 106, 0, 0.25);
+        box-shadow: 0 4px 15px rgba(255,106,0,0.05);
+      }
+      .cv4-contact-item-active::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 15%;
+        height: 70%;
+        width: 3px;
+        background: var(--accent-gradient);
+        border-radius: 0 3px 3px 0;
+        box-shadow: 0 0 10px var(--neon-orange);
+      }
+      .cv4-chat-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: rgba(6, 10, 20, 0.15);
+      }
+      .cv4-chat-header {
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--glass-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(10, 15, 30, 0.2);
+        backdrop-filter: blur(10px);
+      }
+      .cv4-chat-header-user {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .cv4-chat-header-name {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--text-light);
+        font-family: var(--font-outfit);
+        letter-spacing: 0.5px;
+      }
+      .cv4-chat-header-badge {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        font-family: var(--font-gamer);
+      }
+      .cv4-chat-scroller {
+        flex: 1;
+        padding: 24px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .cv4-chat-scroller::-webkit-scrollbar {
+        width: 6px;
+      }
+      .cv4-chat-scroller::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .cv4-chat-scroller::-webkit-scrollbar-thumb {
+        background: rgba(255,106,0,0.15);
+        border-radius: 3px;
+      }
+      .cv4-chat-scroller::-webkit-scrollbar-thumb:hover {
+        background: rgba(255,106,0,0.3);
+      }
+      .cv4-msg-wrapper {
+        display: flex;
+        flex-direction: column;
+        max-width: 68%;
+        animation: cv4SlideInMsg 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      @keyframes cv4SlideInMsg {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .cv4-msg-wrapper-me {
+        align-self: flex-end;
+        align-items: flex-end;
+      }
+      .cv4-msg-wrapper-other {
+        align-self: flex-start;
+        align-items: flex-start;
+      }
+      .cv4-msg-bubble {
+        padding: 12px 18px;
+        border-radius: 18px;
+        font-size: 14px;
+        line-height: 1.45;
+        font-family: var(--font-sans);
+        font-weight: 500;
+        word-break: break-word;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        position: relative;
+        transition: all 0.2s ease;
+      }
+      .cv4-msg-bubble-me {
+        background: var(--accent-gradient);
+        color: #fff;
+        border-bottom-right-radius: 4px;
+        box-shadow: 0 4px 15px rgba(255,106,0,0.2);
+      }
+      .cv4-msg-bubble-other {
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text-light);
+        border: 1px solid var(--glass-border);
+        border-bottom-left-radius: 4px;
+      }
+      .cv4-msg-meta {
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-top: 5px;
+        font-weight: 700;
+        font-family: var(--font-gamer);
+        letter-spacing: 0.5px;
+        opacity: 0.75;
+      }
+      .cv4-chat-form {
+        padding: 18px 24px;
+        border-top: 1px solid var(--glass-border);
+        display: flex;
+        gap: 12px;
+        background: rgba(10, 15, 30, 0.1);
+        align-items: center;
+      }
+      .cv4-chat-form-input-wrapper {
+        flex: 1;
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .cv4-chat-form-input {
+        width: 100%;
+        padding: 14px 20px;
+        border-radius: 30px;
+        border: 1px solid var(--glass-border);
+        background: rgba(0, 0, 0, 0.35);
+        color: var(--text-light);
+        outline: none;
+        font-size: 14px;
+        font-family: var(--font-sans);
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+      .cv4-chat-form-input:focus {
+        border-color: var(--neon-orange);
+        background: rgba(0, 0, 0, 0.5);
+        box-shadow: 0 0 15px rgba(255, 106, 0, 0.12), inset 0 2px 4px rgba(0,0,0,0.5);
+      }
+      .cv4-chat-send-btn {
+        height: 48px;
+        padding: 0 26px;
+        border-radius: 24px;
+        background: var(--accent-gradient);
+        color: #fff;
+        border: none;
+        font-family: var(--font-gamer);
+        font-weight: 900;
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 15px rgba(255,106,0,0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .cv4-chat-send-btn:hover:not(:disabled) {
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 6px 20px rgba(255,106,0,0.45);
+      }
+      .cv4-chat-send-btn:active:not(:disabled) {
+        transform: translateY(0) scale(0.98);
+      }
+      .cv4-chat-send-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+      .cv4-chat-empty-state {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        flex-direction: column;
+        gap: 16px;
+        background: radial-gradient(circle at center, rgba(255,106,0,0.02) 0%, transparent 70%);
+      }
+      .cv4-chat-empty-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: rgba(255,106,0,0.06);
+        border: 2px dashed rgba(255,106,0,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        animation: cv4PulseIcon 2s ease infinite alternate;
+        box-shadow: inset 0 0 15px rgba(255,106,0,0.05);
+      }
+      @keyframes cv4PulseIcon {
+        0% { transform: scale(0.96); box-shadow: 0 0 10px transparent, inset 0 0 15px rgba(255,106,0,0.05); }
+        100% { transform: scale(1.04); border-color: rgba(255,106,0,0.4); box-shadow: 0 0 20px rgba(255,106,0,0.1), inset 0 0 15px rgba(255,106,0,0.1); }
+      }
     `;
     document.head.appendChild(s);
   }, []);
@@ -710,71 +1028,147 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
 
         {/* Messages View */}
         {activeView === "messages" && (
-          <div style={{ display: "flex", height: "60vh", background: "var(--bg-dark-surface)", borderRadius: "16px", border: "1px solid var(--glass-border)", overflow: "hidden" }}>
+          <div className="cv4-chat-container">
             {/* Friends Sidebar */}
-            <div style={{ width: "260px", borderRight: "1px solid var(--glass-border)", display: "flex", flexDirection: "column" }}>
-              <div style={{ padding: "16px", borderBottom: "1px solid var(--glass-border)", fontSize: "14px", fontWeight: "800", color: "var(--text-light)", fontFamily: "var(--font-gamer)", letterSpacing: "1px" }}>DIRECT MESSAGES</div>
-              <div style={{ flex: 1, overflowY: "auto", padding: "12px" }}>
-                {friends.length > 0 ? friends.map(user => (
-                  <div key={user.username} 
-                    onClick={() => { sound.playClockTick(); setActiveChatUser(user.username); }}
-                    style={{ 
-                      display: "flex", alignItems: "center", gap: "12px", padding: "12px", 
-                      borderRadius: "10px", cursor: "pointer", transition: "all 0.2s",
-                      background: activeChatUser === user.username ? "rgba(255,106,0,0.1)" : "transparent",
-                      border: `1px solid ${activeChatUser === user.username ? "var(--neon-orange)" : "transparent"}`
-                    }}>
-                    <div className="cv4-avatar" style={{ width: "32px", height: "32px" }}>
-                      {user.avatar && user.avatar.includes('http') ? <img src={user.avatar} alt="" /> : <div style={{width:"100%",height:"100%",background:"#333",display:"flex",alignItems:"center",justifyContent:"center"}}>👤</div>}
-                      <div className={`cv4-status-dot ${onlineUsers.has(user.username) ? 'cv4-status-online' : 'cv4-status-offline'}`} style={{ width: "10px", height: "10px", bottom: 0, right: 0 }} />
+            <div className="cv4-chat-sidebar">
+              <div className="cv4-chat-sidebar-header">
+                <div className="cv4-chat-sidebar-title">SECURE COMMUNICATIONS</div>
+                <div className="cv4-chat-sidebar-title" style={{ fontSize: "9px", color: "var(--text-muted)", marginTop: "2px", fontWeight: "500", textShadow: "none" }}>DIRECT MESSAGES</div>
+                <div className="cv4-chat-contact-search">
+                  <input 
+                    type="text" 
+                    placeholder="Search squad..." 
+                    value={sidebarSearchQuery} 
+                    onChange={e => setSidebarSearchQuery(e.target.value)} 
+                  />
+                </div>
+              </div>
+              <div className="cv4-contact-list">
+                {filteredFriendsForSidebar.length > 0 ? filteredFriendsForSidebar.map(user => {
+                  const isActive = activeChatUser === user.username;
+                  return (
+                    <div key={user.username} 
+                      onClick={() => { sound.playClockTick(); setActiveChatUser(user.username); }}
+                      className={`cv4-contact-item ${isActive ? "cv4-contact-item-active" : ""}`}
+                    >
+                      <div className="cv4-avatar" style={{ width: "34px", height: "34px" }}>
+                        <div className="cv4-avatar-ring" style={{ borderColor: isActive ? "var(--neon-orange)" : "var(--glass-border)" }} />
+                        {user.avatar && user.avatar.includes('http') ? (
+                          <img src={user.avatar} alt="" />
+                        ) : (
+                          <div style={{width:"100%",height:"100%",background:"rgba(255,106,0,0.08)",display:"flex",alignItems:"center",justifyContent:"center"}}>👤</div>
+                        )}
+                        <div className={`cv4-status-dot ${onlineUsers.has(user.username) ? 'cv4-status-online' : 'cv4-status-offline'}`} style={{ width: "9px", height: "9px", bottom: 0, right: 0 }} />
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                        <div style={{ 
+                          fontSize: "14px", 
+                          fontWeight: "700", 
+                          color: isActive ? "var(--neon-orange)" : "var(--text-light)",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis"
+                        }}>
+                          {user.username}
+                        </div>
+                        <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: "600", marginTop: "1px" }}>
+                          LVL {user.level} {getRankTitle(user.level).split(" ")[0]}
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ fontSize: "14px", fontWeight: "700", color: activeChatUser === user.username ? "var(--neon-orange)" : "var(--text-light)" }}>
-                      {user.username}
-                    </div>
+                  );
+                }) : (
+                  <div style={{ fontSize: "11px", color: "var(--text-muted)", padding: "12px", textAlign: "center" }}>
+                    {friends.length > 0 ? "No matching contacts found." : "No friends in squad to message."}
                   </div>
-                )) : <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "10px" }}>No friends to message yet.</div>}
+                )}
               </div>
             </div>
             {/* Chat Area */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <div className="cv4-chat-area">
               {activeChatUser ? (
                 <>
-                  <div style={{ padding: "20px", borderBottom: "1px solid var(--glass-border)", display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ fontSize: "18px", fontWeight: "800", color: "var(--text-light)" }}>@{activeChatUser}</div>
-                    {onlineUsers.has(activeChatUser) && <span style={{ padding: "4px 8px", background: "rgba(16,185,129,0.1)", color: "var(--neon-green)", borderRadius: "4px", fontSize: "10px", fontWeight: "800" }}>ONLINE</span>}
-                  </div>
-                  <div ref={chatScrollRef} style={{ flex: 1, padding: "20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "16px" }}>
-                    {chatMessages.map((msg, i) => {
-                      const isMe = msg.sender === username;
-                      return (
-                        <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
-                          <div style={{ 
-                            maxWidth: "70%", padding: "10px 16px", borderRadius: "16px",
-                            background: isMe ? "var(--neon-orange)" : "var(--bg-dark-base)",
-                            color: isMe ? "#fff" : "var(--text-light)",
-                            border: isMe ? "none" : "1px solid var(--glass-border)",
-                            borderBottomRightRadius: isMe ? "4px" : "16px",
-                            borderBottomLeftRadius: isMe ? "16px" : "4px",
-                            fontSize: "14px", lineHeight: 1.4
-                          }}>
-                            {msg.content}
+                  {/* Chat Header */}
+                  {(() => {
+                    const activeUserObj = friends.find(f => f.username === activeChatUser);
+                    return (
+                      <div className="cv4-chat-header">
+                        <div className="cv4-chat-header-user">
+                          <div className="cv4-avatar" style={{ width: "36px", height: "36px" }}>
+                            <div className="cv4-avatar-ring" style={{ borderColor: "var(--neon-orange)" }} />
+                            {activeUserObj?.avatar && activeUserObj.avatar.includes('http') ? (
+                              <img src={activeUserObj.avatar} alt="" />
+                            ) : (
+                              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", background: "rgba(255,106,0,0.08)" }}>👤</div>
+                            )}
+                            <div className={`cv4-status-dot ${onlineUsers.has(activeChatUser) ? 'cv4-status-online' : 'cv4-status-offline'}`} style={{ width: "9px", height: "9px", bottom: 0, right: 0 }} />
                           </div>
-                          <div style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "4px", fontWeight: "600" }}>
-                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          <div>
+                            <div className="cv4-chat-header-name">@{activeChatUser}</div>
+                            <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: "600", marginTop: "1px" }}>
+                              {activeUserObj ? `${getRankTitle(activeUserObj.level)} · Level ${activeUserObj.level}` : "Squad Member"}
+                            </div>
                           </div>
                         </div>
-                      )
-                    })}
+                        <div>
+                          {onlineUsers.has(activeChatUser) ? (
+                            <span className="cv4-chat-header-badge" style={{ background: "rgba(16,185,129,0.08)", color: "var(--neon-green)", border: "1px solid rgba(16,185,129,0.15)" }}>ONLINE</span>
+                          ) : (
+                            <span className="cv4-chat-header-badge" style={{ background: "rgba(255,255,255,0.02)", color: "var(--text-muted)", border: "1px solid var(--glass-border)" }}>OFFLINE</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  {/* Message Stream */}
+                  <div ref={chatScrollRef} className="cv4-chat-scroller">
+                    {chatMessages.length === 0 ? (
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "10px", opacity: 0.6, color: "var(--text-muted)", fontSize: "12px", fontFamily: "var(--font-gamer)", letterSpacing: "1px" }}>
+                        <span>⚡ SECURE CORRELATION TUNNEL ACTIVE. GREET @{activeChatUser.toUpperCase()}!</span>
+                      </div>
+                    ) : (
+                      chatMessages.map((msg, i) => {
+                        const isMe = msg.sender === username;
+                        return (
+                          <div key={i} className={`cv4-msg-wrapper ${isMe ? 'cv4-msg-wrapper-me' : 'cv4-msg-wrapper-other'}`}>
+                            <div className={`cv4-msg-bubble ${isMe ? 'cv4-msg-bubble-me' : 'cv4-msg-bubble-other'}`}>
+                              {msg.content}
+                            </div>
+                            <div className="cv4-msg-meta">
+                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
-                  <form onSubmit={handleSendDm} style={{ padding: "16px", borderTop: "1px solid var(--glass-border)", display: "flex", gap: "12px" }}>
-                    <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={`Message @${activeChatUser}...`} style={{ flex: 1, padding: "12px 16px", borderRadius: "24px", border: "1px solid var(--glass-border)", background: "var(--bg-dark-base)", color: "var(--text-light)", outline: "none", fontSize: "14px" }} />
-                    <button type="submit" style={{ padding: "0 24px", borderRadius: "24px", background: "var(--accent-gradient)", color: "#fff", border: "none", fontWeight: "800", cursor: "pointer", transition: "all 0.2s" }} onMouseOver={e => e.currentTarget.style.transform="scale(1.05)"} onMouseOut={e => e.currentTarget.style.transform="scale(1)"}>SEND</button>
+                  {/* Send Input */}
+                  <form onSubmit={handleSendDm} className="cv4-chat-form">
+                    <div className="cv4-chat-form-input-wrapper">
+                      <input 
+                        type="text" 
+                        value={chatInput} 
+                        onChange={e => setChatInput(e.target.value)} 
+                        placeholder={`Transmit secure message to @${activeChatUser}...`} 
+                        className="cv4-chat-form-input" 
+                      />
+                    </div>
+                    <button 
+                      type="submit" 
+                      className="cv4-chat-send-btn"
+                      disabled={!chatInput.trim()}
+                    >
+                      SEND ⚡
+                    </button>
                   </form>
                 </>
               ) : (
-                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", flexDirection: "column", gap: "12px" }}>
-                  <div style={{ fontSize: "40px" }}>💬</div>
-                  <div style={{ fontSize: "16px", fontWeight: "700" }}>Select a friend to start chatting</div>
+                <div className="cv4-chat-empty-state">
+                  <div className="cv4-chat-empty-icon">💬</div>
+                  <div style={{ fontSize: "18px", fontWeight: "800", color: "var(--text-light)", fontFamily: "var(--font-outfit)", letterSpacing: "0.2px" }}>Neural Comms Interface</div>
+                  <div style={{ fontSize: "13px", color: "var(--text-muted)", maxWidth: "280px", textAlign: "center", fontWeight: "500", lineHeight: 1.4 }}>
+                    Select an allied player from your squad sidebar to establish a secure messaging tunnel.
+                  </div>
                 </div>
               )}
             </div>

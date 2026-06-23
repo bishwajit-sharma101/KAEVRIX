@@ -1,3 +1,27 @@
+import DOMPurify from "dompurify";
+
+const codeRegistry = new Map();
+let registryCounter = 0;
+
+if (typeof document !== "undefined") {
+  document.addEventListener("click", (e) => {
+    const button = e.target.closest(".code-copy-btn");
+    if (button) {
+      const copyId = button.getAttribute("data-copy-id");
+      const code = codeRegistry.get(copyId);
+      if (code !== undefined) {
+        navigator.clipboard.writeText(code).then(() => {
+          const prevText = button.innerText;
+          button.innerText = '✓ Copied!';
+          setTimeout(() => { button.innerText = prevText; }, 2000);
+        }).catch(err => {
+          console.error("Failed to copy code snippet: ", err);
+        });
+      }
+    }
+  });
+}
+
 // JavaScript syntax highlighting helper
 export function highlightJS(code) {
   // Escape HTML
@@ -70,6 +94,10 @@ export function parseMarkdownToHTML(md) {
       const highlighted = highlightCode(code, lang);
       
       // Render code block with window styling (macOS window bar)
+      registryCounter++;
+      const copyId = `code-snippet-${registryCounter}`;
+      codeRegistry.set(copyId, code);
+
       resultHtml += `
         <div class="code-screenshot-window" style="
           background: #090d16;
@@ -96,23 +124,8 @@ export function parseMarkdownToHTML(md) {
             </div>
             <span style="color: #64748b; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${lang}</span>
             <button 
-              style="
-                color: #64748b; 
-                font-size: 11px; 
-                background: none; 
-                border: none; 
-                cursor: pointer;
-                padding: 2px 6px;
-                border-radius: 4px;
-                transition: all 0.2s;
-              "
-              onmouseover="this.style.color='#ea580c'; this.style.background='rgba(255,106,0,0.1)';"
-              onmouseout="this.style.color='#64748b'; this.style.background='none';"
-              onclick="navigator.clipboard.writeText(\`${code.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`).then(() => {
-                const prevText = this.innerText;
-                this.innerText = '✓ Copied!';
-                setTimeout(() => { this.innerText = prevText; }, 2000);
-              })"
+              class="code-copy-btn"
+              data-copy-id="${copyId}"
             >
               📋 Copy
             </button>
@@ -132,7 +145,10 @@ export function parseMarkdownToHTML(md) {
       `;
       isInsideCode = false;
     } else {
-      let mdText = part;
+      let mdText = part
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
       
       // Inline code
       mdText = mdText.replace(/`([^`\n]+)`/g, '<code style="background: rgba(255,106,0,0.1); color: #ea580c; padding: 2px 6px; border-radius: 6px; font-size: 0.9em; font-family: monospace; font-weight: bold;">$1</code>');
@@ -218,5 +234,14 @@ export function parseMarkdownToHTML(md) {
     }
   }
   
-  return resultHtml;
+  const cleanHtml = DOMPurify.sanitize(resultHtml, {
+    ALLOWED_TAGS: [
+      'p', 'br', 'strong', 'em', 'code', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
+      'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'span', 'button'
+    ],
+    ALLOWED_ATTR: [
+      'style', 'class', 'data-copy-id'
+    ]
+  });
+  return cleanHtml;
 }

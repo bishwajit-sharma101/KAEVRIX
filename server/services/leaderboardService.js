@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import TelemetryEvent from "../models/TelemetryEvent.js";
 
 // --- SKILL SYSTEM HELPERS ---
 const categorizeVideo = (title) => {
@@ -112,9 +113,19 @@ export async function updatePlayerStats(username, xpGained, won, videoDetails = 
     // Level formula: Level = Math.floor(XP / 200) + 1
     const newLevel = Math.floor(user.xp / 200) + 1;
     const leveledUp = newLevel > user.level;
+    const oldLevel = user.level;
     user.level = newLevel;
 
     await user.save();
+    
+    if (leveledUp) {
+      TelemetryEvent.create({
+        userId: user._id,
+        username: user.username,
+        eventType: "LEVEL_UP",
+        metadata: { previousLevel: oldLevel, newLevel, totalXp: user.xp, xpRequired: (newLevel - 1) * 200 }
+      }).catch(err => console.error("Telemetry failed", err));
+    }
     
     if (onStatsUpdatedCallback) {
       onStatsUpdatedCallback(username, xpGained, won, videoDetails, avatar, selectedClass);
@@ -154,6 +165,15 @@ export async function addSoloXp(username, xpEarned, videoTitle) {
     }
 
     await user.save();
+
+    if (leveledUp) {
+      TelemetryEvent.create({
+        userId: user._id,
+        username: user.username,
+        eventType: "LEVEL_UP",
+        metadata: { previousLevel: newLevel - 1, newLevel, totalXp: user.xp, xpRequired: (newLevel - 1) * 200 }
+      }).catch(err => console.error("Telemetry failed", err));
+    }
 
     if (onStatsUpdatedCallback) {
       onStatsUpdatedCallback(username, xpEarned, null, { title: videoTitle, solo: true }, null, null);

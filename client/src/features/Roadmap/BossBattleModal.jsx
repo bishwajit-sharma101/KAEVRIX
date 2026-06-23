@@ -722,7 +722,10 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
         const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
         const res = await fetch(`${BACKEND_URL}/api/boss/generate`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
+          },
           body: JSON.stringify({ topic, milestone })
         });
         if (!res.ok) throw new Error("Failed to generate boss questions");

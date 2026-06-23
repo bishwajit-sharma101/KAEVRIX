@@ -309,6 +309,7 @@ export default function WelcomeScreen({
       const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ username: loginUsername, password: loginPassword })
       });
       const data = await res.json();
@@ -342,6 +343,7 @@ export default function WelcomeScreen({
       const res = await fetch(`${BACKEND_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ 
           username: signUpUsername, 
           password: signUpPassword,
@@ -425,7 +427,10 @@ export default function WelcomeScreen({
 
       const res = await fetch(`${BACKEND_URL}/api/pathfinder/generate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${authPayload.token}`
+        },
         body: JSON.stringify({ answers: payload })
       });
 

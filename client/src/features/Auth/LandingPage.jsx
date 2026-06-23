@@ -288,7 +288,7 @@ export default function LandingPage({
         background: "linear-gradient(180deg, rgba(5,5,5,0.9) 0%, rgba(5,5,5,0) 100%)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "16px", cursor: "pointer" }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-          <img src="/logo.png" alt="Kaevrix" style={{ width: "32px", height: "32px", filter: "brightness(0) invert(1)" }} />
+          <img src="/logo.png" alt="Kaevrix AI Learning Platform Logo" loading="eager" fetchPriority="high" style={{ width: "auto", height: "32px", filter: "brightness(0) invert(1)" }} />
           <span className="hide-mobile" style={{ fontSize: "20px", fontWeight: "800", letterSpacing: "2px" }}>KAEVRIX</span>
         </div>
 
@@ -308,20 +308,23 @@ export default function LandingPage({
           <div className="grid-container" style={{ width: "100%", borderTop: "1px solid rgba(255,255,255,0.08)", marginTop: "100px" }}>
             <div style={{ minHeight: "calc(100vh - 100px)", display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: "80px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
               <div style={{ padding: "0 32px" }}>
-                 <motion.h1 
+                 <h1 style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "4px", color: "rgba(255,255,255,0.4)", marginBottom: "24px", fontWeight: "600" }}>
+                   Kaevrix | AI-Powered Learning Platform
+                 </h1>
+                 <motion.h2 
                    initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} 
                    className="serif responsive-hero-text" 
                    style={{ fontSize: "9vw", fontWeight: "400", margin: 0, lineHeight: "1.1", letterSpacing: "-0.02em" }}
                  >
                    Stop Watching.<br/>
                    <i style={{ color: "#ff6a00" }}>Start Playing.</i>
-                 </motion.h1>
+                 </motion.h2>
                  
                  <motion.p 
                     initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ delay: 0.4, duration: 1 }}
                     style={{ fontSize: "20px", color: "rgba(255,255,255,0.6)", marginTop: "40px", maxWidth: "800px", lineHeight: "1.6", fontWeight: "300" }}
                  >
-                   Kaevrix turns education into an RPG, uniting AI skill trees, YouTube tutorials, and active-retrieval into a single closed loop where your study hours become undeniable proof of mastery. Keep scrolling down to journey through the ecosystem.
+                   Kaevrix by Astrix Network is an adaptive learning platform that transforms tutorials into structured mastery journeys. Whether you're a student or a self-taught professional, our study system generates custom learning roadmaps, active recall quizzes, and personalized learning skill trees to optimize how you acquire knowledge.
                  </motion.p>
               </div>
             </div>
@@ -336,12 +339,12 @@ export default function LandingPage({
                   <BrainCircuit size={32} />
                 </div>
                 <div style={{ fontSize: "14px", textTransform: "uppercase", letterSpacing: "4px", color: "#10b981", marginBottom: "16px" }}>01 // The Setup</div>
-                <h3 className="serif responsive-h3" style={{ fontSize: "56px", fontWeight: "400", margin: "0 0 24px 0", lineHeight: "1.1" }}>Unlock your<br/>Skill Tree.</h3>
+                <h3 className="serif responsive-h3" style={{ fontSize: "56px", fontWeight: "400", margin: "0 0 24px 0", lineHeight: "1.1" }}>Unlock your<br/>Personalized<br/>Skill Tree.</h3>
                 <p style={{ fontSize: "18px", color: "rgba(255,255,255,0.6)", lineHeight: "1.6", marginBottom: "16px" }}>
-                  Don't blindly search YouTube and end up watching 3 hours of "Top 10 Productivity Hacks" instead of actually studying.
+                  Tell Pathfinder what you want to learn. Our adaptive learning platform instantly builds a bespoke learning roadmap out of the best tutorials on the internet.
                 </p>
                 <p style={{ fontSize: "18px", color: "rgba(255,255,255,0.6)", lineHeight: "1.6" }}>
-                  Tell Pathfinder what you want to learn—whether it's Calculus, Python, or History. Our AI instantly builds a bespoke roadmap out of the best tutorials on the internet. We give you a clear path from total beginner to advanced boss.
+                  We map your progression from total beginner to advanced mastery. By generating a clear study path, we eliminate decision paralysis so you can focus entirely on acquiring knowledge.
                 </p>
              </motion.div>
              <motion.div style={{ x: pfCardX, opacity: pfOpacity }} className="responsive-card">
@@ -373,9 +376,9 @@ export default function LandingPage({
                   <Zap size={32} />
                 </div>
                 <div style={{ fontSize: "14px", textTransform: "uppercase", letterSpacing: "4px", color: "#3b82f6", marginBottom: "16px" }}>02 // The Dashboard</div>
-                <h3 className="serif responsive-h3" style={{ fontSize: "56px", fontWeight: "400", margin: "0 0 24px 0", lineHeight: "1.1" }}>Your Daily<br/>Quests.</h3>
+                <h3 className="serif responsive-h3" style={{ fontSize: "56px", fontWeight: "400", margin: "0 0 24px 0", lineHeight: "1.1" }}>Your Daily<br/>Study Progress.</h3>
                 <p style={{ fontSize: "18px", color: "rgba(255,255,255,0.6)", lineHeight: "1.6" }}>
-                  Looking at a 50-hour roadmap is terrifying. Every day, Arena gives you a clean execution dashboard showing exactly what video, cheatsheet, or resource you need to focus on next. Just click play and start your daily quest.
+                  Looking at a 50-hour learning path is terrifying. Arena acts as your personal execution dashboard, tracking your study progress and showing exactly what video or active recall quiz you need to focus on next.
                 </p>
              </motion.div>
           </div>
@@ -395,12 +398,12 @@ export default function LandingPage({
                   <Shield size={32} />
                 </div>
                 <div style={{ fontSize: "14px", textTransform: "uppercase", letterSpacing: "4px", color: "#ff6a00", marginBottom: "16px" }}>03 // The Combat</div>
-                <h3 className="serif responsive-h3" style={{ fontSize: "56px", fontWeight: "400", margin: "0 0 24px 0", lineHeight: "1.1" }}>The illusion of<br/>passive watching.</h3>
+                <h3 className="serif responsive-h3" style={{ fontSize: "56px", fontWeight: "400", margin: "0 0 24px 0", lineHeight: "1.1" }}>Active Recall:<br/>The illusion of<br/>passive watching.</h3>
                 <p style={{ fontSize: "18px", color: "rgba(255,255,255,0.6)", lineHeight: "1.6", marginBottom: "16px" }}>
-                  Watching a tutorial and feeling like a genius, only to completely blank out when it's time to take the test, is a universal tragedy.
+                  In Sanctum, we embed your video safely. Watch it, generate dynamic notes, and vibe to focus music.
                 </p>
                 <p style={{ fontSize: "18px", color: "rgba(255,255,255,0.6)", lineHeight: "1.6" }}>
-                  In Sanctum, we embed your video safely. Watch it, generate AI notes, and vibe to focus music. But when the video ends, the real work begins. We hit you with high-stakes quizzes and conceptual questions you must write out by hand. We verify your capability, not your watch-time.
+                  But when the video ends, our mastery system hits you with high-stakes assessments. By utilizing active recall, we verify your knowledge retention, not just your watch-time, ensuring true learning takes place.
                 </p>
               </motion.div>
               <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }} className="responsive-card" style={{ background: "rgba(255,106,0,0.05)", border: "1px solid rgba(255,106,0,0.2)", borderRadius: "24px", padding: "40px", backdropFilter: "blur(12px)" }}>
@@ -496,12 +499,12 @@ export default function LandingPage({
                   <Shield size={32} />
                 </div>
                 <div style={{ fontSize: "14px", textTransform: "uppercase", letterSpacing: "4px", color: "#eab308", marginBottom: "16px" }}>06 // The Reward</div>
-                <h3 className="serif responsive-h3" style={{ fontSize: "56px", fontWeight: "400", margin: "0 0 24px 0", lineHeight: "1.1" }}>Level up in<br/>real life.</h3>
+                <h3 className="serif responsive-h3" style={{ fontSize: "56px", fontWeight: "400", margin: "0 0 24px 0", lineHeight: "1.1" }}>Mastery Tracking:<br/>Level up in<br/>real life.</h3>
                 <p style={{ fontSize: "18px", color: "rgba(255,255,255,0.6)", lineHeight: "1.6", marginBottom: "16px" }}>
-                  Your resume says you know Calculus, but your Kaevrix profile proves it.
+                  Every quiz passed and hour studied on our adaptive learning platform earns you XP.
                 </p>
                 <p style={{ fontSize: "18px", color: "rgba(255,255,255,0.6)", lineHeight: "1.6" }}>
-                  Every quiz passed and hour studied earns you XP. Your skill levels rise automatically based on actual proof of work, showing everyone exactly what you've learned and how long you've spent. And yes, if you grind enough, you unlock exclusive visual auras and profile cosmetics that can ONLY be earned by studying. Flex your brain.
+                  Your skill levels rise automatically based on actual proof of work, demonstrating your mastery. If you grind enough, you unlock exclusive visual auras and profile cosmetics that can only be earned through dedicated study.
                 </p>
              </motion.div>
           </div>
@@ -550,6 +553,53 @@ export default function LandingPage({
              >
                This isn't just a roadmap generator, or a note-taking app, or a Pomodoro timer. It's a living ecosystem where every feature feeds another. The AI gives you direction. Sanctum forces retention. Chronos tracks momentum. And your Profile builds an undeniable public identity of mastery. Welcome to the endgame of learning.
              </motion.p>
+          </div>
+        </section>
+
+        {/* ============================================================== */}
+        {/* NEW: Platform Architecture (SEO Rich) */}
+        {/* ============================================================== */}
+        <section className="responsive-pad" style={{ padding: "160px 0", background: "#080808", borderTop: "1px solid rgba(255,255,255,0.05)", position: "relative", zIndex: 20 }}>
+          <div className="grid-container" style={{ padding: "0 80px" }}>
+            <h2 className="serif responsive-h2" style={{ fontSize: "56px", fontWeight: "400", margin: "0 0 64px 0", textAlign: "center", color: "#fff" }}>Built for Mastery-Based Learning</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "40px" }}>
+              <div style={{ background: "rgba(255,255,255,0.02)", padding: "40px", borderRadius: "24px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                <h3 style={{ fontSize: "24px", color: "#10b981", marginBottom: "16px", fontWeight: "600" }}>Dynamic Learning Roadmaps</h3>
+                <p style={{ color: "rgba(255,255,255,0.6)", lineHeight: "1.6" }}>Our system curates the optimal study path through complex topics, eliminating decision fatigue and ensuring you focus only on acquiring knowledge.</p>
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.02)", padding: "40px", borderRadius: "24px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                <h3 style={{ fontSize: "24px", color: "#3b82f6", marginBottom: "16px", fontWeight: "600" }}>Personalized Study Systems</h3>
+                <p style={{ color: "rgba(255,255,255,0.6)", lineHeight: "1.6" }}>The platform continuously adapts pacing and difficulty to your exact retention rate, providing targeted review exactly when you need it.</p>
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.02)", padding: "40px", borderRadius: "24px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                <h3 style={{ fontSize: "24px", color: "#eab308", marginBottom: "16px", fontWeight: "600" }}>Skill Progression Tracking</h3>
+                <p style={{ color: "rgba(255,255,255,0.6)", lineHeight: "1.6" }}>XP, visual skill trees, and measurable competency levels drive relentless motivation, turning education into an engaging journey.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ============================================================== */}
+        {/* NEW: FAQ Section (Schema Backed) */}
+        {/* ============================================================== */}
+        <section className="responsive-pad" style={{ padding: "160px 0", background: "#050505", borderTop: "1px solid rgba(255,255,255,0.05)", position: "relative", zIndex: 20 }}>
+          <div className="grid-container" style={{ padding: "0 80px", maxWidth: "1000px" }}>
+            <h2 className="serif responsive-h2" style={{ fontSize: "56px", fontWeight: "400", margin: "0 0 64px 0", textAlign: "center", color: "#fff" }}>Frequently Asked Questions</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {[
+                { q: "What is Kaevrix?", a: "Kaevrix is an adaptive learning platform by Astrix Network that transforms educational content into an interactive mastery journey using personalized skill trees and active recall." },
+                { q: "What is a learning roadmap?", a: "A learning roadmap is a custom-generated curriculum. Kaevrix builds a dynamic path of milestones tailored specifically to your ultimate learning goal." },
+                { q: "How are skill trees created?", a: "Using semantic mapping, complex subjects are broken down into fundamental nodes. As you pass active recall tests, you visually unlock higher-tier skills." },
+                { q: "Is Kaevrix an AI study app?", a: "Yes. Beyond curriculum generation, Kaevrix functions as a comprehensive study platform providing integrated tracking, notes, and automated assessments." },
+                { q: "How does active recall improve learning?", a: "Active recall forces your brain to retrieve information from memory rather than passively re-reading it, drastically improving long-term knowledge retention." },
+                { q: "How does mastery tracking work?", a: "The system continuously evaluates your quiz performance and study consistency, assigning a measurable mastery level to every node on your skill tree." }
+              ].map((faq, i) => (
+                <details key={i} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "16px", padding: "24px", cursor: "pointer", color: "#fff" }}>
+                  <summary style={{ fontSize: "18px", fontWeight: "600", outline: "none", color: "#fff" }}>{faq.q}</summary>
+                  <p style={{ color: "rgba(255,255,255,0.6)", lineHeight: "1.6", margin: "16px 0 0 0" }}>{faq.a}</p>
+                </details>
+              ))}
+            </div>
           </div>
         </section>
 

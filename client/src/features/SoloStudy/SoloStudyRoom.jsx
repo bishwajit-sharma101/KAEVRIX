@@ -410,7 +410,10 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
 
       const res = await fetch(`${backendUrl}/api/pathfinder/study-notes`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
+        },
         body: JSON.stringify({ topic, milestone, answers, noteStyle })
       });
       
@@ -465,7 +468,10 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
 
       const res = await fetch(`${backendUrl}/api/quiz/generate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
+        },
         body: JSON.stringify({
           videoId: video.id,
           title: video.title,

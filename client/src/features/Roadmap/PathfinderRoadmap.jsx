@@ -252,7 +252,10 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
       sound.playClockTick();
       const res = await fetch(`${BACKEND_URL}/api/pathfinder/study-notes`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
+        },
         body: JSON.stringify({ topic: roadmapTopic, milestone, answers, noteStyle })
       });
       const data = await res.json();
@@ -764,7 +767,9 @@ function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, on
     sound.playClockTick();
     
     try {
-      const res = await fetch(BACKEND_URL + "/api/search?q=" + encodeURIComponent(dynamicQuery));
+      const res = await fetch(BACKEND_URL + "/api/search?q=" + encodeURIComponent(dynamicQuery), {
+        headers: { "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}` }
+      });
       const data = await res.json();
       if (Array.isArray(data)) {
         setVideos(data.slice(0, 1));
@@ -2164,7 +2169,10 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
         
         fetch(`${BACKEND_URL}/api/solo-xp`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
+          },
           body: JSON.stringify({
             username,
             xpEarned: milestone.xpReward || 50,
@@ -2247,7 +2255,10 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
 
       const res = await fetch(`${BACKEND_URL}/api/quiz/generate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
+        },
         body: JSON.stringify({
           videoId: video.id,
           title: video.title,
@@ -2367,7 +2378,10 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
         
         fetch(`${BACKEND_URL}/api/solo-xp`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
+          },
           body: JSON.stringify({
             username,
             xpEarned: milestone.xpReward || 50,
@@ -2905,7 +2919,10 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
 
       const res = await fetch(`${BACKEND_URL}/api/pathfinder/generate-level`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
+        },
         body: JSON.stringify({
           topic: roadmap.topic,
           level: levelNum,
@@ -3045,7 +3062,10 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
   const handleBossVictory = (m, xpEarned) => {
     fetch(`${BACKEND_URL}/api/solo-xp`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
+      },
       body: JSON.stringify({
         username,
         xpEarned,

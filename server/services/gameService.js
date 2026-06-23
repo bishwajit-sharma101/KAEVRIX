@@ -7,6 +7,7 @@ import {
   BOT_SUBMIT_CHATS 
 } from "../config/constants.js";
 import { updatePlayerStats, getLeaderboard } from "./leaderboardService.js";
+import TelemetryEvent from "../models/TelemetryEvent.js";
 
 export const rooms = new Map(); // roomId -> room details
 export const activeIntervals = new Map(); // roomId -> { botInterval, botChatInterval, countdownInterval }
@@ -94,6 +95,14 @@ export async function createHumanMatch(p1Socket, p2Socket, videoId, videoObj = n
   
   console.log(`[Match] Human Match Created in room "${roomId}" for video "${video.title}" (Generating: ${isGenerating})`);
   
+  [p1Socket, p2Socket].forEach(socket => {
+    TelemetryEvent.create({
+      username: socket.username,
+      eventType: "SANCTUM_MATCH_FOUND",
+      metadata: { roomId, videoId: video.id, opponent: socket.id === p1Socket.id ? p2Socket.username : p1Socket.username }
+    }).catch(err => console.error("Telemetry failed", err));
+  });
+
   // Skip lobby - immediately start countdown
   startCountdown(room);
 
@@ -175,6 +184,12 @@ export async function createBotMatch(playerSocket, videoId, customVideoDetails =
 
   console.log(`[Match] Bot Match Created in room "${roomId}" for video "${video.title}". Bot: ${botName} (Generating: ${isGenerating})`);
   
+  TelemetryEvent.create({
+    username: playerSocket.username,
+    eventType: "SANCTUM_MATCH_FOUND",
+    metadata: { roomId, videoId: video.id, opponent: botName, isBot: true }
+  }).catch(err => console.error("Telemetry failed", err));
+
   // Skip lobby - immediately start countdown
   startCountdown(room);
 
@@ -232,6 +247,23 @@ export function startGameplay(room) {
   io.to(room.id).emit("room_update", room);
   io.to(room.id).emit("game_play");
   console.log(`[Game] Play starting in room "${room.id}"`);
+
+  // Telemetry
+  room.players.forEach(p => {
+    if (!p.isBot) {
+      TelemetryEvent.create({
+        username: p.username,
+        eventType: "SANCTUM_JOINED",
+        metadata: { videoId: room.video?.id, roomId: room.id }
+      }).catch(err => console.error("Telemetry failed", err));
+      
+      TelemetryEvent.create({
+        username: p.username,
+        eventType: "VIDEO_OPENED",
+        metadata: { videoId: room.video?.id, roomId: room.id }
+      }).catch(err => console.error("Telemetry failed", err));
+    }
+  });
 
   // If there's a bot player, simulate their progress and chat
   const botPlayer = room.players.find((p) => p.isBot);
@@ -592,6 +624,55 @@ export async function evaluateGame(room) {
       if (user) {
         p.totalXp = user.xp;
         p.level = user.level;
+      }
+
+      // Authoritative Category B Telemetry
+      const userId = user ? user._id : null;
+      const passThreshold = 0.6;
+      const percentage = p.correctCount / totalQuestions;
+      const passed = percentage >= passThreshold;
+      const eventType = passed ? "QUIZ_COMPLETED" : "QUIZ_FAILED";
+
+      await TelemetryEvent.create({
+        userId,
+        username: p.username,
+        eventType,
+        videoId: room.video?.id,
+        metadata: {
+          score: p.score,
+          percentage: (percentage * 100).toFixed(1) + "%",
+          passed,
+          questionCount: totalQuestions,
+          correctAnswers: p.correctCount,
+          incorrectAnswers: totalQuestions - p.correctCount,
+          failureReason: passed ? null : "Low Score",
+          difficulty: "Medium" // Can map dynamically later
+        }
+      }).catch(err => console.error("Telemetry failed", err));
+
+      await TelemetryEvent.create({
+        userId,
+        username: p.username,
+        eventType: won ? "SANCTUM_WON" : "SANCTUM_LOST",
+        videoId: room.video?.id,
+        metadata: {
+          completionStatus: won ? "won" : (isDraw ? "draw" : "lost"),
+          roomId: room.id
+        }
+      }).catch(err => console.error("Telemetry failed", err));
+
+      if (user) {
+        await TelemetryEvent.create({
+          userId: user._id,
+          username: p.username,
+          eventType: "XP_AWARDED",
+          xpAwarded: xpGained,
+          metadata: {
+            xpBefore: user.xp - xpGained,
+            xpAfter: user.xp,
+            source: "SANCTUM_COMPLETED"
+          }
+        }).catch(err => console.error("Telemetry failed", err));
       }
     }
   }

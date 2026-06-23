@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 import * as sound from "./utils/audio";
 import AppRouter from "./AppRouter";
 import GlobalSplashScreen from "./features/Shared/GlobalSplashScreen";
+import { trackTelemetry } from "./utils/telemetry";
 
 const BACKEND_URL = window.location.hostname === "localhost" ? "http://localhost:5000" : "";
 const DEFAULT_AVATAR = "https://api.dicebear.com/7.x/bottts/svg?seed=Cypher&backgroundColor=transparent";
@@ -99,46 +100,105 @@ export default function App() {
     };
   }, [isRegistered, username, journeyDay, showSurpassLimits]);
 
+  // Handle verify & restore logic
+  const handleAuthRestore = (user, userToken) => {
+    setToken(userToken);
+    setUsername(user.username);
+    setAvatar(user.avatar);
+    setSelectedClass(user.selectedClass);
+    setXp(user.xp);
+    setLevel(user.level);
+    setWins(user.wins || 0);
+    setLosses(user.losses || 0);
+    if (user.showDailyAnnouncement) {
+      setJourneyDay(user.showDailyAnnouncement);
+      setShowDailyModal(true);
+    }
+    setIsRegistered(true);
+    initializeSocketAndRegister(user.username, user.avatar, user.selectedClass);
+  };
+
   useEffect(() => {
     const savedToken = localStorage.getItem("kaevrix_token");
-    if (savedToken) {
-      fetch(`${BACKEND_URL || ""}/api/auth/verify`, {
+    if (!savedToken) return;
+
+    const restoreSession = async (accessToken) => {
+      const res = await fetch(`${BACKEND_URL || ""}/api/auth/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: savedToken })
+        body: JSON.stringify({ token: accessToken })
+      });
+      if (!res.ok) throw new Error("Verification failed");
+      return res.json();
+    };
+
+    restoreSession(savedToken)
+      .then(data => {
+        handleAuthRestore(data.user, savedToken);
+      })
+      .catch(async (err) => {
+        console.warn("[Auth] Access token invalid, attempting silent refresh...", err.message);
+        try {
+          const refreshRes = await fetch(`${BACKEND_URL || ""}/api/auth/refresh`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include"
+          });
+          if (!refreshRes.ok) throw new Error("Session expired");
+          const refreshData = await refreshRes.json();
+          localStorage.setItem("kaevrix_token", refreshData.token);
+          
+          const verifyData = await restoreSession(refreshData.token);
+          handleAuthRestore(verifyData.user, refreshData.token);
+          console.log("[Auth] Session restored successfully via refresh token.");
+        } catch (refreshErr) {
+          console.warn("[Auth] Session restore failed:", refreshErr.message);
+          localStorage.removeItem("kaevrix_token");
+          setToken("");
+          setIsRegistered(false);
+        }
+      });
+  }, []);
+
+  // Background token refresh loop
+  useEffect(() => {
+    if (!token || !isRegistered) return;
+    
+    // Refresh access token every 10 minutes (expires in 15m)
+    const interval = setInterval(() => {
+      console.log("[Auth] Performing background access token refresh...");
+      fetch(`${BACKEND_URL || ""}/api/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include"
       })
       .then(res => {
-        if (!res.ok) throw new Error("Invalid session");
+        if (!res.ok) throw new Error("Silent refresh failed");
         return res.json();
       })
       .then(data => {
-        const { user } = data;
-        setToken(savedToken);
-        setUsername(user.username);
-        setAvatar(user.avatar);
-        setSelectedClass(user.selectedClass);
-        setXp(user.xp);
-        setLevel(user.level);
-        setWins(user.wins || 0);
-        setLosses(user.losses || 0);
-        if (user.showDailyAnnouncement) {
-          setJourneyDay(user.showDailyAnnouncement);
-          setShowDailyModal(true);
-        }
-        setIsRegistered(true);
-        initializeSocketAndRegister(user.username, user.avatar, user.selectedClass);
+        localStorage.setItem("kaevrix_token", data.token);
+        setToken(data.token);
+        console.log("[Auth] Silent access token refresh success.");
       })
       .catch(err => {
-        console.warn("[Auth] Session restore failed:", err.message);
-        localStorage.removeItem("kaevrix_token");
-        setToken("");
-        setIsRegistered(false);
+        console.warn("[Auth] Silent refresh failed:", err.message);
       });
-    }
-  }, []);
+    }, 10 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [token, isRegistered]);
 
   const handleLogout = () => {
     sound.playClockTick();
+    
+    // Clear cookies on backend
+    fetch(`${BACKEND_URL || ""}/api/auth/logout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include"
+    }).catch(err => console.warn("Logout request failed:", err));
+
     localStorage.removeItem("kaevrix_token");
     setToken("");
     setUsername("");
@@ -257,8 +317,65 @@ export default function App() {
     }
   }, [isMusicMuted, musicProfile, keepMusicInGame, isRegistered, status, showSurpassLimits]);
 
+  // Global Error Tracking
+  useEffect(() => {
+    const handleWindowError = (event) => {
+      trackTelemetry({
+        eventType: "CLIENT_ERROR",
+        metadata: {
+          message: event.message,
+          source: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+          stack: event.error?.stack
+        }
+      });
+    };
+
+    const handleUnhandledRejection = (event) => {
+      trackTelemetry({
+        eventType: "CLIENT_ERROR",
+        metadata: {
+          message: event.reason?.message || "Unhandled Promise Rejection",
+          stack: event.reason?.stack
+        }
+      });
+    };
+
+    window.addEventListener("error", handleWindowError);
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener("error", handleWindowError);
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+    };
+  }, []);
+
+  // PAGE_VIEW and PAGE_EXIT tracking based on status changes
+  useEffect(() => {
+    // Record page view on transition
+    trackTelemetry({
+      eventType: "PAGE_VIEW",
+      pagePath: `/${status === "idle" ? "dashboard" : status}`
+    });
+
+    const startTime = Date.now();
+    return () => {
+      // Record page exit duration
+      trackTelemetry({
+        eventType: "PAGE_EXIT",
+        pagePath: `/${status === "idle" ? "dashboard" : status}`,
+        durationMs: Date.now() - startTime
+      });
+    };
+  }, [status]);
+
   // Fetch lists on load
   useEffect(() => {
+    if (window.location.pathname === "/command-center") {
+      setStatus("command_center");
+    }
+
     fetch(`${BACKEND_URL}/api/leaderboard`)
       .then((res) => res.json())
       .then((data) => setLeaderboard(data))
@@ -331,7 +448,9 @@ export default function App() {
     setIsSearching(true);
     setActiveSearchQuery(query.trim());
     try {
-      const response = await fetch(`${BACKEND_URL}/api/search?q=${encodeURIComponent(query.trim())}`);
+      const response = await fetch(`${BACKEND_URL}/api/search?q=${encodeURIComponent(query.trim())}`, {
+        headers: { "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}` }
+      });
       const data = await response.json();
       if (Array.isArray(data)) {
         setSearchResults(data);
@@ -653,7 +772,10 @@ export default function App() {
     try {
       const res = await fetch(`${BACKEND_URL}/api/solo-xp`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("kaevrix_token") || token}`
+        },
         body: JSON.stringify({ username, xpEarned, videoTitle })
       });
       if (res.ok) {

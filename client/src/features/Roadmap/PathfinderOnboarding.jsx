@@ -198,7 +198,10 @@ export default function PathfinderOnboarding({ username, backendUrl, onRoadmapRe
 
         const res = await fetch(`${backendUrl}/api/pathfinder/generate`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
+          },
           body: JSON.stringify(reqBody)
         });
 

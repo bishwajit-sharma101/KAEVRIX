@@ -7,11 +7,13 @@ import {
   rooms, 
   activeIntervals, 
   startCountdown, 
-  evaluateGame, 
+  evaluateGame,
   sendBotChat, 
   handleBotHitByPowerup 
 } from "../services/gameService.js";
 import { saveMessage } from "../services/chatService.js";
+import TelemetryEvent from "../models/TelemetryEvent.js";
+import { logInfrastructureError } from "../services/telemetryHealthService.js";
 
 // Global map to track online users: username -> socketId
 export const onlineUsers = new Map();
@@ -19,6 +21,10 @@ export const onlineUsers = new Map();
 export function registerSocketHandlers(io) {
   io.on("connection", (socket) => {
     console.log(`[Socket] Connected: ${socket.id}`);
+
+    socket.on("error", (err) => {
+      logInfrastructureError("SOCKET_ERROR", { message: err.message, stack: err.stack, socketId: socket.id });
+    });
 
     // Presence & Global
     socket.on("user_login", (username) => {
@@ -130,6 +136,12 @@ export function registerSocketHandlers(io) {
         player.finished = true;
         console.log(`[Game] Player "${player.username}" finished video in room "${currentRoomId}"`);
         
+        TelemetryEvent.create({
+          username: player.username,
+          eventType: "VIDEO_COMPLETED",
+          metadata: { roomId: currentRoomId }
+        }).catch(err => console.error("Telemetry failed", err));
+
         io.to(currentRoomId).emit("room_update", room);
         
         // Notify other player that this player is already in the quiz!
@@ -171,6 +183,13 @@ export function registerSocketHandlers(io) {
         room.video.questions.forEach((q, idx) => {
           const isCorrect = answers[idx] === q.answerIndex;
           const isDoubleDown = doubleDowns && doubleDowns[idx];
+          
+          TelemetryEvent.create({
+            username: player.username,
+            eventType: "SANCTUM_QUESTION_ANSWERED",
+            metadata: { roomId: currentRoomId, questionIndex: idx, isCorrect, selectedOption: answers[idx] }
+          }).catch(err => console.error("Telemetry failed", err));
+
           if (isCorrect) {
             correctCount++;
             score += isDoubleDown ? 200 : 100;
@@ -223,6 +242,12 @@ export function registerSocketHandlers(io) {
         player.score = (player.score || 0) + scoreGained;
         player.inVideoXp = (player.inVideoXp || 0) + xpGained;
       }
+
+      TelemetryEvent.create({
+        username: player.username,
+        eventType: "SANCTUM_QUESTION_ANSWERED",
+        metadata: { roomId: currentRoomId, inVideoQuestionIndex: questionIdx, isCorrect, selectedOption: answerIndex, remainingSeconds }
+      }).catch(err => console.error("Telemetry failed", err));
 
       socket.emit("in_video_answer_result", { 
         questionIdx, 
@@ -306,6 +331,14 @@ export function registerSocketHandlers(io) {
             if (timers.botChatInterval) clearInterval(timers.botChatInterval);
             if (timers.countdownInterval) clearInterval(timers.countdownInterval);
             activeIntervals.delete(room.id);
+          }
+
+          if (socket.username && room.status !== "finished") {
+            TelemetryEvent.create({
+              username: socket.username,
+              eventType: "SANCTUM_ABANDONED",
+              metadata: { roomId: currentRoomId, reason: "disconnected", videoId: room.video?.id }
+            }).catch(err => console.error("Telemetry failed", err));
           }
 
           // Notify remaining human players

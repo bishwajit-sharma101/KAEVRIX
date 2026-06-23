@@ -165,6 +165,8 @@ export default function Dashboard({
   let nextLimitBreakTask = null;
   let completedTodayTasks = [];
   let allIncompleteTasks = [];
+  let baselineTarget = 1;
+  let quotaDescription = "";
 
   if (schedule && savedRoadmap) {
     let totalSubtopics = 0;
@@ -200,12 +202,21 @@ export default function Dashboard({
     dailyTarget = remainingSubtopicsStartOfToday > 0 ? Math.ceil(remainingSubtopicsStartOfToday / remainingDays) : 0;
     streak = schedule.streak;
 
-    const elapsedPercentage = Math.min(1, elapsedDays / schedule.durationDays);
-    const completedPercentage = Math.min(1, completedSubtopics / totalSubtopics);
-    if (completedPercentage > elapsedPercentage + 0.05) {
+    const targetSubtopicsSoFar = Math.round(totalSubtopics * (elapsedDays / schedule.durationDays));
+    if (completedSubtopics > targetSubtopicsSoFar) {
       velocityStatus = "AHEAD";
-    } else if (completedPercentage < elapsedPercentage - 0.05) {
+    } else if (completedSubtopics < targetSubtopicsSoFar) {
       velocityStatus = "BEHIND";
+    } else {
+      velocityStatus = "TRACK";
+    }
+
+    baselineTarget = Math.ceil(totalSubtopics / schedule.durationDays) || 1;
+    quotaDescription = `Quota: Baseline of ${baselineTarget}/day is sufficient.`;
+    if (dailyTarget > baselineTarget) {
+      quotaDescription = `⚠️ Quota increased from ${baselineTarget}/day to catch up.`;
+    } else if (dailyTarget < baselineTarget) {
+      quotaDescription = `🍀 Quota decreased from ${baselineTarget}/day!`;
     }
 
     // Get flat list of next incomplete subtopics
@@ -313,7 +324,9 @@ export default function Dashboard({
       setLoadingToday(true);
       const query = `${topic} ${activeSubtopicStr} tutorial`;
       try {
-        const res = await fetch(`${backendUrl}/api/search?q=${encodeURIComponent(query)}`);
+        const res = await fetch(`${backendUrl}/api/search?q=${encodeURIComponent(query)}`, {
+          headers: { "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}` }
+        });
         if (res.ok && isMounted) {
           const data = await res.json();
           // Display up to 4 videos for today's objective
@@ -397,7 +410,10 @@ export default function Dashboard({
       try {
         const res = await fetch(`${backendUrl}/api/personalized-feed`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
+          },
           body: JSON.stringify({ topic: currentTopicFocus, why })
         });
         if (res.ok && isMounted) {
@@ -1079,6 +1095,18 @@ export default function Dashboard({
                     <span style={{ color: "#f59e0b", fontWeight: "800" }}>⚡ On Track</span>
                   )}
                 </div>
+
+                {quotaDescription && (
+                  <div style={{ 
+                    fontSize: "10px", 
+                    color: velocityStatus === "BEHIND" ? "#ef4444" : (velocityStatus === "AHEAD" ? "#10b981" : "var(--text-muted)"), 
+                    fontWeight: "600",
+                    marginTop: "2px",
+                    lineHeight: "1.3"
+                  }}>
+                    {quotaDescription}
+                  </div>
+                )}
 
                 {streak > 0 && (
                   <div style={{ fontSize: "10.5px", color: "#ff6a00", fontWeight: "800", borderTop: "1px solid var(--glass-border)", paddingTop: "4px", marginTop: "2px" }}>

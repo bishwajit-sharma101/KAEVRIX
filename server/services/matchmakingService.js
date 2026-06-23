@@ -1,5 +1,6 @@
 import { curatedVideos } from "../quizData.js";
 import { createHumanMatch, createBotMatch } from "./gameService.js";
+import TelemetryEvent from "../models/TelemetryEvent.js";
 
 const activeQueues = new Map(); // videoId -> array of sockets
 let quickMatchQueue = []; // array of sockets waiting for random matches
@@ -12,6 +13,12 @@ export function init(socketIo) {
 
 export async function joinQueue(socket, { username, avatar, selectedClass, videoId, videoTitle, videoChannel, videoDuration, videoThumbnail, vsBot }) {
   console.log(`[Queue] Player "${username}" (${socket.id}) requested match. VideoId: ${videoId || "QuickMatch"}. vsBot: ${vsBot}`);
+  
+  TelemetryEvent.create({
+    username,
+    eventType: "SANCTUM_MATCHMAKING_STARTED",
+    metadata: { videoId: videoId || "QuickMatch", vsBot }
+  }).catch(err => console.error("Telemetry failed", err));
   
   // Store profile metadata on socket
   socket.username = username;
@@ -106,6 +113,13 @@ export async function joinQueue(socket, { username, avatar, selectedClass, video
 }
 
 export function leaveQueue(socket) {
+  if (socket.username) {
+    TelemetryEvent.create({
+      username: socket.username,
+      eventType: "SANCTUM_ABANDONED",
+      metadata: { reason: "left_queue", videoId: socket.queuedVideoId || "QuickMatch" }
+    }).catch(err => console.error("Telemetry failed", err));
+  }
   cleanUpQueue(socket);
 }
 

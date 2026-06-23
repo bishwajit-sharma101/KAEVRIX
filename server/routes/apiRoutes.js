@@ -1,98 +1,358 @@
 import express from "express";
 import ytSearch from "yt-search";
 import User from "../models/User.js";
+import Session from "../models/Session.js";
+import SecurityEvent from "../models/SecurityEvent.js";
+import AITracking from "../models/AITracking.js";
+import TelemetryEvent from "../models/TelemetryEvent.js";
+import SystemConfig from "../models/SystemConfig.js";
+
 import { curatedVideos } from "../quizData.js";
-import { 
-  getLeaderboard, 
-  getPlayerProfile, 
-  addSoloXp 
-} from "../services/leaderboardService.js";
-import {
-  getDiscoverUsers,
-  getFriendsData,
-  sendFriendRequest,
-  respondToRequest
-} from "../services/communityService.js";
-import { 
-  generateRoadmapFromAnswers, 
-  generateStudyNotes,
-  generateQuizForVideo,
-  generateLevelMilestones,
-  generateBossQuestions
-} from "../geminiService.js";
-import {
-  registerUser,
-  loginUser,
-  verifyToken,
-  getUserThemeInfo,
-  getUserProfile
-} from "../services/authService.js";
+import { getLeaderboard, getPlayerProfile, addSoloXp } from "../services/leaderboardService.js";
+import { getDiscoverUsers, getFriendsData, sendFriendRequest, respondToRequest } from "../services/communityService.js";
+import { generateRoadmapFromAnswers, generateStudyNotes, generateQuizForVideo, generateLevelMilestones, generateBossQuestions } from "../geminiService.js";
+import { registerUser, loginUser, verifyMfaLogin, setupMfa, verifyMfaSetup, refreshSession, verifyToken, getUserThemeInfo, getUserProfile } from "../services/authService.js";
 import { getConversation, markAsRead } from "../services/chatService.js";
+
+import { validate } from "../middleware/validateRequest.js";
+import { registerSchema, loginSchema, soloXpSchema, cosmeticsSchema, pathfinderGenerateSchema, quizGenerateSchema, telemetrySchema } from "../validations/apiSchemas.js";
+import { globalLimiter, authLimiter, aiLimiter, telemetryLimiter } from "../middleware/rateLimiter.js";
+import { requireAuth, requireOwnership, requireAdmin, optionalAuth } from "../middleware/authMiddleware.js";
+import { checkKillSwitch } from "../services/budgetTracker.js";
 
 const router = express.Router();
 
-// GET Leaderboard
-router.get("/leaderboard", async (req, res) => {
-  res.json(await getLeaderboard());
-});
+router.use(globalLimiter);
 
-// GET Profile
+async function isFeatureDisabled(key) {
+  try {
+    const config = await SystemConfig.findOne({ key });
+    return config ? !!config.value : false;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function registrationDisabledMiddleware(req, res, next) {
+  if (await isFeatureDisabled("REGISTRATION_DISABLED")) {
+    return res.status(503).json({ error: "Service Unavailable: Registration is temporarily disabled." });
+  }
+  next();
+}
+
+async function pathfinderDisabledMiddleware(req, res, next) {
+  if (await isFeatureDisabled("PATHFINDER_DISABLED")) {
+    return res.status(503).json({ error: "Service Unavailable: Pathfinder features are temporarily disabled." });
+  }
+  next();
+}
+
+async function quizDisabledMiddleware(req, res, next) {
+  if (await isFeatureDisabled("QUIZ_DISABLED")) {
+    return res.status(503).json({ error: "Service Unavailable: Quiz features are temporarily disabled." });
+  }
+  next();
+}
+
+async function aiKillSwitchMiddleware(req, res, next) {
+  const isKilled = await checkKillSwitch();
+  if (isKilled) return res.status(503).json({ error: "Service Unavailable: AI quotas reached." });
+  next();
+}
+
+// ----------------------------------------------------
+// Public Routes
+// ----------------------------------------------------
+router.get("/leaderboard", async (req, res) => res.json(await getLeaderboard()));
 router.get("/profile/:username", async (req, res) => {
   const user = await getPlayerProfile(req.params.username);
-  if (user) {
-    res.json(user);
-  } else {
-    res.status(404).json({ error: "User not found" });
+  if (user) res.json(user); else res.status(404).json({ error: "User not found" });
+});
+router.get("/curated-videos", (req, res) => res.json(curatedVideos.map(({ questions, ...rest }) => rest)));
+
+// ----------------------------------------------------
+// Authentication Routes (MFA & Tokens)
+// ----------------------------------------------------
+
+const setTokenCookie = (res, refreshToken) => {
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  });
+};
+
+router.post("/auth/register", registrationDisabledMiddleware, authLimiter, validate(registerSchema), async (req, res, next) => {
+  const { username, password, avatar, selectedClass } = req.body;
+  try {
+    const result = await registerUser(username, password, avatar, selectedClass, req.ip, req.headers["user-agent"]);
+    setTokenCookie(res, result.refreshToken);
+    res.json({ user: result.user, token: result.accessToken });
+  } catch (error) { next(error); }
+});
+
+router.post("/auth/login", authLimiter, validate(loginSchema), async (req, res, next) => {
+  const { username, password } = req.body;
+  try {
+    const result = await loginUser(username, password, req.ip, req.headers["user-agent"]);
+    if (result.mfaRequired) {
+      return res.json({ mfaRequired: true, tempToken: result.tempToken });
+    }
+    setTokenCookie(res, result.refreshToken);
+    res.json({ user: result.user, token: result.accessToken });
+  } catch (error) { next(error); }
+});
+
+router.post("/auth/login/mfa", authLimiter, async (req, res, next) => {
+  const { tempToken, code } = req.body;
+  if (!tempToken || !code) return res.status(400).json({ error: "Missing parameters" });
+  try {
+    const result = await verifyMfaLogin(tempToken, code, req.ip, req.headers["user-agent"]);
+    setTokenCookie(res, result.refreshToken);
+    res.json({ user: result.user, token: result.accessToken });
+  } catch (error) { next(error); }
+});
+
+router.post("/auth/refresh", async (req, res, next) => {
+  const oldRefreshToken = req.cookies.refreshToken;
+  if (!oldRefreshToken) return res.status(401).json({ error: "No refresh token" });
+  try {
+    const result = await refreshSession(oldRefreshToken, req.ip, req.headers["user-agent"]);
+    setTokenCookie(res, result.refreshToken);
+    res.json({ token: result.accessToken });
+  } catch (error) { next(error); }
+});
+
+router.post("/auth/logout", async (req, res, next) => {
+  const token = req.cookies.refreshToken;
+  if (token) {
+    const session = await Session.findOne({ refreshToken: token });
+    if (session) {
+      await TelemetryEvent.create({
+        userId: session.userId,
+        eventType: "USER_LOGOUT",
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"],
+        sessionId: session._id.toString()
+      });
+    }
+    await Session.deleteOne({ refreshToken: token });
+  }
+  res.clearCookie("refreshToken");
+  res.json({ success: true });
+});
+
+router.post("/auth/verify", async (req, res, next) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ error: "Token required" });
+  const decoded = verifyToken(token);
+  if (!decoded || !decoded.username) return res.status(401).json({ error: "Invalid token session" });
+  try {
+    const user = await getUserProfile(decoded.username);
+    if (!user) return res.status(404).json({ error: "User profile not found" });
+    res.json({ user });
+  } catch (e) { next(e); }
+});
+
+router.get("/auth/theme/:username", async (req, res, next) => {
+  try {
+    const info = await getUserThemeInfo(req.params.username);
+    if (info) res.json(info); else res.status(404).json({ error: "User not found" });
+  } catch (e) { next(e); }
+});
+
+// ----------------------------------------------------
+// MFA Setup Routes
+// ----------------------------------------------------
+
+router.post("/auth/mfa/setup", requireAuth, async (req, res, next) => {
+  try {
+    const data = await setupMfa(req.user.userId);
+    res.json(data);
+  } catch (err) { next(err); }
+});
+
+router.post("/auth/mfa/verify", requireAuth, async (req, res, next) => {
+  try {
+    await verifyMfaSetup(req.user.userId, req.body.code);
+    res.json({ success: true });
+  } catch (err) { next(err); }
+});
+
+// ----------------------------------------------------
+// Device Management Routes
+// ----------------------------------------------------
+
+router.get("/auth/sessions", requireAuth, async (req, res, next) => {
+  try {
+    const sessions = await Session.find({ userId: req.user.userId }).select("-refreshToken").sort({ lastActive: -1 });
+    res.json(sessions);
+  } catch (err) { next(err); }
+});
+
+router.post("/auth/sessions/revoke", requireAuth, async (req, res, next) => {
+  try {
+    await Session.deleteOne({ _id: req.body.sessionId, userId: req.user.userId });
+    res.json({ success: true });
+  } catch (err) { next(err); }
+});
+
+// ----------------------------------------------------
+// Admin Dashboard Routes
+// ----------------------------------------------------
+
+router.get("/admin/stats", requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const currentMonth = new Date().toISOString().substring(0, 7);
+    const globalAI = await AITracking.findOne({ date: currentMonth, userId: null, endpoint: "GLOBAL_MONTHLY" });
+    const aiCost = globalAI ? globalAI.estimatedCostUSD : 0;
+    res.json({ totalUsers, monthlyAICost: aiCost });
+  } catch (err) { next(err); }
+});
+
+router.get("/admin/security-events", requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const events = await SecurityEvent.find().sort({ timestamp: -1 }).limit(100);
+    res.json(events);
+  } catch (err) { next(err); }
+});
+
+// ----------------------------------------------------
+// AI Generation Routes (Protected, Rate-Limited, Kill-Switched)
+// ----------------------------------------------------
+router.post("/pathfinder/generate", pathfinderDisabledMiddleware, requireAuth, aiLimiter, aiKillSwitchMiddleware, validate(pathfinderGenerateSchema), async (req, res, next) => {
+  req.setTimeout(600000);
+  const { answers, pathfinderMode, isEngineer, devGoal, devLanguage, difficulty } = req.body;
+  try {
+    const roadmap = await generateRoadmapFromAnswers(answers, pathfinderMode, { isEngineer, devGoal, devLanguage, difficulty }, req.user.userId);
+    await TelemetryEvent.create({
+      userId: req.user.userId,
+      username: req.user.username,
+      eventType: "PATHFINDER_GENERATED",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      metadata: { pathfinderMode, isEngineer, devLanguage, devGoal, difficulty }
+    });
+    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/pathfinder/generate" } });
+    res.json(roadmap);
+  } catch (err) { 
+    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_FAILED", metadata: { endpoint: "/pathfinder/generate", error: err.message } });
+    next(err); 
   }
 });
 
-// GET Curated Videos (Strips questions for security)
-router.get("/curated-videos", (req, res) => {
-  const videosPreview = curatedVideos.map(({ questions, ...rest }) => rest);
-  res.json(videosPreview);
+router.post("/pathfinder/generate-level", pathfinderDisabledMiddleware, requireAuth, aiLimiter, aiKillSwitchMiddleware, async (req, res, next) => {
+  req.setTimeout(600000);
+  const { topic, level, previousContext } = req.body;
+  if (!topic || !level) return res.status(400).json({ error: "topic and level are required" });
+  try {
+    const milestones = await generateLevelMilestones(topic, level, previousContext, req.user.userId);
+    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/pathfinder/generate-level" } });
+    res.json({ milestones });
+  } catch (err) { 
+    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_FAILED", metadata: { endpoint: "/pathfinder/generate-level", error: err.message } });
+    next(err); 
+  }
 });
 
-// GET YouTube Search
-router.get("/search", async (req, res) => {
+router.post("/pathfinder/study-notes", pathfinderDisabledMiddleware, requireAuth, aiLimiter, aiKillSwitchMiddleware, async (req, res, next) => {
+  req.setTimeout(600000);
+  const { topic, milestone, answers, noteStyle } = req.body;
+  if (!topic || !milestone) return res.status(400).json({ error: "topic and milestone required" });
+  try {
+    const notes = await generateStudyNotes(topic, milestone, answers, noteStyle, req.user.userId);
+    await TelemetryEvent.create({
+      userId: req.user.userId,
+      username: req.user.username,
+      eventType: "NOTES_GENERATED",
+      topic,
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      metadata: { milestone, noteStyle }
+    });
+    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/pathfinder/study-notes" } });
+    res.json({ notes });
+  } catch (err) { 
+    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_FAILED", metadata: { endpoint: "/pathfinder/study-notes", error: err.message } });
+    next(err); 
+  }
+});
+
+router.post("/quiz/generate", quizDisabledMiddleware, requireAuth, aiLimiter, aiKillSwitchMiddleware, validate(quizGenerateSchema), async (req, res, next) => {
+  req.setTimeout(600000);
+  const { videoId, title, duration, topic, why, isDeveloper, completedMilestones, difficulty, devGoal } = req.body;
+  try {
+    const quiz = await generateQuizForVideo(videoId, title, duration, topic, why, isDeveloper, completedMilestones, difficulty, devGoal, req.user.userId);
+    await TelemetryEvent.create({
+      userId: req.user.userId,
+      username: req.user.username,
+      eventType: "QUIZ_GENERATED",
+      videoId,
+      topic,
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      metadata: { title, isDeveloper, difficulty, devGoal }
+    });
+    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/quiz/generate" } });
+    res.json(quiz);
+  } catch (err) { 
+    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_FAILED", metadata: { endpoint: "/quiz/generate", error: err.message } });
+    next(err); 
+  }
+});
+
+router.post("/boss/generate", quizDisabledMiddleware, requireAuth, aiLimiter, aiKillSwitchMiddleware, async (req, res, next) => {
+  req.setTimeout(600000);
+  const { topic, milestone } = req.body;
+  if (!topic || !milestone) return res.status(400).json({ error: "topic and milestone are required" });
+  try {
+    const bossData = await generateBossQuestions(topic, milestone, req.user.userId);
+    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/boss/generate" } });
+    res.json(bossData);
+  } catch (err) { 
+    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_FAILED", metadata: { endpoint: "/boss/generate", error: err.message } });
+    next(err); 
+  }
+});
+
+// ----------------------------------------------------
+// Application Logic Routes
+// ----------------------------------------------------
+
+router.get("/search", requireAuth, async (req, res) => {
   const query = req.query.q;
-  if (!query) {
-    return res.status(400).json({ error: "Query parameter 'q' is required" });
-  }
+  if (!query) return res.status(400).json({ error: "Query parameter 'q' is required" });
   try {
     const results = await ytSearch(query);
     const videos = results.videos.slice(0, 10).map((v) => ({
-      id: v.videoId,
-      title: v.title,
-      channel: v.author.name,
-      duration: v.seconds,
-      thumbnail: v.thumbnail || v.image,
-      category: "YouTube Search"
+      id: v.videoId, title: v.title, channel: v.author.name, duration: v.seconds, thumbnail: v.thumbnail || v.image, category: "YouTube Search"
     }));
+    await TelemetryEvent.create({
+      userId: req.user.userId,
+      username: req.user.username,
+      eventType: "SEARCH_PERFORMED",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      metadata: { query }
+    });
     res.json(videos);
-  } catch (error) {
-    console.error("[Search] YouTube search error:", error);
-    res.status(500).json({ error: "Failed to fetch YouTube search results" });
-  }
+  } catch (error) { res.status(500).json({ error: "Failed to fetch YouTube search results" }); }
 });
 
-// POST Personalized Feed
-router.post("/personalized-feed", async (req, res) => {
+router.post("/personalized-feed", requireAuth, async (req, res) => {
   const { topic, why } = req.body;
-  if (!topic) {
-    return res.status(400).json({ error: "Topic is required" });
-  }
+  if (!topic) return res.status(400).json({ error: "Topic is required" });
   try {
     const cleanTopic = topic.trim();
     const isJobSeeker = why ? /job|career|interview|work|resume/i.test(why) : false;
-    
-    // Customize queries to search for topic-level shortcuts, tricks, hacks, and conceptual explanations
     const queries = {
       core: `${cleanTopic} shortcuts cheat sheet tricks cheat sheet tips`,
       interview: `${cleanTopic} hacks secrets best practices tips and tricks`,
       tips: `${cleanTopic} advanced concepts deep dive explanation visualization mental models`
     };
 
-    // Run searches in parallel
     const [coreRes, interviewRes, tipsRes] = await Promise.all([
       ytSearch(queries.core).catch(() => ({ videos: [] })),
       ytSearch(queries.interview).catch(() => ({ videos: [] })),
@@ -100,14 +360,8 @@ router.post("/personalized-feed", async (req, res) => {
     ]);
 
     const formatVideos = (results, categoryName) => {
-      const videos = results.videos || [];
-      return videos.slice(0, 12).map(v => ({
-        id: v.videoId,
-        title: v.title,
-        channel: v.author ? v.author.name : "Unknown",
-        duration: v.seconds || 300,
-        thumbnail: v.thumbnail || v.image,
-        category: categoryName
+      return (results.videos || []).slice(0, 12).map(v => ({
+        id: v.videoId, title: v.title, channel: v.author ? v.author.name : "Unknown", duration: v.seconds || 300, thumbnail: v.thumbnail || v.image, category: categoryName
       }));
     };
 
@@ -116,280 +370,149 @@ router.post("/personalized-feed", async (req, res) => {
     const tipsVideos = formatVideos(tipsRes, "Conceptual Deep Dives");
 
     const recommendations = [];
-    let coreIdx = 0;
-    let intIdx = 0;
-    let tipsIdx = 0;
+    let coreIdx = 0, intIdx = 0, tipsIdx = 0;
 
-    // Weave them: 2 Core, 1 Interview (if job seeker) or 1 Tips, etc.
     while (coreIdx < coreVideos.length || intIdx < interviewVideos.length || tipsIdx < tipsVideos.length) {
-      // Add up to 2 Core videos
-      for (let i = 0; i < 2; i++) {
-        if (coreIdx < coreVideos.length) {
-          recommendations.push(coreVideos[coreIdx++]);
-        }
-      }
-      
-      // Add 1 Interview or Tips
+      for (let i = 0; i < 2; i++) if (coreIdx < coreVideos.length) recommendations.push(coreVideos[coreIdx++]);
       if (isJobSeeker) {
-        if (intIdx < interviewVideos.length) {
-          recommendations.push(interviewVideos[intIdx++]);
-        } else if (tipsIdx < tipsVideos.length) {
-          recommendations.push(tipsVideos[tipsIdx++]);
-        }
+        if (intIdx < interviewVideos.length) recommendations.push(interviewVideos[intIdx++]);
+        else if (tipsIdx < tipsVideos.length) recommendations.push(tipsVideos[tipsIdx++]);
       } else {
-        if (tipsIdx < tipsVideos.length) {
-          recommendations.push(tipsVideos[tipsIdx++]);
-        } else if (intIdx < interviewVideos.length) {
-          recommendations.push(interviewVideos[intIdx++]);
-        }
+        if (tipsIdx < tipsVideos.length) recommendations.push(tipsVideos[tipsIdx++]);
+        else if (intIdx < interviewVideos.length) recommendations.push(interviewVideos[intIdx++]);
       }
     }
-
-    res.json({
-      videos: recommendations
-    });
+    res.json({ videos: recommendations });
   } catch (error) {
-    console.error("[PersonalizedFeed] Error generating personalized feed:", error);
     res.status(500).json({ error: "Failed to fetch personalized feed" });
   }
 });
 
-// POST Pathfinder Generate Roadmap
-router.post("/pathfinder/generate", async (req, res) => {
-  req.setTimeout(600000);
-  res.setTimeout(600000);
-  const { answers, pathfinderMode, isEngineer, devGoal, devLanguage, difficulty } = req.body;
-  if (!answers || !Array.isArray(answers)) {
-    return res.status(400).json({ error: "answers array required" });
-  }
-
+router.post("/solo-xp", requireAuth, validate(soloXpSchema), async (req, res, next) => {
+  const { xpEarned, videoTitle, isRoadmapNode, roadmapTopic, milestoneId } = req.body;
   try {
-    const roadmap = await generateRoadmapFromAnswers(answers, pathfinderMode, { isEngineer, devGoal, devLanguage, difficulty });
-    res.json(roadmap);
-  } catch (err) {
-    console.error("[Pathfinder] Roadmap generation failed:", err.message);
-    res.status(500).json({ error: "Roadmap generation failed", details: err.message });
-  }
+    const result = await addSoloXp(req.user.username, xpEarned, videoTitle);
+    if (result) {
+      await TelemetryEvent.create({
+        userId: req.user.userId,
+        username: req.user.username,
+        eventType: "XP_AWARDED",
+        xpAwarded: xpEarned,
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"],
+        metadata: { videoTitle, source: "solo", xpBefore: result.xp - xpEarned, xpAfter: result.xp }
+      });
+      
+      if (isRoadmapNode) {
+        await TelemetryEvent.create({
+          userId: req.user.userId,
+          username: req.user.username,
+          eventType: "ROADMAP_NODE_COMPLETED",
+          topic: roadmapTopic,
+          ipAddress: req.ip,
+          userAgent: req.headers["user-agent"],
+          metadata: { milestoneId }
+        });
+      }
+      
+      res.json(result);
+    } else {
+      res.status(400).json({ error: "Failed to update solo xp" });
+    }
+  } catch (e) { next(e); }
 });
 
-// POST Pathfinder Generate Level (Lazy JIT Generation)
-router.post("/pathfinder/generate-level", async (req, res) => {
-  req.setTimeout(600000);
-  res.setTimeout(600000);
-  const { topic, level, previousContext } = req.body;
-  
-  if (!topic || !level) {
-    return res.status(400).json({ error: "topic and level are required" });
-  }
-
+router.post("/profile/cosmetics", requireAuth, validate(cosmeticsSchema), async (req, res, next) => {
+  const { banner, avatarFrame, profileEffect } = req.body;
   try {
-    const milestones = await generateLevelMilestones(topic, level, previousContext);
-    res.json({ milestones });
-  } catch (err) {
-    console.error(`[Pathfinder] Level ${level} generation failed:`, err.message);
-    res.status(500).json({ error: `Level ${level} generation failed`, details: err.message });
-  }
-});
-
-// POST Pathfinder Study Notes
-router.post("/pathfinder/study-notes", async (req, res) => {
-  req.setTimeout(600000);
-  res.setTimeout(600000);
-  const { topic, milestone, answers, noteStyle } = req.body;
-  if (!topic || !milestone) {
-    return res.status(400).json({ error: "topic and milestone required" });
-  }
-
-  try {
-    const notes = await generateStudyNotes(topic, milestone, answers, noteStyle);
-    res.json({ notes });
-  } catch (err) {
-    console.error("[Pathfinder] Study notes generation failed:", err.message);
-    res.status(500).json({ error: "Study notes generation failed" });
-  }
-});
-
-// POST Generate Quiz for Video
-router.post("/quiz/generate", async (req, res) => {
-  req.setTimeout(600000);
-  res.setTimeout(600000);
-  const { videoId, title, duration, topic, why, isDeveloper, completedMilestones, difficulty, devGoal } = req.body;
-  if (!title) {
-    return res.status(400).json({ error: "video title required" });
-  }
-
-  try {
-    const quiz = await generateQuizForVideo(videoId, title, duration, topic, why, isDeveloper, completedMilestones, difficulty, devGoal);
-    res.json(quiz);
-  } catch (err) {
-    console.error("[Quiz] Quiz generation failed:", err.message);
-    res.status(500).json({ error: "Quiz generation failed", details: err.message });
-  }
-});
-
-// POST Generate Boss Questions
-router.post("/boss/generate", async (req, res) => {
-  req.setTimeout(600000);
-  res.setTimeout(600000);
-  const { topic, milestone } = req.body;
-  if (!topic || !milestone) {
-    return res.status(400).json({ error: "topic and milestone are required" });
-  }
-
-  try {
-    const bossData = await generateBossQuestions(topic, milestone);
-    res.json(bossData);
-  } catch (err) {
-    console.error("[Boss] Boss generation failed:", err.message);
-    res.status(500).json({ error: "Boss generation failed", details: err.message });
-  }
-});
-
-// POST Solo XP Update
-router.post("/solo-xp", async (req, res) => {
-  const { username, xpEarned, videoTitle } = req.body;
-  if (!username || xpEarned == null) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-
-  const result = await addSoloXp(username, xpEarned, videoTitle);
-  if (result) {
-    res.json(result);
-  } else {
-    res.status(400).json({ error: "Failed to update solo xp" });
-  }
-});
-
-// POST Update Profile Cosmetics
-router.post("/profile/cosmetics", async (req, res) => {
-  const { username, banner, avatarFrame, profileEffect } = req.body;
-  if (!username) return res.status(400).json({ error: "Username required" });
-  
-  try {
-    const user = await User.findOne({ username });
+    const user = await User.findById(req.user.userId);
     if (!user) return res.status(404).json({ error: "User not found" });
-
     user.cosmetics = user.cosmetics || {};
     if (banner !== undefined) user.cosmetics.banner = banner;
     if (avatarFrame !== undefined) user.cosmetics.avatarFrame = avatarFrame;
     if (profileEffect !== undefined) user.cosmetics.profileEffect = profileEffect;
-
     await user.save();
+
+    await TelemetryEvent.create({
+      userId: req.user.userId,
+      username: req.user.username,
+      eventType: "PROFILE_UPDATED",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      metadata: { cosmetics: user.cosmetics }
+    });
+
     res.json({ success: true, cosmetics: user.cosmetics });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { next(err); }
 });
 
-// GET Community Discover
-router.get("/community/discover/:username", async (req, res) => {
-  const { username } = req.params;
-  const { filter } = req.query;
-  try {
-    const users = await getDiscoverUsers(username, filter);
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// Community Routes
+router.get("/community/discover/:username", requireAuth, requireOwnership, async (req, res, next) => {
+  try { res.json(await getDiscoverUsers(req.params.username, req.query.filter)); } catch (err) { next(err); }
 });
-
-// GET Community Friends Data
-router.get("/community/friends/:username", async (req, res) => {
-  const { username } = req.params;
-  try {
-    const data = await getFriendsData(username);
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+router.get("/community/friends/:username", requireAuth, requireOwnership, async (req, res, next) => {
+  try { res.json(await getFriendsData(req.params.username)); } catch (err) { next(err); }
 });
-
-// POST Send Friend Request
-router.post("/community/request", async (req, res) => {
-  const { fromUser, toUser } = req.body;
-  if (!fromUser || !toUser) return res.status(400).json({ error: "Missing usernames" });
-  try {
-    await sendFriendRequest(fromUser, toUser);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+router.post("/community/request", requireAuth, async (req, res, next) => {
+  try { await sendFriendRequest(req.user.username, req.body.toUser); res.json({ success: true }); } catch (err) { next(err); }
 });
-
-// POST Respond to Request
-router.post("/community/respond", async (req, res) => {
-  const { username, fromUser, action } = req.body; // action: "accept" | "reject"
-  if (!username || !fromUser || !action) return res.status(400).json({ error: "Missing fields" });
-  try {
-    await respondToRequest(username, fromUser, action);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+router.post("/community/respond", requireAuth, async (req, res, next) => {
+  try { await respondToRequest(req.user.username, req.body.fromUser, req.body.action); res.json({ success: true }); } catch (err) { next(err); }
 });
-
-// POST Auth Register
-router.post("/auth/register", async (req, res) => {
-  const { username, password, avatar, selectedClass } = req.body;
-  try {
-    const result = await registerUser(username, password, avatar, selectedClass);
-    res.json(result);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-// POST Auth Login
-router.post("/auth/login", async (req, res) => {
-  const { username, password } = req.body;
-  try {
-    const result = await loginUser(username, password);
-    res.json(result);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-// POST Auth Verify Token
-router.post("/auth/verify", async (req, res) => {
-  const { token } = req.body;
-  if (!token) return res.status(400).json({ error: "Token required" });
-  const username = verifyToken(token);
-  if (!username) return res.status(401).json({ error: "Invalid token session" });
-  const user = await getUserProfile(username);
-  if (!user) return res.status(404).json({ error: "User profile not found" });
-  res.json({ user });
-});
-
-// GET Auth Theme & Identity of Username
-router.get("/auth/theme/:username", async (req, res) => {
-  const info = await getUserThemeInfo(req.params.username);
-  if (info) {
-    res.json(info);
-  } else {
-    res.status(404).json({ error: "User not found" });
-  }
-});
-
-// GET Chat Conversation
-router.get("/chat/messages/:user1/:user2", async (req, res) => {
+router.get("/chat/messages/:user1/:user2", requireAuth, async (req, res, next) => {
   const { user1, user2 } = req.params;
-  try {
-    const messages = await getConversation(user1, user2);
-    res.json(messages);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  if (req.user.username.toLowerCase() !== user1.toLowerCase() && req.user.username.toLowerCase() !== user2.toLowerCase()) {
+    return res.status(403).json({ error: "Forbidden" });
   }
+  try { res.json(await getConversation(user1, user2)); } catch (error) { next(error); }
+});
+router.post("/chat/read", requireAuth, async (req, res, next) => {
+  if (req.user.username.toLowerCase() !== req.body.receiver.toLowerCase()) return res.status(403).json({ error: "Forbidden" });
+  try { await markAsRead(req.body.sender, req.body.receiver); res.json({ success: true }); } catch (error) { next(error); }
 });
 
-// POST Chat Mark as Read
-router.post("/chat/read", async (req, res) => {
-  const { sender, receiver } = req.body;
+// ----------------------------------------------------
+// Telemetry Analytics Route
+// ----------------------------------------------------
+router.post("/telemetry/track", optionalAuth, telemetryLimiter, validate(telemetrySchema), async (req, res, next) => {
+  const { 
+    eventType, 
+    topic, 
+    roadmapId, 
+    videoId, 
+    quizId, 
+    durationMs, 
+    metadata,
+    sessionId,
+    journeyId,
+    correlationId,
+    pagePath,
+    featureName,
+    deviceId
+  } = req.body;
   try {
-    await markAsRead(sender, receiver);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    await TelemetryEvent.create({
+      userId: req.user?.userId,
+      username: req.user?.username || "anonymous",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      eventType,
+      topic,
+      roadmapId,
+      videoId,
+      quizId,
+      durationMs,
+      metadata,
+      sessionId,
+      journeyId,
+      correlationId,
+      pagePath,
+      featureName,
+      deviceId
+    });
+    res.status(202).json({ success: true });
+  } catch (err) {
+    next(err);
   }
 });
 
