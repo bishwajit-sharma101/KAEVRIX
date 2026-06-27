@@ -207,8 +207,11 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
   // Inject styles once
   useEffect(() => {
     const id = "community-v4-styles";
-    if (document.getElementById(id)) return;
-    const s = document.createElement("style");
+    let s = document.getElementById(id);
+    if (s) {
+      s.remove();
+    }
+    s = document.createElement("style");
     s.id = id;
     s.textContent = `
       .cv4-row {
@@ -219,8 +222,111 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
         cursor: pointer;
         transition: all 0.2s ease;
         border-radius: 12px;
-        margin: 0 -16px;
+        margin: 8px 0;
         position: relative;
+        flex-wrap: wrap;
+        background: var(--bg-dark-surface);
+        border: 1px solid var(--glass-border);
+      }
+      .cv4-row-info {
+        width: 140px;
+        flex-shrink: 0;
+      }
+      .cv4-row-mid {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        min-width: 0;
+      }
+      .cv4-row-action {
+        flex-shrink: 0;
+        margin-left: auto;
+      }
+      .cv4-stat-desktop {
+        display: block;
+      }
+      .cv4-filter-bar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .cv4-search-form {
+        display: flex;
+        gap: 6px;
+      }
+      @media (max-width: 768px) {
+        .cv4-row {
+          padding: 12px;
+          margin: 6px 0;
+          gap: 12px;
+        }
+        .cv4-row-info {
+          flex: 1 1 auto;
+          width: auto;
+          min-width: 100px;
+        }
+        .cv4-row-mid {
+          flex: 0 0 100% !important;
+          width: 100% !important;
+          order: 3;
+          margin-top: 8px;
+          gap: 12px;
+          justify-content: space-between;
+          padding: 8px 12px;
+          background: rgba(255, 106, 0, 0.03);
+          border-radius: 8px;
+          border: 1px solid rgba(255, 106, 0, 0.08);
+        }
+        .cv4-stat-desktop {
+          display: none !important;
+        }
+        .cv4-add-btn {
+          padding: 8px 16px;
+        }
+        
+        /* Mobile DM Split to Single View Layout */
+        .cv4-chat-back-btn {
+          display: flex !important;
+        }
+        .cv4-chat-container .cv4-chat-sidebar {
+          display: flex;
+          width: 100% !important;
+          border-right: none !important;
+        }
+        .cv4-chat-container .cv4-chat-area {
+          display: none;
+        }
+        .cv4-chat-container.cv4-chat-has-active .cv4-chat-sidebar {
+          display: none;
+        }
+        .cv4-chat-container.cv4-chat-has-active .cv4-chat-area {
+          display: flex;
+          width: 100% !important;
+        }
+      }
+      @media (max-width: 600px) {
+        .cv4-filter-bar {
+          display: flex !important;
+          flex-direction: row !important;
+          flex-wrap: nowrap !important;
+          width: 100% !important;
+          gap: 8px !important;
+          align-items: center !important;
+        }
+        .cv4-filter-select {
+          width: 42px !important;
+          flex: 0 0 42px !important;
+        }
+        .cv4-search-form {
+          flex: 1 1 auto;
+          display: flex;
+          gap: 6px;
+        }
+        .cv4-search-input {
+          flex: 1;
+          min-width: 0;
+        }
       }
       .cv4-row:hover {
         background: var(--bg-dark-surface);
@@ -461,21 +567,32 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
         background: var(--glass-border);
       }
       .cv4-filter-select {
-        padding: 9px 14px;
+        width: 42px;
+        height: 38px;
         border-radius: 10px;
         border: 1px solid var(--glass-border);
-        background: var(--bg-dark-surface);
-        color: var(--text-light);
-        font-size: 13px;
-        font-weight: 600;
+        background: var(--bg-dark-surface) no-repeat center;
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23ff6a00" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>');
+        color: transparent !important;
+        text-indent: -9999px;
+        overflow: hidden;
         cursor: pointer;
         outline: none;
-        transition: border-color 0.2s;
-        font-family: var(--font-sans);
+        flex-shrink: 0;
+        appearance: none;
+        -webkit-appearance: none;
+        transition: all 0.2s;
+      }
+      .cv4-filter-select option {
+        color: #ffffff !important;
+        background: #140d0a !important;
+        text-indent: 0;
+        font-size: 13px;
       }
       .cv4-filter-select:hover,
       .cv4-filter-select:focus {
         border-color: var(--neon-orange);
+        box-shadow: 0 0 8px rgba(255, 106, 0, 0.25);
       }
       .cv4-search-input {
         padding: 9px 14px;
@@ -721,6 +838,9 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
         align-items: center;
         gap: 12px;
       }
+      .cv4-chat-back-btn {
+        display: none !important;
+      }
       .cv4-chat-header-name {
         font-size: 16px;
         font-weight: 800;
@@ -928,7 +1048,7 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
         <div className={`cv4-status-dot ${onlineUsers.has(user.username) ? 'cv4-status-online' : 'cv4-status-offline'}`} />
       </div>
       {/* Player Info */}
-      <div style={{ width: "140px", flexShrink: 0 }}>
+      <div className="cv4-row-info">
         <div className="cv4-username" style={{ fontWeight: "700", color: "var(--text-light)", fontSize: "15px", fontFamily: "var(--font-outfit)", letterSpacing: "0.2px" }}>
           {user.username}
         </div>
@@ -937,7 +1057,7 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
         </div>
       </div>
       {/* Mid section: Level badge + XP bar + Win Rate */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "24px", minWidth: 0 }}>
+      <div className="cv4-row-mid">
         {/* Level Badge */}
         <div style={{
           background: "var(--accent-gradient)", borderRadius: "6px", padding: "4px 12px",
@@ -947,7 +1067,7 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
           LVL {user.level}
         </div>
         {/* XP Progress Bar */}
-        <div style={{ flex: 1, minWidth: "80px", maxWidth: "200px" }}>
+        <div className="cv4-stat-desktop" style={{ flex: 1, minWidth: "80px", maxWidth: "200px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
             <span style={{ fontSize: "10px", fontWeight: "700", color: "var(--text-muted)", fontFamily: "var(--font-gamer)", letterSpacing: "0.5px" }}>XP</span>
             <span style={{ fontSize: "10px", fontWeight: "700", color: "var(--neon-orange)", fontFamily: "var(--font-gamer)" }}>{(user.xp || 0).toLocaleString()}</span>
@@ -970,7 +1090,7 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
           <span style={{ color: "var(--neon-pink)" }}>{user.losses || 0}L</span>
         </div>
       </div>
-      <div onClick={e => e.stopPropagation()}>
+      <div className="cv4-row-action" onClick={e => e.stopPropagation()}>
         {action}
       </div>
     </div>
@@ -989,7 +1109,7 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
   return (
     <>
       {/* No wrapper — content flows directly into the page background */}
-      <div style={{ padding: "0 4px" }}>
+      <div style={{ padding: 0 }}>
         
         {/* Header */}
         <div style={{ marginBottom: "36px" }}>
@@ -1028,7 +1148,7 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
 
         {/* Messages View */}
         {activeView === "messages" && (
-          <div className="cv4-chat-container">
+          <div className={`cv4-chat-container ${activeChatUser ? "cv4-chat-has-active" : ""}`}>
             {/* Friends Sidebar */}
             <div className="cv4-chat-sidebar">
               <div className="cv4-chat-sidebar-header">
@@ -1093,8 +1213,23 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
                     const activeUserObj = friends.find(f => f.username === activeChatUser);
                     return (
                       <div className="cv4-chat-header">
-                        <div className="cv4-chat-header-user">
-                          <div className="cv4-avatar" style={{ width: "36px", height: "36px" }}>
+                        <div className="cv4-chat-header-user" style={{ display: "flex", alignItems: "center" }}>
+                          <button 
+                            className="cv4-chat-back-btn" 
+                            onClick={(e) => { e.stopPropagation(); sound.playClockTick(); setActiveChatUser(null); }}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              color: "var(--neon-orange)",
+                              cursor: "pointer",
+                              padding: "0 12px 0 0",
+                              fontSize: "18px",
+                              alignItems: "center"
+                            }}
+                          >
+                            ◀
+                          </button>
+                          <div className="cv4-avatar" style={{ width: "36px", height: "36px", marginRight: "12px" }}>
                             <div className="cv4-avatar-ring" style={{ borderColor: "var(--neon-orange)" }} />
                             {activeUserObj?.avatar && activeUserObj.avatar.includes('http') ? (
                               <img src={activeUserObj.avatar} alt="" />
@@ -1239,13 +1374,13 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
             <div className="cv4-section-line" style={{ marginBottom: 0, flex: "none" }}>
               <span>DISCOVER PLAYERS</span>
             </div>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <div className="cv4-filter-bar">
               <select className="cv4-filter-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                 <option value="level_high">↓ Highest Level</option>
                 <option value="level_low">↑ Lowest Level</option>
                 <option value="wins">🏆 Most Wins</option>
               </select>
-              <form onSubmit={handleFilterSearch} style={{ display: "flex", gap: "6px" }}>
+              <form onSubmit={handleFilterSearch} className="cv4-search-form">
                 <input className="cv4-search-input" type="text" placeholder="Search username..." value={filterQuery} onChange={(e) => setFilterQuery(e.target.value)} />
                 <button className="cv4-search-btn" type="submit">SEARCH</button>
               </form>

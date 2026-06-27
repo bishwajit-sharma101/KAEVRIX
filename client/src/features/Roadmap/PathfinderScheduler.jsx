@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as sound from "../../utils/audio";
 
 export default function PathfinderScheduler({ 
@@ -14,7 +14,9 @@ export default function PathfinderScheduler({
   const scheduleKey = `kaevrix_roadmap_schedule_${username}`;
   const todayProgressKey = `kaevrix_today_progress_${username}`;
 
-  // 1. Core States
+  // 1. Core States & Refs
+  const chartScrollRef = useRef(null);
+  
   const [schedule, setSchedule] = useState(() => {
     const saved = localStorage.getItem(scheduleKey);
     if (saved) {
@@ -152,6 +154,25 @@ export default function PathfinderScheduler({
       setSchedule(newSchedule);
     }
   }, [schedule, roadmap, todayDateStr, scheduleKey]);
+
+  // 3b. Scroll to active/today's progress bar on view switch or load
+  useEffect(() => {
+    if (chartScrollRef.current) {
+      const container = chartScrollRef.current;
+      setTimeout(() => {
+        const currentEl = container.querySelector(".chronos-bar-current");
+        if (currentEl) {
+          const containerWidth = container.offsetWidth;
+          const elementOffset = currentEl.offsetLeft;
+          const elementWidth = currentEl.offsetWidth;
+          container.scrollTo({
+            left: elementOffset - (containerWidth / 2) + (elementWidth / 2),
+            behavior: "smooth"
+          });
+        }
+      }, 100);
+    }
+  }, [chartView, schedule]);
 
   // 4. Sync engine for all trackers (Daily, Weekly, Monthly)
   useEffect(() => {
@@ -513,7 +534,7 @@ export default function PathfinderScheduler({
             label: `Day ${dayNum}`,
             target: targetVal,
             completed: completedVal,
-            isCurrent: false,
+            isCurrent: dayNum === (elapsedDays + 1),
             dayNum
           });
         } else {
@@ -522,7 +543,7 @@ export default function PathfinderScheduler({
             label: `Day ${dayNum}`,
             target: targetVal,
             completed: 0,
-            isCurrent: false,
+            isCurrent: dayNum === (elapsedDays + 1),
             dayNum
           });
           tempRemaining = Math.max(0, tempRemaining - targetVal);
@@ -1176,7 +1197,7 @@ export default function PathfinderScheduler({
           </div>
 
           {/* Adaptive Vertical Bar Chart (Enlarged Premium Grid) + X-Axis Labels wrapped in a SINGLE scroll wrapper */}
-          <div className="chronos-chart-scroll-wrap" style={{ overflowX: "scroll", overflowY: "hidden", width: "100%", WebkitOverflowScrolling: "touch", touchAction: "pan-x", paddingBottom: "12px" }}>
+          <div ref={chartScrollRef} className="chronos-chart-scroll-wrap" style={{ overflowX: "auto", overflowY: "hidden", width: "100%", WebkitOverflowScrolling: "touch", overscrollBehaviorX: "contain", scrollBehavior: "smooth", touchAction: "pan-x", paddingBottom: "12px" }}>
             <div style={{ 
               minWidth: chartView === "weekly" ? "680px" : chartView === "monthly" ? "380px" : "600px",
               display: "flex",
@@ -1211,6 +1232,7 @@ export default function PathfinderScheduler({
                   return (
                     <div 
                       key={idx} 
+                      className={item.isCurrent ? "chronos-bar-current" : ""}
                       style={{ 
                         display: "flex", 
                         flexDirection: "column", 

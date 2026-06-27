@@ -1023,7 +1023,20 @@ const ProfileStyles = () => (
   `}</style>
 );
 
-export default function ProfilePanel({ username, selectedClass, onSurpassLimits, handleLogout }) {
+export default function ProfilePanel({ 
+  username, 
+  selectedClass, 
+  onSurpassLimits, 
+  handleLogout,
+  isDarkMode,
+  setIsDarkMode,
+  isMusicMuted,
+  setIsMusicMuted,
+  musicProfile,
+  setMusicProfile,
+  showSystemSettings,
+  setShowSystemSettings
+}) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cosmeticIndex, setCosmeticIndex] = useState(0);
@@ -1715,7 +1728,7 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits,
         <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
           {/* Red Eclipse Moon Glow */}
           <div style={{ 
-            position: "absolute", top: "50px", right: "120px", 
+            position: "absolute", top: "50px", right: "clamp(20px, 12vw, 120px)", 
             width: "100px", height: "100px", borderRadius: "50%", 
             background: "#080304", 
             border: "2px solid #ff1744",
@@ -2287,7 +2300,10 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits,
     };
   };
 
+  
+
   return (
+    
     <div style={getRootStyle()}>
       
 
@@ -2302,39 +2318,10 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits,
         background: bannerBackground,
         position: "relative",
         borderBottom: "1px solid rgba(255,255,255,0.1)"
-      }}>
-        <div style={{ position: "absolute", top: "20px", right: "min(30px, 4vw)", left: "min(30px, 4vw)", display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <button onClick={handleCycleCosmetics} style={{ 
-            background: "rgba(59,130,246,0.5)", border: "1px solid rgba(59,130,246,0.8)", 
-            color: "#fff", padding: "8px 16px", borderRadius: "20px", fontSize: "12px", 
-            fontWeight: "800", cursor: "pointer", backdropFilter: "blur(4px)"
-          }}>
-            DEV: CYCLE COSMETICS
-          </button>
-          <button style={{ 
-            background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.2)", 
-            color: "#fff", padding: "8px 16px", borderRadius: "20px", fontSize: "12px", 
-            fontWeight: "800", cursor: "pointer", backdropFilter: "blur(4px)"
-          }}>
-            EDIT BANNER
-          </button>
-          {handleLogout && (
-            <button 
-              onClick={() => { sound.playClockTick(); handleLogout(); }}
-              style={{ 
-                background: "rgba(239, 68, 68, 0.5)", border: "1px solid rgba(239, 68, 68, 0.8)", 
-                color: "#fff", padding: "8px 16px", borderRadius: "20px", fontSize: "12px", 
-                fontWeight: "800", cursor: "pointer", backdropFilter: "blur(4px)"
-              }}
-            >
-              🚪 SIGN OUT
-            </button>
-          )}
-        </div>
-      </div>
+      }} />
 
       {/* 2. PROFILE BODY (No Boxes, Pure Layout) */}
-      <div style={{ padding: "0 min(60px, 4vw)", position: "relative" }}>
+      <div style={{ padding: "0 clamp(24px, 4vw, 60px)", position: "relative" }}>
         
         {/* Identity Row: Overlapping Avatar & Name */}
         <div style={{ display: "flex", flexFlow: "row wrap", alignItems: "flex-end", gap: "20px", marginTop: "-70px", marginBottom: "40px" }}>
@@ -2343,7 +2330,8 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits,
           <div style={{ 
             width: "min(160px, 35vw)", height: "min(160px, 35vw)", borderRadius: "50%", 
             background: "var(--bg-dark-base)", 
-            padding: "8px", position: "relative", zIndex: 10
+            padding: "8px", position: "relative", zIndex: 10,
+            marginLeft: "clamp(10px, 2vw, 25px)"
           }}>
             
             {/* --- AVATAR EFFECTS --- */}
@@ -3236,9 +3224,9 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits,
               Combat Analytics
             </h3>
             
-            <div style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
+            <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: "clamp(24px, 5vw, 48px)", alignItems: "center" }}>
               {/* Stat */}
-              <div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: "100px" }}>
                 <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Win Rate</div>
                 <div style={{ fontSize: "48px", fontWeight: "900", color: "var(--text-light)", fontFamily: "var(--font-outfit)", lineHeight: 1 }}>
                   {winRate}<span style={{ fontSize: "20px", color: "var(--neon-orange)" }}>%</span>
@@ -3246,7 +3234,7 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits,
               </div>
               
               {/* Stat */}
-              <div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: "100px" }}>
                 <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>W/L Spread</div>
                 <div style={{ fontSize: "40px", fontWeight: "900", color: "var(--text-light)", fontFamily: "var(--font-outfit)", lineHeight: 1 }}>
                   {profile?.wins || 0} <span style={{ fontSize: "20px", color: "var(--text-muted)" }}>/</span> {profile?.losses || 0}
@@ -3254,7 +3242,7 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits,
               </div>
 
               {/* Stat */}
-              <div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: "100px" }}>
                 <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Watch Time</div>
                 <div style={{ fontSize: "40px", fontWeight: "900", color: "var(--text-light)", fontFamily: "var(--font-outfit)", lineHeight: 1 }}>
                   {watchTime} <span style={{ fontSize: "16px", color: "var(--neon-blue)", textTransform: "uppercase" }}>Minutes</span>
@@ -3402,10 +3390,189 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits,
           }}>
             {companionState === "sleep" && renderSleepingCat(getCatConfig(profileEffect))}
             {companionState === "play" && renderPlayingCat(getCatConfig(profileEffect))}
-            {(companionState === "idle" || companionState === "walk") && renderIdleWalkCat(getCatConfig(profileEffect), companionState === "walk")}
           </div>
         </div>
       </div>
+
+      {/* 5. SYSTEM SETTINGS OVERLAY MODAL */}
+      {showSystemSettings && (
+        <div 
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.6)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10000,
+            animation: "fadeIn 0.25s ease-out"
+          }}
+          onClick={() => setShowSystemSettings(false)}
+        >
+          <div 
+            className="hud-panel" 
+            style={{ 
+              width: "100%",
+              maxWidth: "400px",
+              padding: "24px", 
+              margin: "20px",
+              border: "1.5px solid var(--neon-orange)", 
+              position: "relative",
+              background: "var(--bg-dark-surface)",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
+              animation: "scaleUpIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="hud-corner-bracket hud-bracket-tl" />
+            <div className="hud-corner-bracket hud-bracket-tr" />
+            <div className="hud-corner-bracket hud-bracket-bl" />
+            <div className="hud-corner-bracket hud-bracket-br" />
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1.5px solid var(--glass-border)", paddingBottom: "12px", marginBottom: "20px" }}>
+              <h3 style={{ margin: 0, fontSize: "14px", color: "var(--neon-orange)", fontWeight: "900", letterSpacing: "1.5px", textTransform: "uppercase", fontFamily: "var(--font-gamer)" }}>
+                ⚙️ System Settings
+              </h3>
+              <button 
+                onClick={() => { sound.playClockTick(); setShowSystemSettings(false); }}
+                style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: "18px", cursor: "pointer", fontWeight: "bold" }}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Dark Theme */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-light)" }}>Theme Mode</span>
+                <button 
+                  onClick={() => { sound.playClockTick(); setIsDarkMode(!isDarkMode); }}
+                  style={{
+                    background: "rgba(255, 106, 0, 0.15)",
+                    border: "1.5px solid var(--neon-orange)",
+                    color: "#fff",
+                    width: "40px", height: "40px",
+                    borderRadius: "50%",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "18px",
+                    cursor: "pointer",
+                    transition: "transform 0.2s"
+                  }}
+                  onMouseOver={e=>e.currentTarget.style.transform="scale(1.1)"} 
+                  onMouseOut={e=>e.currentTarget.style.transform="scale(1)"}
+                  title="Toggle Theme"
+                >
+                  {isDarkMode ? "🌙" : "☀️"}
+                </button>
+              </div>
+
+              {/* Profile Theme Aesthetics */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-light)" }}>Profile Theme</span>
+                <button 
+                  onClick={handleCycleCosmetics}
+                  style={{
+                    background: "rgba(255, 106, 0, 0.15)",
+                    border: "1.5px solid var(--neon-orange)",
+                    color: "#fff",
+                    width: "40px", height: "40px",
+                    borderRadius: "50%",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "16px",
+                    cursor: "pointer",
+                    transition: "transform 0.2s"
+                  }}
+                  onMouseOver={e=>e.currentTarget.style.transform="scale(1.1)"} 
+                  onMouseOut={e=>e.currentTarget.style.transform="scale(1)"}
+                  title="Cycle Profile Aesthetics Theme"
+                >
+                  🎨
+                </button>
+              </div>
+
+              {/* Ambient Music */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-light)" }}>Ambient Music</span>
+                <button 
+                  onClick={() => { 
+                    sound.playClockTick(); 
+                    const nextMuted = !isMusicMuted;
+                    setIsMusicMuted(nextMuted); 
+                    localStorage.setItem("kaevrix_music_muted", String(nextMuted));
+                  }}
+                  style={{
+                    background: !isMusicMuted ? "var(--neon-orange)" : "rgba(255, 106, 0, 0.1)",
+                    border: "1px solid #ff6a00",
+                    color: "#fff",
+                    padding: "6px 16px",
+                    borderRadius: "20px",
+                    fontSize: "12px",
+                    fontWeight: "800",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-gamer)"
+                  }}
+                >
+                  {!isMusicMuted ? "🔊 ON" : "🔇 OFF"}
+                </button>
+              </div>
+
+              {/* Station selection */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", borderTop: "1px solid var(--glass-border)", paddingTop: "12px" }}>
+                <span style={{ fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase" }}>Music Profile Station:</span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                  {sound.MUSIC_PROFILES.map((p, idx) => {
+                    const isActive = musicProfile === idx;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          sound.playClockTick();
+                          setMusicProfile(idx);
+                          localStorage.setItem("kaevrix_music_profile", String(idx));
+                        }}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: "12px",
+                          border: isActive ? "1.5px solid #ff6a00" : "1px solid var(--glass-border)",
+                          background: isActive ? "rgba(255, 106, 0, 0.08)" : "transparent",
+                          color: isActive ? "#ff6a00" : "var(--text-muted)",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          fontFamily: "var(--font-gamer)"
+                        }}
+                      >
+                        {p.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Logout Button */}
+              {handleLogout && (
+                <div style={{ borderTop: "1px solid var(--glass-border)", paddingTop: "16px", marginTop: "4px", display: "flex" }}>
+                  <button 
+                    onClick={() => { sound.playClockTick(); handleLogout(); }}
+                    style={{ 
+                      width: "100%",
+                      background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.6)", 
+                      color: "#ef4444", padding: "10px 16px", borderRadius: "12px", fontSize: "13px", 
+                      fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                      fontFamily: "var(--font-gamer)", transition: "all 0.2s"
+                    }}
+                    onMouseOver={e => e.currentTarget.style.background = "rgba(239, 68, 68, 0.25)"}
+                    onMouseOut={e => e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)"}
+                  >
+                    🚪 SIGN OUT
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

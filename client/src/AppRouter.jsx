@@ -25,6 +25,7 @@ export default function AppRouter(props) {
   const [showSchedulerSettings, setShowSchedulerSettings] = React.useState(false);
   const [searchHistory, setSearchHistory] = React.useState([]);
   const [showMoreMenu, setShowMoreMenu] = React.useState(false);
+  const [showSystemSettings, setShowSystemSettings] = React.useState(false);
 
   React.useEffect(() => {
     try {
@@ -236,7 +237,7 @@ export default function AppRouter(props) {
 
   // Header display
   const headerComponent = (
-    <header className="app-header" style={{ height: "60px", padding: "8px 16px", display: "flex", alignItems: "center", boxSizing: "border-box" }}>
+    <header className="app-header" style={{ height: "60px", padding: "8px clamp(16px, 4vw, 24px)", display: "flex", alignItems: "center", boxSizing: "border-box" }}>
       {(isMobileSearchActive || searchQuery) ? (
         <div className="mobile-search-active-bar" style={{ display: "flex", width: "100%", alignItems: "center", gap: "12px" }}>
           <button
@@ -312,8 +313,6 @@ export default function AppRouter(props) {
       ) : (
         <>
           <div className="header-left" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {/* Hamburger Menu — only show on mobile/tablet */}
-
             {/* Back Arrow — only show when not on dashboard */}
             {status !== "idle" && (
               <button
@@ -340,8 +339,8 @@ export default function AppRouter(props) {
                 </svg>
               </button>
             )}
-            <div className="logo-container" onClick={resetToDashboard} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}>
-              <img src="/logo.png" alt="Kaevrix Logo" style={{ width: "40px", height: "40px", objectFit: "contain" }} />
+            <div className="logo-container" onClick={resetToDashboard} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", marginTop: "-3px" }}>
+              <img src="/logo.png" alt="Kaevrix Logo" style={{ width: "40px", height: "40px", objectFit: "contain", display: "block" }} />
               <span className="logo-text" style={{ fontSize: "24px" }}>Kaevrix</span>
             </div>
           </div>
@@ -421,11 +420,15 @@ export default function AppRouter(props) {
 
           <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             {/* YouTube style search trigger button on mobile / Settings button when in chronos */}
-            {(activeTab === "chronos") ? (
+            {(activeTab === "chronos" || activeTab === "profile") ? (
               <button
                 onClick={() => {
                   sound.playClockTick();
-                  setShowSchedulerSettings(prev => !prev);
+                  if (activeTab === "chronos") {
+                    setShowSchedulerSettings(prev => !prev);
+                  } else {
+                    setShowSystemSettings(prev => !prev);
+                  }
                 }}
                 style={{
                   background: "transparent",
@@ -735,6 +738,8 @@ export default function AppRouter(props) {
           handleLogout={handleLogout}
           showSchedulerSettings={showSchedulerSettings}
           setShowSchedulerSettings={setShowSchedulerSettings}
+          showSystemSettings={showSystemSettings}
+          setShowSystemSettings={setShowSystemSettings}
         />
       )}
 
@@ -944,26 +949,6 @@ export default function AppRouter(props) {
             }}
           >
             <span>🏆</span> Rankings
-          </button>
-          <button 
-            onClick={() => { sound.playClockTick(); setActiveTab("settings"); setShowMoreMenu(false); }} 
-            style={{
-              background: activeTab === "settings" ? "rgba(255, 106, 0, 0.1)" : "transparent",
-              border: "none",
-              color: activeTab === "settings" ? "#ff6a00" : "var(--text-light)",
-              padding: "10px 14px",
-              borderRadius: "8px",
-              textAlign: "left",
-              fontSize: "13px",
-              fontWeight: "700",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              fontFamily: "var(--font-outfit)"
-            }}
-          >
-            <span>⚙️</span> Settings
           </button>
         </div>
       )}

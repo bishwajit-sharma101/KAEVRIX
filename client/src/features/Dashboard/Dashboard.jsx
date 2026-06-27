@@ -70,7 +70,9 @@ export default function Dashboard({
   setActiveTab,
   handleLogout,
   showSchedulerSettings,
-  setShowSchedulerSettings
+  setShowSchedulerSettings,
+  showSystemSettings,
+  setShowSystemSettings
 }) {
   const [isRobotHovered, setIsRobotHovered] = useState(false);
   const [personalizedFeed, setPersonalizedFeed] = useState([]);
@@ -618,11 +620,13 @@ export default function Dashboard({
             musicProfile={musicProfile}
             setMusicProfile={setMusicProfile}
             socket={socket}
+            showSystemSettings={showSystemSettings}
+            setShowSystemSettings={setShowSystemSettings}
           />
         )}
 
         {activeTab === "duels" && (
-          <div>
+          <div style={{ padding: "0 clamp(16px, 4vw, 24px)", boxSizing: "border-box" }}>
             {!searchQuery && !topic ? (
               <div className="arena-empty-container">
                 <style>{`
@@ -916,51 +920,59 @@ export default function Dashboard({
     )}
 
         {activeTab === "community" && (
-          <CommunityTab 
-            username={username}
-            backendUrl={backendUrl}
-            getRankTitle={getRankTitle}
-            isDarkMode={isDarkMode}
-            socket={socket}
-          />
+          <div style={{ padding: "0 clamp(16px, 4vw, 24px)", boxSizing: "border-box" }}>
+            <CommunityTab 
+              username={username}
+              backendUrl={backendUrl}
+              getRankTitle={getRankTitle}
+              isDarkMode={isDarkMode}
+              socket={socket}
+            />
+          </div>
         )}
 
         {activeTab === "pathfinder" && (
-          <CognitivePathfinder
-            username={username}
-            onTriggerSearch={(topicName) => {
-              if (onSearch) onSearch(topicName);
-              setActiveTab("duels");
-            }}
-            onStartSoloStudy={onStartSoloStudy}
-            isDarkMode={isDarkMode}
-          />
+          <div style={{ padding: "0 clamp(16px, 4vw, 24px)", boxSizing: "border-box" }}>
+            <CognitivePathfinder
+              username={username}
+              onTriggerSearch={(topicName) => {
+                if (onSearch) onSearch(topicName);
+                setActiveTab("duels");
+              }}
+              onStartSoloStudy={onStartSoloStudy}
+              isDarkMode={isDarkMode}
+            />
+          </div>
         )}
 
         {activeTab === "chronos" && (
-          <PathfinderScheduler
-            roadmap={savedRoadmap}
-            username={username}
-            isDarkMode={isDarkMode}
-            onSelectMilestone={(m) => {
-              sound.playClockTick();
-              setActiveTab("pathfinder");
-            }}
-            showSettings={showSchedulerSettings}
-            setShowSettings={setShowSchedulerSettings}
-          />
+          <div style={{ padding: "0 clamp(16px, 4vw, 24px)", boxSizing: "border-box" }}>
+            <PathfinderScheduler
+              roadmap={savedRoadmap}
+              username={username}
+              isDarkMode={isDarkMode}
+              onSelectMilestone={(m) => {
+                sound.playClockTick();
+                setActiveTab("pathfinder");
+              }}
+              showSettings={showSchedulerSettings}
+              setShowSettings={setShowSchedulerSettings}
+            />
+          </div>
         )}
 
         {activeTab === "history" && (
-          <StudyHistory
-            username={username}
-            isDarkMode={isDarkMode}
-            onStartSoloStudy={onStartSoloStudy}
-          />
+          <div style={{ padding: "0 clamp(16px, 4vw, 24px)", boxSizing: "border-box" }}>
+            <StudyHistory
+              username={username}
+              isDarkMode={isDarkMode}
+              onStartSoloStudy={onStartSoloStudy}
+            />
+          </div>
         )}
 
         {activeTab === "rankings" && (
-          <div style={{ padding: "0 4px" }}>
+          <div style={{ padding: "0 clamp(16px, 4vw, 24px)", boxSizing: "border-box" }}>
             <div style={{ marginBottom: "36px" }}>
               <div style={{ fontSize: "11px", fontWeight: "800", color: "var(--neon-orange)", letterSpacing: "4px", marginBottom: "10px", fontFamily: "var(--font-gamer)" }}>
                 GLOBAL RANKINGS
@@ -1107,102 +1119,6 @@ export default function Dashboard({
           </div>
         )}
 
-        {activeTab === "settings" && (
-          <div style={{ padding: "0 4px", marginTop: "20px" }}>
-            <div className="hud-panel" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "20px", maxWidth: "600px", margin: "0 auto", border: "1px solid var(--glass-border)", position: "relative" }}>
-              <div className="hud-corner-bracket hud-bracket-tl" />
-              <div className="hud-corner-bracket hud-bracket-tr" />
-              <div className="hud-corner-bracket hud-bracket-bl" />
-              <div className="hud-corner-bracket hud-bracket-br" />
-
-              <h3 style={{ margin: 0, fontSize: "12px", color: "var(--neon-orange)", fontWeight: "900", letterSpacing: "1.5px", textTransform: "uppercase", borderBottom: "1px solid var(--glass-border)", paddingBottom: "12px", fontFamily: "var(--font-gamer)" }}>
-                ⚙️ SYSTEM SETTINGS
-              </h3>
-              
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                {/* Dark Theme */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-light)" }}>Dark Theme Mode</span>
-                  <button 
-                    onClick={() => { sound.playClockTick(); setIsDarkMode(!isDarkMode); }}
-                    style={{
-                      background: isDarkMode ? "var(--neon-orange)" : "rgba(255, 106, 0, 0.1)",
-                      border: "1px solid #ff6a00",
-                      color: "#fff",
-                      padding: "6px 16px",
-                      borderRadius: "20px",
-                      fontSize: "12px",
-                      fontWeight: "800",
-                      cursor: "pointer",
-                      fontFamily: "var(--font-gamer)"
-                    }}
-                  >
-                    {isDarkMode ? "🌙 ON" : "☀️ OFF"}
-                  </button>
-                </div>
-
-                {/* Ambient Music */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-light)" }}>Ambient Music</span>
-                  <button 
-                    onClick={() => { 
-                      sound.playClockTick(); 
-                      const nextMuted = !isMusicMuted;
-                      setIsMusicMuted(nextMuted); 
-                      localStorage.setItem("kaevrix_music_muted", String(nextMuted));
-                    }}
-                    style={{
-                      background: !isMusicMuted ? "var(--neon-orange)" : "rgba(255, 106, 0, 0.1)",
-                      border: "1px solid #ff6a00",
-                      color: "#fff",
-                      padding: "6px 16px",
-                      borderRadius: "20px",
-                      fontSize: "12px",
-                      fontWeight: "800",
-                      cursor: "pointer",
-                      fontFamily: "var(--font-gamer)"
-                    }}
-                  >
-                    {!isMusicMuted ? "🔊 ON" : "🔇 OFF"}
-                  </button>
-                </div>
-
-                {/* Station selection */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", borderTop: "1px solid var(--glass-border)", paddingTop: "12px" }}>
-                  <span style={{ fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase" }}>Music Profile Station:</span>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                    {sound.MUSIC_PROFILES.map((p, idx) => {
-                      const isActive = musicProfile === idx;
-                      return (
-                        <button
-                          key={p.id}
-                          onClick={() => {
-                            sound.playClockTick();
-                            setMusicProfile(idx);
-                            localStorage.setItem("kaevrix_music_profile", String(idx));
-                          }}
-                          style={{
-                            padding: "6px 12px",
-                            borderRadius: "12px",
-                            border: isActive ? "1.5px solid #ff6a00" : "1px solid var(--glass-border)",
-                            background: isActive ? "rgba(255, 106, 0, 0.08)" : "transparent",
-                            color: isActive ? "#ff6a00" : "var(--text-muted)",
-                            fontSize: "11px",
-                            fontWeight: "700",
-                            cursor: "pointer",
-                            fontFamily: "var(--font-gamer)"
-                          }}
-                        >
-                          {p.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Right Sidebar: Pathfinder To-Do List */}

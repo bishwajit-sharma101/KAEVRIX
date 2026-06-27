@@ -68,6 +68,12 @@ body {
   padding: 0 20px;
 }
 
+@media (max-width: 768px) {
+  .app-container {
+    padding: 0;
+  }
+}
+
 /* Header */
 .app-header {
   display: flex;
@@ -75,6 +81,12 @@ body {
   align-items: center;
   padding: 20px 0;
   border-bottom: 1px solid var(--glass-border);
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 20px 16px;
+  }
 }
 
 .logo-container {
@@ -3413,7 +3425,7 @@ body {
 @media (max-width: 1024px) {
   .dashboard-wrapper {
     flex-direction: column;
-    padding: 24px 16px;
+    padding: 24px 0px;
     gap: 24px;
   }
 
@@ -3466,7 +3478,7 @@ body {
     grid-template-columns: auto 1fr !important;
     align-items: center !important;
     gap: 12px 8px !important;
-    padding: 12px !important;
+    padding: 22px 12px 12px 12px !important;
   }
 
   .header-left {
@@ -3874,14 +3886,22 @@ body {
   right: 24px;
   width: 320px;
   max-width: 90vw;
-  background: #090d16;
-  border: 1.5px solid var(--neon-orange);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 106, 0, 0.25);
+  background: #ffffff;
+  border: 1.5px solid #ff6a00;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), 0 0 20px rgba(255, 106, 0, 0.1);
   border-radius: 16px;
   padding: 16px;
   z-index: 998;
   animation: scaleUpIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
+}
+
+body.dark-theme .floating-todo-popup {
+  background: var(--bg-dark-surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1.5px solid var(--neon-orange);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25), 0 0 20px rgba(255, 106, 0, 0.2);
 }
 
 .todo-popup-header {
@@ -3930,10 +3950,17 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 10px;
-  background: rgba(255, 106, 0, 0.02);
-  border: 1px solid rgba(255,106,0,0.12);
+  padding: 12px;
+  background: #fffaf5;
+  border: 1px solid #ffd8a8;
   border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(255, 106, 0, 0.03);
+}
+
+body.dark-theme .todo-task-item {
+  background: rgba(255, 106, 0, 0.04);
+  border: 1px solid rgba(255,106,0,0.18);
+  box-shadow: none;
 }
 
 .todo-task-num {
@@ -4172,7 +4199,7 @@ body {
 
   /* Force video sections to occupy 100% width and remove spaces */
   .dashboard-content > div {
-    padding: 0 !important;
+    box-sizing: border-box;
   }
 
   .hud-feed-header {
