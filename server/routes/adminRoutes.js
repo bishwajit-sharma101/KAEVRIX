@@ -5,8 +5,9 @@ import Session from "../models/Session.js";
 import SecurityEvent from "../models/SecurityEvent.js";
 import AITracking from "../models/AITracking.js";
 import TelemetryEvent from "../models/TelemetryEvent.js";
-import SystemConfig from "../models/SystemConfig.js";
 import AuditLog from "../models/AuditLog.js";
+import SystemConfig from "../models/SystemConfig.js";
+import redisClient from "../config/redis.js";
 import { getApiReliabilityStats } from "../middleware/apiReliabilityMiddleware.js";
 
 const router = express.Router();
@@ -251,6 +252,11 @@ router.post("/ai-costs/kill-switch", async (req, res, next) => {
       { value: !!enable, updatedBy: req.user.username },
       { upsert: true, new: true }
     );
+    const currentMonth = new Date().toISOString().substring(0, 7);
+    await Promise.all([
+      redisClient.del("config:feature:AI_KILL_SWITCH"),
+      redisClient.del(`ai:monthly_cost:${currentMonth}`)
+    ]);
     await logAudit(req.user.username, "UPDATE_FEATURE_FLAG", "AI_KILL_SWITCH", { value: !!enable }, req.ip);
     
     // Log to Telemetry
@@ -574,6 +580,7 @@ router.post("/config", async (req, res, next) => {
       { value, updatedBy: req.user.username },
       { upsert: true, new: true }
     );
+    await redisClient.del(`config:feature:${key}`);
     await logAudit(req.user.username, "UPDATE_FEATURE_FLAG", key, { value }, req.ip);
     
     // Log to Telemetry

@@ -19,6 +19,38 @@ export default function AppRouter(props) {
 
   const [isSearchFocused, setIsSearchFocused] = React.useState(false);
   const [isCodingMode, setIsCodingMode] = React.useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState("duels");
+  const [isMobileSearchActive, setIsMobileSearchActive] = React.useState(false);
+  const [searchHistory, setSearchHistory] = React.useState([]);
+
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem("kaevrix_search_history");
+      if (saved) {
+        setSearchHistory(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [isMobileSearchActive]);
+
+  const saveSearchToHistory = (query) => {
+    if (!query || !query.trim()) return;
+    const trimmed = query.trim();
+    setSearchHistory(prev => {
+      const filtered = prev.filter(h => h !== trimmed);
+      const updated = [trimmed, ...filtered].slice(0, 6);
+      localStorage.setItem("kaevrix_search_history", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleLocalSearchSubmit = (e) => {
+    if (e) e.preventDefault();
+    saveSearchToHistory(searchQuery);
+    handleSearchSubmit(e);
+  };
   const [hellMode, setHellMode] = React.useState(() => {
     const localVal = localStorage.getItem("hellMode");
     if (localVal === "true") return true;
@@ -70,317 +102,363 @@ export default function AppRouter(props) {
     );
   }
 
+  const renderSearchHelperOverlay = () => {
+    if (!isMobileSearchActive) return null;
+    return (
+      <div 
+        className="mobile-search-helper-overlay"
+        style={{
+          position: "fixed",
+          top: "60px",
+          left: 0,
+          width: "100%",
+          height: "calc(100% - 60px)",
+          background: isDarkMode ? "#090d16" : "#ffffff",
+          zIndex: 9999,
+          padding: "20px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "24px",
+          boxSizing: "border-box",
+          overflowY: "auto"
+        }}
+      >
+        {/* Recent Searches */}
+        <div>
+          <h4 style={{ 
+            fontSize: "12px", 
+            fontWeight: "800", 
+            color: "var(--neon-orange)", 
+            textTransform: "uppercase", 
+            letterSpacing: "1px", 
+            marginBottom: "12px" 
+          }}>
+            Recent Searches
+          </h4>
+          {searchHistory.length > 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {searchHistory.map((historyQuery, idx) => (
+                <div 
+                  key={idx} 
+                  style={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "space-between",
+                    padding: "8px 0",
+                    borderBottom: isDarkMode ? "1px solid rgba(255, 255, 255, 0.05)" : "1px solid rgba(0, 0, 0, 0.05)"
+                  }}
+                >
+                  <div 
+                    onClick={() => {
+                      sound.playClockTick();
+                      setSearchQuery(historyQuery);
+                      triggerSearch(historyQuery);
+                      setIsMobileSearchActive(false);
+                    }}
+                    style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", flex: 1 }}
+                  >
+                    <span style={{ fontSize: "16px", opacity: 0.6 }}>🕒</span>
+                    <span style={{ fontSize: "14px", color: isDarkMode ? "#f8fafc" : "#0f172a", fontWeight: "500" }}>{historyQuery}</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      sound.playClockTick();
+                      const updated = searchHistory.filter(h => h !== historyQuery);
+                      setSearchHistory(updated);
+                      localStorage.setItem("kaevrix_search_history", JSON.stringify(updated));
+                    }}
+                    style={{ background: "transparent", border: "none", color: "var(--text-muted)", fontSize: "12px", cursor: "pointer", padding: "4px" }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ fontSize: "13px", color: "var(--text-muted)", fontStyle: "italic" }}>No recent searches.</p>
+          )}
+        </div>
+
+        {/* Trending tech topics */}
+        <div>
+          <h4 style={{ 
+            fontSize: "12px", 
+            fontWeight: "800", 
+            color: "var(--neon-orange)", 
+            textTransform: "uppercase", 
+            letterSpacing: "1px", 
+            marginBottom: "12px" 
+          }}>
+            Trending Tech Topics
+          </h4>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+            {[
+              "React Hooks & State",
+              "Machine Learning Basics",
+              "Node.js REST API",
+              "CSS Flexbox & Grid",
+              "Web Security & JWT",
+              "SQL vs NoSQL Databases"
+            ].map((topicText, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  sound.playClockTick();
+                  setSearchQuery(topicText);
+                  triggerSearch(topicText);
+                  saveSearchToHistory(topicText);
+                  setIsMobileSearchActive(false);
+                }}
+                style={{
+                  background: isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.03)",
+                  border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)",
+                  borderRadius: "20px",
+                  padding: "8px 16px",
+                  fontSize: "12.5px",
+                  color: isDarkMode ? "#cbd5e1" : "#334155",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+                onMouseOver={e => { e.currentTarget.style.borderColor = "var(--neon-orange)"; e.currentTarget.style.color = "var(--neon-orange)"; }}
+                onMouseOut={e => { e.currentTarget.style.borderColor = isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)"; e.currentTarget.style.color = isDarkMode ? "#cbd5e1" : "#334155"; }}
+              >
+                🔥 {topicText}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Header display
   const headerComponent = (
-    <header className="app-header">
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        {/* Back Arrow — only show when not on dashboard */}
-        {status !== "idle" && (
+    <header className="app-header" style={{ height: "60px", padding: "8px 16px", display: "flex", alignItems: "center", boxSizing: "border-box" }}>
+      {(isMobileSearchActive || searchQuery) ? (
+        <div className="mobile-search-active-bar" style={{ display: "flex", width: "100%", alignItems: "center", gap: "12px" }}>
           <button
-            onClick={() => { sound.playClockTick(); resetToDashboard(); }}
-            title="Back to Dashboard"
-            style={{
-              width: "38px", height: "38px",
-              borderRadius: "10px",
-              border: "1.5px solid var(--glass-border)",
-              background: "var(--bg-dark-surface)",
-              color: "var(--neon-orange)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer",
-              fontSize: "18px",
-              fontWeight: "700",
-              transition: "all 0.2s",
-              boxShadow: "0 2px 8px rgba(255,106,0,0.1)",
-              flexShrink: 0,
+            onClick={() => {
+              sound.playClockTick();
+              clearSearch();
+              setIsMobileSearchActive(false);
             }}
-            onMouseOver={e => { e.currentTarget.style.background = "#fff7ed"; e.currentTarget.style.transform = "translateX(-2px)"; }}
-            onMouseOut={e => { e.currentTarget.style.background = "var(--bg-dark-surface)"; e.currentTarget.style.transform = "none"; }}
-          >
-            ⬅️
-          </button>
-        )}
-        <div className="logo-container" onClick={resetToDashboard} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}>
-          <img src="/logo.png" alt="Kaevrix Logo" style={{ width: "40px", height: "40px", objectFit: "contain" }} />
-          <span className="logo-text" style={{ fontSize: "24px" }}>Kaevrix</span>
-        </div>
-      </div>
-
-      <div className="header-search-container" style={{ flex: 1, maxWidth: "600px", margin: "0 40px", display: "flex", alignItems: "center", gap: "15px" }}>
-        <form 
-          onSubmit={handleSearchSubmit} 
-          className="header-search-form" 
-          style={{ 
-            display: "flex", 
-            flex: 1, 
-            background: isDarkMode ? "rgba(10, 6, 4, 0.65)" : "rgba(255, 255, 255, 0.9)", 
-            borderRadius: "28px", 
-            overflow: "hidden", 
-            border: isSearchFocused
-              ? (isDarkMode ? "1.5px solid #ff6a00" : "1.5px solid #ea580c")
-              : (isDarkMode ? "1.5px solid rgba(255, 106, 0, 0.25)" : "1.5px solid #fed7aa"), 
-            boxShadow: isSearchFocused
-              ? (isDarkMode ? "0 0 25px rgba(255, 106, 0, 0.35), inset 0 2px 4px rgba(0,0,0,0.4)" : "0 4px 20px rgba(255, 106, 0, 0.15)")
-              : (isDarkMode ? "0 4px 20px rgba(0, 0, 0, 0.3)" : "inset 0 1px 2px rgba(0,0,0,0.05)"),
-            backdropFilter: "blur(12px)",
-            transition: "all 0.3s ease",
-            alignItems: "center"
-          }}
-        >
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            paddingLeft: "18px"
-          }}>
-            <span style={{
-              width: "8px",
-              height: "8px",
-              borderRadius: "50%",
-              backgroundColor: isSearchFocused ? "#ff6a00" : (isDarkMode ? "rgba(255, 106, 0, 0.4)" : "rgba(234, 88, 12, 0.3)"),
-              boxShadow: isSearchFocused ? "0 0 8px #ff6a00, 0 0 15px #ffb300" : "none",
-              transition: "all 0.3s ease"
-            }} />
-          </div>
-          <input
-            type="text"
-            placeholder="Search YouTube videos..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
             style={{ 
+              background: "transparent", border: "none", color: "var(--neon-orange)", 
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+              padding: "6px", flexShrink: 0
+            }}
+            title="Clear Search"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+          </button>
+          <form 
+            onSubmit={handleLocalSearchSubmit}
+            className="header-search-form"
+            style={{ 
+              display: "flex", 
               flex: 1, 
-              border: "none", 
-              background: "transparent", 
-              padding: "12px 14px", 
-              fontSize: "15px", 
-              outline: "none", 
-              color: isDarkMode ? "#ffffff" : "#0f172a",
-              fontFamily: "'Outfit', var(--font-sans)"
-            }}
-          />
-          <button 
-            type="submit" 
-            style={{ 
-              alignSelf: "stretch",
-              padding: "0 28px", 
-              background: isDarkMode ? "linear-gradient(135deg, #ff6a00, #ffb300)" : "linear-gradient(135deg, #ea580c, #f97316)", 
-              border: "none", 
-              clipPath: "polygon(12px 0, 100% 0, 100% 100%, 0 100%)",
-              cursor: isSearching ? "not-allowed" : "pointer", 
-              color: "#ffffff", 
-              fontSize: "16px",
-              transition: "all 0.2s",
-              display: "flex",
+              background: isDarkMode ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)", 
+              borderRadius: "24px", 
+              overflow: "hidden", 
+              border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid rgba(0, 0, 0, 0.1)", 
               alignItems: "center",
-              justifyContent: "center",
-            }} 
-            disabled={isSearching}
+              padding: "2px 8px 2px 16px",
+              height: "40px"
+            }}
           >
-            {isSearching ? (
-              <div className="search-dots-loader">
-                <span className="search-dot" style={{ backgroundColor: "#ffffff" }}></span>
-                <span className="search-dot" style={{ backgroundColor: "#ffffff" }}></span>
-                <span className="search-dot" style={{ backgroundColor: "#ffffff" }}></span>
-              </div>
-            ) : (
-              <svg 
-                width="18" 
-                height="18" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="3" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                style={{ transition: "transform 0.2s" }} 
-                onMouseOver={e => e.currentTarget.style.transform = "scale(1.15)"} 
-                onMouseOut={e => e.currentTarget.style.transform = "scale(1)"}
-              >
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            <input
+              type="text"
+              placeholder="Search YouTube videos..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ 
+                flex: 1, 
+                border: "none", 
+                background: "transparent", 
+                padding: "8px 0", 
+                fontSize: "14px", 
+                outline: "none", 
+                color: isDarkMode ? "#ffffff" : "#0f172a",
+                fontFamily: "'Outfit', var(--font-sans)"
+              }}
+              autoFocus
+            />
+            <button 
+              type="submit" 
+              style={{ 
+                background: "transparent", 
+                border: "none", 
+                cursor: "pointer", 
+                color: "var(--neon-orange)", 
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "6px"
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
+            </button>
+          </form>
+        </div>
+      ) : (
+        <>
+          <div className="header-left" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {/* Hamburger Menu — only show on mobile/tablet */}
+            <button
+              className="header-hamburger-btn"
+              onClick={() => { sound.playClockTick(); setIsDrawerOpen(true); }}
+              title="Open Navigation Drawer"
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "var(--neon-orange)",
+                fontSize: "24px",
+                cursor: "pointer",
+                padding: "6px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              ☰
+            </button>
+            {/* Back Arrow — only show when not on dashboard */}
+            {status !== "idle" && (
+              <button
+                onClick={() => { sound.playClockTick(); resetToDashboard(); }}
+                title="Back to Dashboard"
+                style={{
+                  width: "36px", height: "36px",
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "transparent",
+                  color: "var(--neon-orange)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer",
+                  fontSize: "18px",
+                  transition: "all 0.2s",
+                  flexShrink: 0,
+                }}
+                onMouseOver={e => e.currentTarget.style.transform = "translateX(-2px)"}
+                onMouseOut={e => e.currentTarget.style.transform = "none"}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="19" y1="12" x2="5" y2="12"></line>
+                  <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+              </button>
             )}
-          </button>
-        </form>
-        <button 
-          onClick={() => { sound.playClockTick(); setIsDarkMode(!isDarkMode); }}
-          style={{ flexShrink: 0, width: "40px", height: "40px", borderRadius: "50%", background: isDarkMode ? "#1e293b" : "#fff", border: "1px solid var(--neon-orange)", color: "var(--neon-orange)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "18px", boxShadow: "0 2px 10px rgba(255,106,0,0.15)", transition: "all 0.3s ease" }}
-          title="Toggle Dark Mode"
-        >
-          {isDarkMode ? "🌙" : "☀️"}
-        </button>
-
-        <div style={{ position: "relative", display: "flex", gap: "8px", alignItems: "center" }}>
-          <button 
-            onClick={() => { sound.playClockTick(); setIsMusicMuted(!isMusicMuted); localStorage.setItem("kaevrix_music_muted", String(!isMusicMuted)); }}
-            style={{ flexShrink: 0, width: "40px", height: "40px", borderRadius: "50%", background: isDarkMode ? "#1e293b" : "#fff", border: "1px solid var(--neon-orange)", color: "var(--neon-orange)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "18px", boxShadow: "0 2px 10px rgba(255,106,0,0.15)", transition: "all 0.3s ease" }}
-            title={isMusicMuted ? "Unmute Ambient Music" : "Mute Ambient Music"}
-          >
-            {isMusicMuted ? "🔇" : "🔊"}
-          </button>
-          
-          <button 
-            onClick={() => { sound.playClockTick(); setShowMusicSettings(!showMusicSettings); }}
-            style={{ flexShrink: 0, width: "40px", height: "40px", borderRadius: "50%", background: isDarkMode ? "#1e293b" : "#fff", border: "1px solid var(--neon-orange)", color: "var(--neon-orange)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "18px", boxShadow: "0 2px 10px rgba(255,106,0,0.15)", transition: "all 0.3s ease" }}
-            title="Soundscape Console"
-          >
-            🎵
-          </button>
-
-          {showMusicSettings && (
-            <div style={{
-              position: "absolute", top: "50px", right: 0, zIndex: 10000,
-              width: "280px", background: isDarkMode ? "#1e293b" : "#ffffff",
-              border: "1px solid var(--neon-orange)", borderRadius: "16px",
-              padding: "16px", boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
-              display: "flex", flexDirection: "column", gap: "12px",
-              fontFamily: "var(--font-sans)",
-              color: "var(--text-light)"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--glass-border)", paddingBottom: "8px" }}>
-                <span style={{ fontFamily: "var(--font-gamer)", fontSize: "12px", fontWeight: "900", color: "var(--neon-orange)", letterSpacing: "1px" }}>SOUNDSCAPE CONSOLE</span>
-                <button 
-                  onClick={() => { sound.playClockTick(); setShowMusicSettings(false); }}
-                  style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "14px" }}
-                >
-                  ❌
-                </button>
-              </div>
-              
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <span style={{ fontSize: "11px", fontWeight: "bold", color: "var(--text-muted)", letterSpacing: "0.5px" }}>SELECT STATION:</span>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "150px", overflowY: "auto", paddingRight: "4px" }}>
-                  {sound.MUSIC_PROFILES.map((p, idx) => {
-                    const isActive = musicProfile === idx;
-                    return (
-                      <button
-                        key={p.id}
-                        onClick={() => {
-                          sound.playClockTick();
-                          setMusicProfile(idx);
-                          localStorage.setItem("kaevrix_music_profile", String(idx));
-                        }}
-                        style={{
-                          textAlign: "left", padding: "8px 12px", borderRadius: "8px",
-                          background: isActive ? "var(--accent-gradient)" : "transparent",
-                          border: `1px solid ${isActive ? "transparent" : "var(--glass-border)"}`,
-                          color: isActive ? "#ffffff" : "var(--text-light)",
-                          cursor: "pointer", fontSize: "12px", transition: "all 0.2s"
-                        }}
-                      >
-                        <div style={{ fontWeight: "bold" }}>{p.name}</div>
-                        <div style={{ fontSize: "10px", opacity: isActive ? 0.9 : 0.6, marginTop: "2px" }}>{p.desc}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", borderTop: "1px solid var(--glass-border)", paddingTop: "10px", marginTop: "4px" }}>
-                <input
-                  type="checkbox"
-                  id="keepMusicInGame"
-                  checked={keepMusicInGame}
-                  onChange={(e) => {
-                    sound.playClockTick();
-                    const val = e.target.checked;
-                    setKeepMusicInGame(val);
-                    localStorage.setItem("kaevrix_music_in_game", String(val));
-                  }}
-                  style={{ cursor: "pointer", accentColor: "var(--neon-orange)" }}
-                />
-                <label htmlFor="keepMusicInGame" style={{ fontSize: "11px", fontWeight: "600", color: "var(--text-light)", cursor: "pointer" }}>
-                  Keep playing during matches
-                </label>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        {/* Hell Mode Toggle Button */}
-        <button
-          onClick={() => {
-            sound.playMatchFound();
-            const nextHell = !hellMode;
-            setHellMode(nextHell);
-            localStorage.setItem("hellMode", String(nextHell));
-          }}
-          className={hellMode ? "hell-btn-active" : "hell-btn-inactive"}
-          style={{
-            flexShrink: 0,
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "8px 18px",
-            borderRadius: "22px",
-            fontSize: "12px",
-            fontWeight: "900",
-            fontFamily: "var(--font-gamer)",
-            letterSpacing: "2px",
-            cursor: "pointer",
-            outline: "none",
-            height: "42px",
-            transition: "all 0.4s cubic-bezier(.4,0,.2,1)",
-            alignSelf: "center",
-            boxSizing: "border-box",
-            position: "relative",
-            overflow: "visible",
-            zIndex: 2,
-          }}
-          title={hellMode ? "Hell Mode Active - Click to disable" : "Unleash Hell Mode"}
-        >
-          {hellMode && <div className="hell-aura" />}
-          {hellMode && <div className="hell-sheen" />}
-          {hellMode && (
-            <div className="hell-sparks">
-              <span/><span/><span/><span/><span/>
-            </div>
-          )}
-          <span className="hell-text" style={{ position: "relative", zIndex: 5 }}>
-            {hellMode ? "💀 HELL ACTIVE" : "🔥 HELL MODE"}
-          </span>
-        </button>
-
-        <div className="header-profile" style={{ display: "flex", alignItems: "center", gap: "12px", background: isDarkMode ? "#1e293b" : "#ffffff", padding: "6px 16px 6px 6px", borderRadius: "30px", border: "1px solid var(--glass-border)", boxShadow: "0 4px 6px rgba(0,0,0,0.02)" }}>
-          <div className="profile-avatar" style={{ width: "36px", height: "36px", borderRadius: "50%", background: isDarkMode ? "#0f172a" : "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", border: "1px solid var(--glass-border)", overflow: "hidden" }}>
-            {avatar && avatar.includes('http') ? <img src={avatar} alt="avatar" style={{width: "100%", height: "100%", objectFit: "cover"}}/> : avatar}
-          </div>
-          <div className="profile-info" style={{ display: "flex", flexDirection: "column" }}>
-            <div className="profile-name" style={{ fontSize: "14px", fontWeight: "600", color: "var(--text-light)" }}>{username}</div>
-            <div className="profile-level-badge" style={{ fontSize: "11px", color: "var(--neon-orange)", fontWeight: "700" }}>
-              LVL {level} <span style={{ color: "var(--text-muted)", fontWeight: "normal" }}>({xp % 200}/200)</span>
+            <div className="logo-container" onClick={resetToDashboard} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}>
+              <img src="/logo.png" alt="Kaevrix Logo" style={{ width: "40px", height: "40px", objectFit: "contain" }} />
+              <span className="logo-text" style={{ fontSize: "24px" }}>Kaevrix</span>
             </div>
           </div>
-        </div>
 
-        {/* Logout button */}
-        <button
-          onClick={handleLogout}
-          title="Sign Out"
-          style={{
-            flexShrink: 0,
-            width: "36px",
-            height: "36px",
-            borderRadius: "50%",
-            background: "rgba(239, 68, 68, 0.08)",
-            border: "1.5px solid rgba(239, 68, 68, 0.2)",
-            color: "#ef4444",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: "bold",
-            transition: "all 0.2s",
-          }}
-          onMouseOver={e => { e.currentTarget.style.background = "#ef4444"; e.currentTarget.style.color = "#fff"; }}
-          onMouseOut={e => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)"; e.currentTarget.style.color = "#ef4444"; }}
-        >
-          🚪
-        </button>
-      </div>
+          {/* Desktop Search Bar (shown only on large viewports) */}
+          <div className="header-search-container desktop-search-only">
+            <form 
+              onSubmit={handleLocalSearchSubmit} 
+              className="header-search-form" 
+              style={{ 
+                display: "flex", 
+                flex: 1, 
+                background: isDarkMode ? "rgba(10, 6, 4, 0.65)" : "rgba(255, 255, 255, 0.9)", 
+                borderRadius: "28px", 
+                overflow: "hidden", 
+                border: isSearchFocused
+                  ? (isDarkMode ? "1.5px solid #ff6a00" : "1.5px solid #ea580c")
+                  : (isDarkMode ? "1.5px solid rgba(255, 106, 0, 0.25)" : "1.5px solid #fed7aa"), 
+                boxShadow: isSearchFocused
+                  ? (isDarkMode ? "0 0 25px rgba(255, 106, 0, 0.35), inset 0 2px 4px rgba(0,0,0,0.4)" : "0 4px 20px rgba(255, 106, 0, 0.15)")
+                  : (isDarkMode ? "0 4px 20px rgba(0, 0, 0, 0.3)" : "inset 0 1px 2px rgba(0,0,0,0.05)"),
+                backdropFilter: "blur(12px)",
+                transition: "all 0.3s ease",
+                alignItems: "center"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", paddingLeft: "18px" }}>
+                <span style={{
+                  width: "8px", height: "8px", borderRadius: "50%",
+                  backgroundColor: isSearchFocused ? "#ff6a00" : (isDarkMode ? "rgba(255, 106, 0, 0.4)" : "rgba(234, 88, 12, 0.3)"),
+                  boxShadow: isSearchFocused ? "0 0 8px #ff6a00, 0 0 15px #ffb300" : "none",
+                  transition: "all 0.3s ease"
+                }} />
+              </div>
+              <input
+                type="text"
+                placeholder="Search YouTube videos..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
+                style={{ 
+                  flex: 1, border: "none", background: "transparent", 
+                  padding: "12px 14px", fontSize: "15px", outline: "none", 
+                  color: isDarkMode ? "#ffffff" : "#0f172a",
+                  fontFamily: "'Outfit', var(--font-sans)"
+                }}
+              />
+              <button 
+                type="submit" 
+                style={{ 
+                  alignSelf: "stretch", padding: "0 28px", 
+                  background: isDarkMode ? "linear-gradient(135deg, #ff6a00, #ffb300)" : "linear-gradient(135deg, #ea580c, #f97316)", 
+                  border: "none", clipPath: "polygon(12px 0, 100% 0, 100% 100%, 0 100%)",
+                  cursor: isSearching ? "not-allowed" : "pointer", color: "#ffffff", 
+                  fontSize: "16px", transition: "all 0.2s",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }} 
+                disabled={isSearching}
+              >
+                {isSearching ? (
+                  <div className="search-dots-loader">
+                    <span className="search-dot" style={{ backgroundColor: "#ffffff" }} />
+                    <span className="search-dot" style={{ backgroundColor: "#ffffff" }} />
+                    <span className="search-dot" style={{ backgroundColor: "#ffffff" }} />
+                  </div>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform 0.2s" }} onMouseOver={e => e.currentTarget.style.transform = "scale(1.15)"} onMouseOut={e => e.currentTarget.style.transform = "scale(1)"}>
+                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                )}
+              </button>
+            </form>
+          </div>
+
+          <div className="header-right">
+            {/* YouTube style search trigger button on mobile */}
+            <button 
+              className="mobile-search-trigger"
+              onClick={() => { sound.playClockTick(); setIsMobileSearchActive(true); }}
+              style={{ 
+                background: "transparent", 
+                border: "none", 
+                color: "var(--neon-orange)", 
+                width: "40px", 
+                height: "40px",
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center",
+                cursor: "pointer",
+                transition: "transform 0.2s"
+              }}
+              title="Search"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </button>
+          </div>
+        </>
+      )}
     </header>
   );
   const hellModeStyles = (
@@ -552,6 +630,7 @@ export default function AppRouter(props) {
       {/* Dynamic Hell Mode styles */}
       {hellModeStyles}
       {(!isCodingMode || status !== "solo_study") && status !== "command_center" && headerComponent}
+      {renderSearchHelperOverlay()}
 
       {/* 2. DASHBOARD OR GAME STATES */}
       {status === "idle" && (
@@ -591,6 +670,16 @@ export default function AppRouter(props) {
           onStartSoloStudy={handleStartSoloStudy}
           setStatus={setStatus}
           socket={socket}
+          isDrawerOpen={isDrawerOpen}
+          setIsDrawerOpen={setIsDrawerOpen}
+          setIsDarkMode={setIsDarkMode}
+          isMusicMuted={isMusicMuted}
+          setIsMusicMuted={setIsMusicMuted}
+          musicProfile={musicProfile}
+          setMusicProfile={setMusicProfile}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          handleLogout={handleLogout}
         />
       )}
 
@@ -742,6 +831,46 @@ export default function AppRouter(props) {
           losses={losses}
           onClose={() => setShowDailyModal(false)} 
         />
+      )}
+      {/* Mobile Bottom Navigation Bar (YouTube style) */}
+      {status === "idle" && !isCodingMode && (
+        <div className="mobile-bottom-nav">
+          <button 
+            className={`bottom-nav-btn ${activeTab === "duels" ? "bottom-nav-btn-active" : ""}`}
+            onClick={() => { sound.playClockTick(); setActiveTab("duels"); }}
+          >
+            <span className="bottom-nav-icon">🎮</span>
+            <span className="bottom-nav-label">Arena</span>
+          </button>
+          <button 
+            className={`bottom-nav-btn ${activeTab === "pathfinder" ? "bottom-nav-btn-active" : ""}`}
+            onClick={() => { sound.playClockTick(); setActiveTab("pathfinder"); }}
+          >
+            <span className="bottom-nav-icon">🧠</span>
+            <span className="bottom-nav-label">Pathfinder</span>
+          </button>
+          <button 
+            className={`bottom-nav-btn ${activeTab === "chronos" ? "bottom-nav-btn-active" : ""}`}
+            onClick={() => { sound.playClockTick(); setActiveTab("chronos"); }}
+          >
+            <span className="bottom-nav-icon">⏱️</span>
+            <span className="bottom-nav-label">Chronos</span>
+          </button>
+          <button 
+            className={`bottom-nav-btn ${activeTab === "history" ? "bottom-nav-btn-active" : ""}`}
+            onClick={() => { sound.playClockTick(); setActiveTab("history"); }}
+          >
+            <span className="bottom-nav-icon">📖</span>
+            <span className="bottom-nav-label">History</span>
+          </button>
+          <button 
+            className={`bottom-nav-btn ${activeTab === "profile" ? "bottom-nav-btn-active" : ""}`}
+            onClick={() => { sound.playClockTick(); setActiveTab("profile"); }}
+          >
+            <span className="bottom-nav-icon">👤</span>
+            <span className="bottom-nav-label">You</span>
+          </button>
+        </div>
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { fetchWithJobPolling } from "../../utils/asyncJob";
 import * as sound from "../../utils/audio";
 
 const QUICK_QUESTIONS = [
@@ -98,7 +99,7 @@ const ENGINEER_QUESTIONS = [
   }
 ];
 
-export default function PathfinderOnboarding({ username, backendUrl, onRoadmapReady, initialTopic }) {
+export default function PathfinderOnboarding({ username, backendUrl, onRoadmapReady, initialTopic, isDarkMode }) {
   const [role, setRole] = useState(initialTopic ? "non-engineer" : null); // 'engineer' | 'non-engineer'
   const [pathfinderMode, setPathfinderMode] = useState(initialTopic ? "quick" : null); // 'quick' | 'detailed' | 'engineer'
   
@@ -196,7 +197,7 @@ export default function PathfinderOnboarding({ username, backendUrl, onRoadmapRe
           reqBody.difficulty = newAnswers[3];
         }
 
-        const res = await fetch(`${backendUrl}/api/pathfinder/generate`, {
+        const res = await fetchWithJobPolling(`${backendUrl}/api/pathfinder/generate`, {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
@@ -339,119 +340,569 @@ export default function PathfinderOnboarding({ username, backendUrl, onRoadmapRe
   const progress = (currentQ / activeQuestions.length) * 100;
 
   return (
-    <div style={{ maxWidth: "680px", margin: "0 auto", padding: "40px 20px" }}>
+    <div style={{ maxWidth: "680px", margin: "0 auto", padding: pathfinderMode ? "10px 20px" : "30px 20px" }}>
       {/* Header */}
-      <div style={{ marginBottom: "40px", textAlign: "center" }}>
-        <div style={{
-          display: "inline-flex", alignItems: "center", gap: "8px",
-          background: "#fff7ed", padding: "6px 16px", borderRadius: "20px",
-          border: "1px solid #fed7aa", marginBottom: "16px"
-        }}>
-          <span style={{ fontSize: "14px" }}>🧠</span>
-          <span style={{ fontSize: "12px", fontWeight: "800", color: "#ea580c", textTransform: "uppercase", letterSpacing: "1px" }}>
-            Pathfinder Onboarding
+      {!pathfinderMode ? (
+        <div style={{ marginBottom: "24px", textAlign: "center" }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: "8px",
+            background: isDarkMode ? "rgba(255, 106, 0, 0.1)" : "#fff7ed",
+            padding: "6px 16px", borderRadius: "20px",
+            border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.2)" : "1px solid #fed7aa",
+            marginBottom: "16px"
+          }}>
+            <span style={{ fontSize: "14px" }}>🧠</span>
+            <span style={{ fontSize: "12px", fontWeight: "800", color: "#ea580c", textTransform: "uppercase", letterSpacing: "1px" }}>
+              Pathfinder Onboarding
+            </span>
+          </div>
+          <h1 style={{ fontSize: "30px", fontWeight: "900", color: "var(--text-light)", marginBottom: "8px", fontFamily: "var(--font-outfit)", letterSpacing: "-0.5px" }}>
+            Let's build your<br />
+            <span style={{ background: "linear-gradient(135deg, #ff6a00, #ffb300)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              learning roadmap
+            </span>
+          </h1>
+          <p style={{ color: "var(--text-muted)", fontSize: "14px", margin: 0 }}>
+            Answer 5 quick questions. AI reads them and builds your personalized path.
+          </p>
+        </div>
+      ) : (
+        <div style={{ marginBottom: "16px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: isDarkMode ? "1px solid rgba(255,106,0,0.15)" : "1px solid rgba(255,106,0,0.08)", paddingBottom: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "18px" }}>🧠</span>
+            <span style={{ fontSize: "13px", fontWeight: "800", color: "var(--text-light)", fontFamily: "var(--font-outfit)" }}>
+              Pathfinder Onboarding
+            </span>
+          </div>
+          <span style={{ fontSize: "11px", fontWeight: "800", color: "#ff6a00", background: "rgba(255, 106, 0, 0.06)", border: "1px solid rgba(255, 106, 0, 0.15)", padding: "3px 8px", borderRadius: "10px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            {pathfinderMode === "engineer" ? "Technical Track" : "General Track"}
           </span>
         </div>
-        <h1 style={{ fontSize: "32px", fontWeight: "900", color: "var(--text-light)", marginBottom: "8px" }}>
-          Let's build your<br />
-          <span style={{ background: "linear-gradient(135deg, #ff6a00, #ffb300)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            learning roadmap
-          </span>
-        </h1>
-        <p style={{ color: "var(--text-muted)", fontSize: "15px" }}>
-          Answer 5 quick questions. AI reads them and builds your personalized path.
-        </p>
-      </div>
+      )}
 
       {!role && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "24px" }}>
-          <h2 style={{ textAlign: "center", fontSize: "20px", fontWeight: "800", color: "var(--text-light)", marginBottom: "8px" }}>What is your background?</h2>
-          <button
-            onClick={() => { sound.playClockTick(); setRole("engineer"); setPathfinderMode("engineer"); setCurrentQ(0); setInputVal(""); setAnswers(Array(3).fill("")); }}
-            style={{
-              background: "#ffffff", border: "1px solid #e2e8f0",
-              borderRadius: "16px", padding: "24px",
-              textAlign: "left", cursor: "pointer", transition: "all 0.2s",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
-            }}
-            onMouseOver={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = "#ff6a00"; }}
-            onMouseOut={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
-          >
-            <div style={{ fontSize: "18px", fontWeight: "900", color: "var(--text-light)", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span>💻</span> Engineer / Comp Science
-            </div>
-            <div style={{ fontSize: "14px", color: "var(--text-muted)", lineHeight: "1.5" }}>
-              Tailored paths for developers with specialized technical depths and rigorous capabilities.
-            </div>
-          </button>
+        <div style={{ marginTop: "24px" }}>
+          <h2 style={{
+            textAlign: "center",
+            fontSize: "20px",
+            fontWeight: "800",
+            color: "var(--text-light)",
+            marginBottom: "24px",
+            fontFamily: "var(--font-outfit)",
+            letterSpacing: "-0.3px"
+          }}>
+            What is your background?
+          </h2>
+          
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "20px",
+            maxWidth: "680px",
+            margin: "0 auto"
+          }}>
+            {/* Engineer Option */}
+            <button
+              onClick={() => {
+                sound.playClockTick();
+                setRole("engineer");
+                setPathfinderMode("engineer");
+                setCurrentQ(0);
+                setInputVal("");
+                setAnswers(Array(3).fill(""));
+              }}
+              style={{
+                position: "relative",
+                background: isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.25)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid rgba(255, 106, 0, 0.1)",
+                borderRadius: "24px",
+                padding: "32px 24px",
+                textAlign: "left",
+                cursor: "pointer",
+                transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                boxShadow: "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                height: "100%",
+                minHeight: "200px",
+                overflow: "hidden"
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.background = isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.65)";
+                e.currentTarget.style.borderColor = "#ff6a00";
+                e.currentTarget.style.boxShadow = isDarkMode ? "0 12px 30px rgba(255, 106, 0, 0.15)" : "0 12px 30px rgba(255, 106, 0, 0.06)";
+                const arrow = e.currentTarget.querySelector(".btn-arrow");
+                if (arrow) arrow.style.transform = "translateX(4px)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = "none";
+                e.currentTarget.style.background = isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.25)";
+                e.currentTarget.style.borderColor = isDarkMode ? "rgba(255, 106, 0, 0.15)" : "rgba(255, 106, 0, 0.1)";
+                e.currentTarget.style.boxShadow = "none";
+                const arrow = e.currentTarget.querySelector(".btn-arrow");
+                if (arrow) arrow.style.transform = "none";
+              }}
+            >
+              {/* Badge label */}
+              <div style={{
+                position: "absolute",
+                top: "20px",
+                right: "20px",
+                fontSize: "10px",
+                fontWeight: "900",
+                color: "#ff6a00",
+                background: "rgba(255, 106, 0, 0.08)",
+                padding: "4px 8px",
+                borderRadius: "10px",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px"
+              }}>
+                Technical
+              </div>
 
-          <button
-            onClick={() => { sound.playClockTick(); setRole("non-engineer"); }}
-            style={{
-              background: "#ffffff", border: "1px solid #e2e8f0",
-              borderRadius: "16px", padding: "24px",
-              textAlign: "left", cursor: "pointer", transition: "all 0.2s",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
-            }}
-            onMouseOver={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = "#ff6a00"; }}
-            onMouseOut={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
-          >
-            <div style={{ fontSize: "18px", fontWeight: "900", color: "var(--text-light)", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span>🌍</span> Non-Engineer
-            </div>
-            <div style={{ fontSize: "14px", color: "var(--text-muted)", lineHeight: "1.5" }}>
-              Learn anything else—languages, sciences, history, or business.
-            </div>
-          </button>
+              <div>
+                {/* Custom SVG Icon wrapper */}
+                <div style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "50%",
+                  background: "rgba(255, 106, 0, 0.04)",
+                  border: "1px solid rgba(255, 106, 0, 0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "20px"
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff6a00" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="16 18 22 12 16 6" />
+                    <polyline points="8 6 2 12 8 18" />
+                    <line x1="14" y1="4" x2="10" y2="20" />
+                  </svg>
+                </div>
+
+                <h3 style={{
+                  fontSize: "18px",
+                  fontWeight: "800",
+                  color: "var(--text-light)",
+                  marginBottom: "8px",
+                  fontFamily: "var(--font-outfit)"
+                }}>
+                  Engineer / Comp Science
+                </h3>
+
+                <p style={{
+                  fontSize: "13.5px",
+                  color: "var(--text-muted)",
+                  lineHeight: "1.5",
+                  margin: "0 0 16px 0",
+                  fontWeight: "500"
+                }}>
+                  Tailored paths for developers with specialized technical depths and rigorous capabilities.
+                </p>
+              </div>
+
+              {/* Action indicator link */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "13px",
+                fontWeight: "700",
+                color: "#ff6a00",
+                marginTop: "auto"
+              }}>
+                <span>Select Track</span>
+                <span className="btn-arrow" style={{ transition: "transform 0.3s" }}>→</span>
+              </div>
+            </button>
+
+            {/* Non-Engineer Option */}
+            <button
+              onClick={() => {
+                sound.playClockTick();
+                setRole("non-engineer");
+              }}
+              style={{
+                position: "relative",
+                background: isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.25)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid rgba(255, 106, 0, 0.1)",
+                borderRadius: "24px",
+                padding: "32px 24px",
+                textAlign: "left",
+                cursor: "pointer",
+                transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                boxShadow: "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                height: "100%",
+                minHeight: "200px",
+                overflow: "hidden"
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.background = isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.65)";
+                e.currentTarget.style.borderColor = "#ff6a00";
+                e.currentTarget.style.boxShadow = isDarkMode ? "0 12px 30px rgba(255, 106, 0, 0.15)" : "0 12px 30px rgba(255, 106, 0, 0.06)";
+                const arrow = e.currentTarget.querySelector(".btn-arrow");
+                if (arrow) arrow.style.transform = "translateX(4px)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = "none";
+                e.currentTarget.style.background = isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.25)";
+                e.currentTarget.style.borderColor = isDarkMode ? "rgba(255, 106, 0, 0.15)" : "rgba(255, 106, 0, 0.1)";
+                e.currentTarget.style.boxShadow = "none";
+                const arrow = e.currentTarget.querySelector(".btn-arrow");
+                if (arrow) arrow.style.transform = "none";
+              }}
+            >
+              {/* Badge label */}
+              <div style={{
+                position: "absolute",
+                top: "20px",
+                right: "20px",
+                fontSize: "10px",
+                fontWeight: "900",
+                color: "#ff6a00",
+                background: "rgba(255, 106, 0, 0.08)",
+                padding: "4px 8px",
+                borderRadius: "10px",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px"
+              }}>
+                General
+              </div>
+
+              <div>
+                {/* Custom SVG Icon wrapper */}
+                <div style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "50%",
+                  background: "rgba(255, 106, 0, 0.04)",
+                  border: "1px solid rgba(255, 106, 0, 0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "20px"
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff6a00" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+                    <path d="M2 12h20" />
+                  </svg>
+                </div>
+
+                <h3 style={{
+                  fontSize: "18px",
+                  fontWeight: "800",
+                  color: "var(--text-light)",
+                  marginBottom: "8px",
+                  fontFamily: "var(--font-outfit)"
+                }}>
+                  Non-Engineer
+                </h3>
+
+                <p style={{
+                  fontSize: "13.5px",
+                  color: "var(--text-muted)",
+                  lineHeight: "1.5",
+                  margin: "0 0 16px 0",
+                  fontWeight: "500"
+                }}>
+                  Learn anything else—languages, sciences, history, or business.
+                </p>
+              </div>
+
+              {/* Action indicator link */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "13px",
+                fontWeight: "700",
+                color: "#ff6a00",
+                marginTop: "auto"
+              }}>
+                <span>Select Track</span>
+                <span className="btn-arrow" style={{ transition: "transform 0.3s" }}>→</span>
+              </div>
+            </button>
+          </div>
         </div>
       )}
 
       {role === "non-engineer" && !pathfinderMode && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "24px" }}>
-          <button
-            onClick={() => { sound.playClockTick(); setPathfinderMode("quick"); setCurrentQ(0); setInputVal(""); setAnswers(Array(5).fill("")); }}
-            style={{
-              background: "#ffffff", border: "1px solid #e2e8f0",
-              borderRadius: "16px", padding: "24px",
-              textAlign: "left", cursor: "pointer", transition: "all 0.2s",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
-            }}
-            onMouseOver={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = "#ff6a00"; }}
-            onMouseOut={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
-          >
-            <div style={{ fontSize: "18px", fontWeight: "900", color: "var(--text-light)", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span>⚡</span> Quick Setup
-            </div>
-            <div style={{ fontSize: "14px", color: "var(--text-muted)", lineHeight: "1.5" }}>
-              Standard 5 questions to build your path quickly. Ideal for straightforward topics.
-            </div>
-          </button>
+        <div style={{ marginTop: "24px" }}>
+          <h2 style={{
+            textAlign: "center",
+            fontSize: "20px",
+            fontWeight: "800",
+            color: "var(--text-light)",
+            marginBottom: "24px",
+            fontFamily: "var(--font-outfit)",
+            letterSpacing: "-0.3px"
+          }}>
+            Select Pathfinder Mode
+          </h2>
+          
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "20px",
+            maxWidth: "680px",
+            margin: "0 auto"
+          }}>
+            {/* Quick Setup */}
+            <button
+              onClick={() => {
+                sound.playClockTick();
+                setPathfinderMode("quick");
+                setCurrentQ(0);
+                setInputVal("");
+                setAnswers(Array(5).fill(""));
+              }}
+              style={{
+                position: "relative",
+                background: isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.25)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid rgba(255, 106, 0, 0.1)",
+                borderRadius: "24px",
+                padding: "32px 24px",
+                textAlign: "left",
+                cursor: "pointer",
+                transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                boxShadow: "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                height: "100%",
+                minHeight: "200px",
+                overflow: "hidden"
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.background = isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.65)";
+                e.currentTarget.style.borderColor = "#ff6a00";
+                e.currentTarget.style.boxShadow = isDarkMode ? "0 12px 30px rgba(255, 106, 0, 0.15)" : "0 12px 30px rgba(255, 106, 0, 0.06)";
+                const arrow = e.currentTarget.querySelector(".btn-arrow");
+                if (arrow) arrow.style.transform = "translateX(4px)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = "none";
+                e.currentTarget.style.background = isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.25)";
+                e.currentTarget.style.borderColor = isDarkMode ? "rgba(255, 106, 0, 0.15)" : "rgba(255, 106, 0, 0.1)";
+                e.currentTarget.style.boxShadow = "none";
+                const arrow = e.currentTarget.querySelector(".btn-arrow");
+                if (arrow) arrow.style.transform = "none";
+              }}
+            >
+              {/* Badge label */}
+              <div style={{
+                position: "absolute",
+                top: "20px",
+                right: "20px",
+                fontSize: "10px",
+                fontWeight: "900",
+                color: "#ff6a00",
+                background: "rgba(255, 106, 0, 0.08)",
+                padding: "4px 8px",
+                borderRadius: "10px",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px"
+              }}>
+                Standard
+              </div>
 
-          <button
-            onClick={() => { sound.playClockTick(); setPathfinderMode("detailed"); setCurrentQ(0); setInputVal(""); setAnswers(Array(5).fill("")); }}
-            style={{
-              background: "#ffffff", border: "1px solid #e2e8f0",
-              borderRadius: "16px", padding: "24px",
-              textAlign: "left", cursor: "pointer", transition: "all 0.2s",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
-            }}
-            onMouseOver={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = "#ff6a00"; }}
-            onMouseOut={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
-          >
-            <div style={{ fontSize: "18px", fontWeight: "900", color: "var(--text-light)", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span>🧠</span> Deep Dive
-            </div>
-            <div style={{ fontSize: "14px", color: "var(--text-muted)", lineHeight: "1.5" }}>
-              Open-ended questions about your problems, goals, and learning style for a highly tailored AI roadmap.
-            </div>
-          </button>
+              <div>
+                {/* Custom SVG Icon wrapper */}
+                <div style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "50%",
+                  background: "rgba(255, 106, 0, 0.04)",
+                  border: "1px solid rgba(255, 106, 0, 0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "20px"
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff6a00" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                </div>
+
+                <h3 style={{
+                  fontSize: "18px",
+                  fontWeight: "800",
+                  color: "var(--text-light)",
+                  marginBottom: "8px",
+                  fontFamily: "var(--font-outfit)"
+                }}>
+                  Quick Setup
+                </h3>
+
+                <p style={{
+                  fontSize: "13.5px",
+                  color: "var(--text-muted)",
+                  lineHeight: "1.5",
+                  margin: "0 0 16px 0",
+                  fontWeight: "500"
+                }}>
+                  Standard 5 questions to build your path quickly. Ideal for straightforward topics.
+                </p>
+              </div>
+
+              {/* Action indicator link */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "13px",
+                fontWeight: "700",
+                color: "#ff6a00",
+                marginTop: "auto"
+              }}>
+                <span>Select Setup</span>
+                <span className="btn-arrow" style={{ transition: "transform 0.3s" }}>→</span>
+              </div>
+            </button>
+
+            {/* Deep Dive */}
+            <button
+              onClick={() => {
+                sound.playClockTick();
+                setPathfinderMode("detailed");
+                setCurrentQ(0);
+                setInputVal("");
+                setAnswers(Array(5).fill(""));
+              }}
+              style={{
+                position: "relative",
+                background: isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.25)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid rgba(255, 106, 0, 0.1)",
+                borderRadius: "24px",
+                padding: "32px 24px",
+                textAlign: "left",
+                cursor: "pointer",
+                transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                boxShadow: "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                height: "100%",
+                minHeight: "200px",
+                overflow: "hidden"
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.background = isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.65)";
+                e.currentTarget.style.borderColor = "#ff6a00";
+                e.currentTarget.style.boxShadow = isDarkMode ? "0 12px 30px rgba(255, 106, 0, 0.15)" : "0 12px 30px rgba(255, 106, 0, 0.06)";
+                const arrow = e.currentTarget.querySelector(".btn-arrow");
+                if (arrow) arrow.style.transform = "translateX(4px)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = "none";
+                e.currentTarget.style.background = isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.25)";
+                e.currentTarget.style.borderColor = isDarkMode ? "rgba(255, 106, 0, 0.15)" : "rgba(255, 106, 0, 0.1)";
+                e.currentTarget.style.boxShadow = "none";
+                const arrow = e.currentTarget.querySelector(".btn-arrow");
+                if (arrow) arrow.style.transform = "none";
+              }}
+            >
+              {/* Badge label */}
+              <div style={{
+                position: "absolute",
+                top: "20px",
+                right: "20px",
+                fontSize: "10px",
+                fontWeight: "900",
+                color: "#ff6a00",
+                background: "rgba(255, 106, 0, 0.08)",
+                padding: "4px 8px",
+                borderRadius: "10px",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px"
+              }}>
+                Advanced
+              </div>
+
+              <div>
+                {/* Custom SVG Icon wrapper */}
+                <div style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "50%",
+                  background: "rgba(255, 106, 0, 0.04)",
+                  border: "1px solid rgba(255, 106, 0, 0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "20px"
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff6a00" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3 3 0 0 1 0-4.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2Z" />
+                    <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3 3 0 0 0 0-4.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2Z" />
+                  </svg>
+                </div>
+
+                <h3 style={{
+                  fontSize: "18px",
+                  fontWeight: "800",
+                  color: "var(--text-light)",
+                  marginBottom: "8px",
+                  fontFamily: "var(--font-outfit)"
+                }}>
+                  Deep Dive
+                </h3>
+
+                <p style={{
+                  fontSize: "13.5px",
+                  color: "var(--text-muted)",
+                  lineHeight: "1.5",
+                  margin: "0 0 16px 0",
+                  fontWeight: "500"
+                }}>
+                  Open-ended questions about your problems, goals, and learning style for a highly tailored AI roadmap.
+                </p>
+              </div>
+
+              {/* Action indicator link */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "13px",
+                fontWeight: "700",
+                color: "#ff6a00",
+                marginTop: "auto"
+              }}>
+                <span>Select Setup</span>
+                <span className="btn-arrow" style={{ transition: "transform 0.3s" }}>→</span>
+              </div>
+            </button>
+          </div>
         </div>
       )}
 
       {pathfinderMode && (
         <>
           {/* Progress bar */}
-      <div style={{ marginBottom: "32px" }}>
+      <div style={{ marginBottom: "16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
           <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--text-muted)" }}>
             Question {currentQ + 1} of {activeQuestions.length}
@@ -479,31 +930,37 @@ export default function PathfinderOnboarding({ username, backendUrl, onRoadmapRe
 
       {/* Question card */}
       <div style={{
-        background: "#ffffff", borderRadius: "24px",
-        padding: "40px", border: "1px solid #e2e8f0",
-        boxShadow: "0 10px 40px rgba(0,0,0,0.06)",
-        marginBottom: "20px"
+        background: isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.35)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        borderRadius: "24px",
+        padding: "24px 30px",
+        border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid rgba(255, 106, 0, 0.12)",
+        boxShadow: "none",
+        marginBottom: "16px"
       }}>
         {/* Question number badge */}
         <div style={{
-          width: "40px", height: "40px", borderRadius: "12px",
-          background: "linear-gradient(135deg, #ff6a00, #ffb300)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: "18px", fontWeight: "900", color: "#fff",
-          marginBottom: "20px", boxShadow: "0 4px 12px rgba(255,106,0,0.3)"
+          width: "32px", height: "32px", borderRadius: "50%",
+          background: "rgba(255, 106, 0, 0.05)",
+          border: "1px solid rgba(255, 106, 0, 0.25)",
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          fontSize: "14px", fontWeight: "800", color: "#ff6a00",
+          marginBottom: "16px"
         }}>
           {currentQ + 1}
         </div>
 
         {/* Question text with typewriter */}
         <h2 style={{
-          fontSize: "26px", fontWeight: "800", color: "var(--text-light)",
-          marginBottom: "8px", lineHeight: "1.3", minHeight: "64px"
+          fontSize: "20px", fontWeight: "800", color: "var(--text-light)",
+          marginBottom: "6px", lineHeight: "1.35", minHeight: "44px",
+          fontFamily: "var(--font-outfit)", letterSpacing: "-0.3px"
         }}>
           {typed}
           {isTyping && (
             <span style={{
-              display: "inline-block", width: "3px", height: "28px",
+              display: "inline-block", width: "3px", height: "22px",
               background: "#ff6a00", marginLeft: "2px",
               verticalAlign: "middle", animation: "pulse 0.8s infinite"
             }} />
@@ -511,13 +968,13 @@ export default function PathfinderOnboarding({ username, backendUrl, onRoadmapRe
         </h2>
 
         {/* Hint */}
-        <p style={{ color: "var(--text-muted)", fontSize: "14px", marginBottom: "28px", lineHeight: "1.6" }}>
-          💡 {activeQuestions[currentQ]?.hint}
+        <p style={{ color: "var(--text-muted)", fontSize: "13px", marginBottom: "16px", lineHeight: "1.5", display: "flex", alignItems: "center", gap: "6px" }}>
+          <span>💡</span> {activeQuestions[currentQ]?.hint}
         </p>
 
         {/* Input */}
         {activeQuestions[currentQ]?.type === "options" ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {activeQuestions[currentQ].options.map(opt => (
               <button
                 key={opt}
@@ -526,23 +983,32 @@ export default function PathfinderOnboarding({ username, backendUrl, onRoadmapRe
                   sound.playClockTick();
                 }}
                 style={{
-                  padding: "16px", borderRadius: "14px", textAlign: "left",
-                  fontSize: "16px", fontWeight: "700", color: inputVal === opt ? "#fff" : "var(--text-light)",
-                  background: inputVal === opt ? "linear-gradient(135deg, #ff6a00, #ffb300)" : "#f8fafc",
-                  border: inputVal === opt ? "2px solid #ff6a00" : "2px solid #e2e8f0",
-                  cursor: "pointer", transition: "all 0.2s",
-                  boxShadow: inputVal === opt ? "0 4px 12px rgba(255,106,0,0.2)" : "none"
+                  padding: "12px 16px",
+                  borderRadius: "16px",
+                  textAlign: "left",
+                  fontSize: "15px",
+                  fontWeight: "700",
+                  color: inputVal === opt ? "#fff" : "var(--text-light)",
+                  background: inputVal === opt
+                    ? "linear-gradient(135deg, #ff6a00, #ffb300)"
+                    : isDarkMode ? "rgba(255, 255, 255, 0.02)" : "rgba(255, 255, 255, 0.35)",
+                  border: inputVal === opt
+                    ? "1px solid #ff6a00"
+                    : isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid rgba(0, 0, 0, 0.08)",
+                  cursor: "pointer",
+                  transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                  boxShadow: "none"
                 }}
-                onMouseOver={e => {
+                onMouseEnter={e => {
                   if (inputVal !== opt) {
                     e.currentTarget.style.borderColor = "#ff6a00";
-                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.background = isDarkMode ? "rgba(255, 255, 255, 0.06)" : "rgba(255, 255, 255, 0.6)";
                   }
                 }}
-                onMouseOut={e => {
+                onMouseLeave={e => {
                   if (inputVal !== opt) {
-                    e.currentTarget.style.borderColor = "#e2e8f0";
-                    e.currentTarget.style.transform = "none";
+                    e.currentTarget.style.borderColor = isDarkMode ? "rgba(255, 106, 0, 0.15)" : "rgba(0, 0, 0, 0.08)";
+                    e.currentTarget.style.background = isDarkMode ? "rgba(255, 255, 255, 0.02)" : "rgba(255, 255, 255, 0.35)";
                   }
                 }}
               >
@@ -557,37 +1023,56 @@ export default function PathfinderOnboarding({ username, backendUrl, onRoadmapRe
             onChange={e => setInputVal(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={activeQuestions[currentQ]?.placeholder}
-            rows={3}
+            rows={2}
             style={{
-              width: "100%", padding: "16px 20px",
-              fontSize: "16px", color: "var(--text-light)",
-              background: "#f8fafc", border: "2px solid #e2e8f0",
-              borderRadius: "14px", outline: "none", resize: "none",
-              fontFamily: "var(--font-sans)", lineHeight: "1.6",
-              transition: "border-color 0.2s, box-shadow 0.2s",
+              width: "100%",
+              padding: "12px 16px",
+              fontSize: "15px",
+              color: "var(--text-light)",
+              background: isDarkMode ? "rgba(255, 255, 255, 0.02)" : "rgba(255, 255, 255, 0.35)",
+              border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid rgba(0, 0, 0, 0.08)",
+              borderRadius: "16px",
+              outline: "none",
+              resize: "none",
+              fontFamily: "var(--font-sans)",
+              lineHeight: "1.5",
+              transition: "all 0.2s",
               boxSizing: "border-box"
             }}
             onFocus={e => {
               e.target.style.borderColor = "#ff6a00";
-              e.target.style.boxShadow = "0 0 0 3px rgba(255,106,0,0.1)";
-              e.target.style.background = "#ffffff";
+              e.target.style.boxShadow = "0 0 0 3px rgba(255,106,0,0.06)";
+              e.target.style.background = isDarkMode ? "rgba(255, 255, 255, 0.06)" : "rgba(255, 255, 255, 0.65)";
             }}
             onBlur={e => {
-              e.target.style.borderColor = "#e2e8f0";
+              e.target.style.borderColor = isDarkMode ? "rgba(255, 106, 0, 0.15)" : "rgba(0, 0, 0, 0.08)";
               e.target.style.boxShadow = "none";
-              e.target.style.background = "#f8fafc";
+              e.target.style.background = isDarkMode ? "rgba(255, 255, 255, 0.02)" : "rgba(255, 255, 255, 0.35)";
             }}
           />
         )}
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px" }}>
           <button
             onClick={handleBack}
             style={{
-              padding: "12px 24px", borderRadius: "12px",
-              border: "1.5px solid #e2e8f0", background: "transparent",
-              color: "var(--text-muted)", fontWeight: "700", fontSize: "14px",
-              cursor: "pointer", transition: "all 0.2s"
+              padding: "10px 20px",
+              borderRadius: "12px",
+              border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.2)" : "1px solid rgba(0, 0, 0, 0.08)",
+              background: "transparent",
+              color: "var(--text-muted)",
+              fontWeight: "700",
+              fontSize: "13px",
+              cursor: "pointer",
+              transition: "all 0.2s"
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = "#ff6a00";
+              e.currentTarget.style.color = "#ff6a00";
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = isDarkMode ? "rgba(255, 106, 0, 0.2)" : "rgba(0, 0, 0, 0.08)";
+              e.currentTarget.style.color = "var(--text-muted)";
             }}
           >
             ← Back
@@ -597,15 +1082,17 @@ export default function PathfinderOnboarding({ username, backendUrl, onRoadmapRe
             onClick={handleNext}
             disabled={!inputVal.trim()}
             style={{
-              padding: "14px 32px", borderRadius: "14px",
+              padding: "10px 24px",
+              borderRadius: "12px",
               border: "none",
-              background: inputVal.trim() ? "linear-gradient(135deg, #ff6a00, #ffb300)" : "#e2e8f0",
-              color: inputVal.trim() ? "#fff" : "#94a3b8",
-              fontWeight: "800", fontSize: "15px",
+              background: inputVal.trim() ? "linear-gradient(135deg, #ff6a00, #ffb300)" : isDarkMode ? "rgba(255, 255, 255, 0.05)" : "#e2e8f0",
+              color: inputVal.trim() ? "#fff" : "var(--text-muted)",
+              fontWeight: "800",
+              fontSize: "14px",
               cursor: inputVal.trim() ? "pointer" : "not-allowed",
               transition: "all 0.2s",
-              boxShadow: inputVal.trim() ? "0 6px 20px rgba(255,106,0,0.35)" : "none",
-              letterSpacing: "0.5px"
+              boxShadow: inputVal.trim() ? "0 4px 14px rgba(255,106,0,0.2)" : "none",
+              letterSpacing: "0.3px"
             }}
             onMouseOver={e => { if (inputVal.trim()) e.currentTarget.style.transform = "translateY(-1px)"; }}
             onMouseOut={e => { e.currentTarget.style.transform = "none"; }}
@@ -615,47 +1102,51 @@ export default function PathfinderOnboarding({ username, backendUrl, onRoadmapRe
         </div>
 
         {/* Enter hint */}
-        <p style={{ textAlign: "right", marginTop: "8px", fontSize: "11px", color: "#cbd5e1" }}>
+        <p style={{ textAlign: "right", marginTop: "8px", fontSize: "11px", color: "#cbd5e1", margin: "6px 0 0 0" }}>
           Press Enter to continue
         </p>
       </div>
 
       {/* Previous answers recap */}
       {currentQ > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
           {answers.slice(0, currentQ).map((ans, i) => ans && (
             <div key={i} style={{
-              display: "flex", gap: "12px", alignItems: "flex-start",
-              padding: "12px 16px", background: "#f8fafc", borderRadius: "12px",
-              border: "1px solid #e2e8f0"
+              display: "flex", gap: "12px", alignItems: "center",
+              padding: "10px 14px",
+              background: isDarkMode ? "rgba(255, 255, 255, 0.02)" : "rgba(255, 255, 255, 0.25)",
+              borderRadius: "14px",
+              border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.12)" : "1px solid rgba(0, 0, 0, 0.05)"
             }}>
               <div style={{
-                width: "24px", height: "24px", borderRadius: "6px",
-                background: "#ff6a00", color: "#fff",
+                width: "20px", height: "20px", borderRadius: "50%",
+                background: "rgba(255, 106, 0, 0.08)",
+                border: "1px solid rgba(255, 106, 0, 0.2)",
+                color: "#ff6a00",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "11px", fontWeight: "900", flexShrink: 0
+                fontSize: "10px", fontWeight: "900", flexShrink: 0
               }}>
                 {i + 1}
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "2px" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: "10px", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {activeQuestions[i].question}
                 </div>
-                <div style={{ fontSize: "13px", color: "var(--text-light)", fontWeight: "600" }}>
+                <div style={{ fontSize: "12.5px", color: "var(--text-light)", fontWeight: "600", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {ans}
                 </div>
               </div>
               <button
                 onClick={() => { sound.playClockTick(); setCurrentQ(i); setInputVal(ans); }}
                 style={{
-                  background: "none", border: "none", color: "var(--text-muted)",
-                  cursor: "pointer", fontSize: "12px", padding: "2px 6px",
+                  background: "none", border: "none", color: "#ff6a00",
+                  cursor: "pointer", fontSize: "11px", fontWeight: "700", padding: "2px 6px",
                   borderRadius: "4px", flexShrink: 0
                 }}
-                onMouseOver={e => e.currentTarget.style.color = "#ff6a00"}
-                onMouseOut={e => e.currentTarget.style.color = "var(--text-muted)"}
+                onMouseOver={e => e.currentTarget.style.opacity = "0.8"}
+                onMouseOut={e => e.currentTarget.style.opacity = "1"}
               >
-                ✏️ Edit
+                Edit
               </button>
             </div>
           ))}

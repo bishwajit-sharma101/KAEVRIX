@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { fetchWithJobPolling } from "../../utils/asyncJob";
 import * as sound from "../../utils/audio";
 import { parseMarkdownToHTML } from "../../utils/markdown";
 import BossBattleModal from "./BossBattleModal";
@@ -250,7 +251,7 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
 
     try {
       sound.playClockTick();
-      const res = await fetch(`${BACKEND_URL}/api/pathfinder/study-notes`, {
+      const res = await fetchWithJobPolling(`${BACKEND_URL}/api/pathfinder/study-notes`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -2253,7 +2254,7 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
             .map(m => m.title)
         : [];
 
-      const res = await fetch(`${BACKEND_URL}/api/quiz/generate`, {
+      const res = await fetchWithJobPolling(`${BACKEND_URL}/api/quiz/generate`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -2917,7 +2918,7 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
         prevContext.push(...roadmap.level2.milestones.map(m => m.title));
       }
 
-      const res = await fetch(`${BACKEND_URL}/api/pathfinder/generate-level`, {
+      const res = await fetchWithJobPolling(`${BACKEND_URL}/api/pathfinder/generate-level`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",

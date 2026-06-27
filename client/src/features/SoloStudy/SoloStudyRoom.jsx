@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { fetchWithJobPolling } from "../../utils/asyncJob";
 import * as sound from "../../utils/audio";
 import YoutubePlayer from "../Shared/YoutubePlayer";
 import { parseMarkdownToHTML } from "../../utils/markdown";
@@ -408,7 +409,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
         keyPoints: ["Understand video concepts", "Practice exercises", "Review interview prep"]
       };
 
-      const res = await fetch(`${backendUrl}/api/pathfinder/study-notes`, {
+      const res = await fetchWithJobPolling(`${backendUrl}/api/pathfinder/study-notes`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -466,7 +467,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
             .map(m => m.title)
         : [];
 
-      const res = await fetch(`${backendUrl}/api/quiz/generate`, {
+      const res = await fetchWithJobPolling(`${backendUrl}/api/quiz/generate`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",

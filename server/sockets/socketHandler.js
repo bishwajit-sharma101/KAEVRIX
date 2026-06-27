@@ -4,7 +4,9 @@ import {
   cleanUpQueue 
 } from "../services/matchmakingService.js";
 import { 
-  rooms, 
+  getRoom,
+  saveRoom,
+  deleteRoom,
   activeIntervals, 
   startCountdown, 
   evaluateGame,
@@ -14,13 +16,24 @@ import {
 import { saveMessage } from "../services/chatService.js";
 import TelemetryEvent from "../models/TelemetryEvent.js";
 import { logInfrastructureError } from "../services/telemetryHealthService.js";
+import redisClient from "../config/redis.js";
+import logger from "../config/logger.js";
 
 // Global map to track online users: username -> socketId
 export const onlineUsers = new Map();
 
 export function registerSocketHandlers(io) {
   io.on("connection", (socket) => {
-    console.log(`[Socket] Connected: ${socket.id}`);
+    logger.info(`[Socket] Connected`, { socketId: socket.id });
+
+    // H2 fix: Force-disconnect sockets that never authenticate within 30s
+    // This prevents the onlineUsers Map from leaking entries during connection storms
+    const authTimeout = setTimeout(() => {
+      if (!socket.username) {
+        logger.info(`[Socket] Auth timeout — disconnecting unauthenticated socket`, { socketId: socket.id });
+        socket.disconnect(true);
+      }
+    }, 30000);
 
     socket.on("error", (err) => {
       logInfrastructureError("SOCKET_ERROR", { message: err.message, stack: err.stack, socketId: socket.id });
@@ -29,94 +42,76 @@ export function registerSocketHandlers(io) {
     // Presence & Global
     socket.on("user_login", (username) => {
       if (!username) return;
+      clearTimeout(authTimeout);
       socket.username = username;
       onlineUsers.set(username, socket.id);
-      console.log(`[Presence] User "${username}" is online. Total online: ${onlineUsers.size}`);
+      logger.info(`[Presence] User is online`, { username, totalOnline: onlineUsers.size });
       
-      // Tell this user who is online (send list of online users)
-      const onlineList = Array.from(onlineUsers.keys());
-      socket.emit("online_users_list", onlineList);
-
-      // Broadcast to everyone else that this user came online
+      // Broadcast presence updates
       socket.broadcast.emit("user_online", username);
     });
 
-    socket.on("send_dm", async ({ sender, receiver, content }) => {
+    // Real-time Chat Messaging
+    socket.on("send_chat_message", async ({ receiver, message }) => {
+      if (!socket.username || !receiver || !message) return;
       try {
-        // Save to DB
-        const msg = await saveMessage(sender, receiver, content);
+        const msg = await saveMessage(socket.username, receiver, message);
         
-        // If receiver is online, send immediately
-        const receiverSocketId = onlineUsers.get(receiver);
-        if (receiverSocketId) {
-          io.to(receiverSocketId).emit("receive_dm", msg);
+        // Find target socket if online
+        const targetSocketId = onlineUsers.get(receiver);
+        if (targetSocketId) {
+          io.to(targetSocketId).emit("receive_chat_message", msg);
         }
         
-        // Send back confirmation to sender
-        socket.emit("receive_dm", msg);
+        // Confirm sending to sender
+        socket.emit("chat_message_sent", msg);
       } catch (err) {
-        console.error("[Socket] Failed to send DM:", err);
+        logger.error("[Chat] Failed to send chat message", { error: err.message, stack: err.stack, sender: socket.username, receiver });
       }
     });
 
-    socket.on("send_friend_request", ({ sender, receiver }) => {
-      const receiverSocketId = onlineUsers.get(receiver);
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("receive_friend_request", { sender });
-      }
-    });
-
-    socket.on("respond_friend_request", ({ sender, receiver, action }) => {
-      // sender is the person accepting/rejecting the request, receiver is the original requester
-      if (action === "accept") {
-        const receiverSocketId = onlineUsers.get(receiver);
-        if (receiverSocketId) {
-          io.to(receiverSocketId).emit("friend_request_accepted", { sender });
-        }
-      }
-    });
-
-    // Queue events
+    // Queue / Matchmaking
     socket.on("join_queue", async (params) => {
       await joinQueue(socket, params);
     });
 
-    socket.on("leave_queue", () => {
-      leaveQueue(socket);
+    socket.on("leave_queue", async () => {
+      await leaveQueue(socket);
     });
 
     // Game play events
-    socket.on("player_ready", () => {
-      const currentRoomId = socket.currentRoomId;
+    socket.on("player_ready", async () => {
+      const currentRoomId = socket.currentRoomId || await redisClient.get(`socket:room:${socket.id}`);
       if (!currentRoomId) return;
-      const room = rooms.get(currentRoomId);
+      const room = await getRoom(currentRoomId);
       if (!room) return;
 
       const player = room.players.find((p) => p.socketId === socket.id);
       if (player) {
         player.ready = true;
-        console.log(`[Game] Player "${player.username}" is ready in room "${currentRoomId}"`);
+        logger.info(`[Game] Player is ready`, { username: player.username, roomId: currentRoomId });
         
-        // Notify all
+        await saveRoom(currentRoomId, room);
         io.to(currentRoomId).emit("room_update", room);
 
         // Check if everyone is ready
         const allReady = room.players.every((p) => p.ready);
         if (allReady) {
-          startCountdown(room);
+          startCountdown(currentRoomId);
         }
       }
     });
 
-    socket.on("video_progress", ({ progress }) => {
-      const currentRoomId = socket.currentRoomId;
+    socket.on("video_progress", async ({ progress }) => {
+      const currentRoomId = socket.currentRoomId || await redisClient.get(`socket:room:${socket.id}`);
       if (!currentRoomId) return;
-      const room = rooms.get(currentRoomId);
+      const room = await getRoom(currentRoomId);
       if (!room) return;
 
       const player = room.players.find((p) => p.socketId === socket.id);
       if (player) {
         player.progress = progress;
+        await saveRoom(currentRoomId, room);
         // Broadcast progress to the room
         socket.to(currentRoomId).emit("opponent_progress", { 
           socketId: socket.id, 
@@ -125,23 +120,24 @@ export function registerSocketHandlers(io) {
       }
     });
 
-    socket.on("video_finished", () => {
-      const currentRoomId = socket.currentRoomId;
+    socket.on("video_finished", async () => {
+      const currentRoomId = socket.currentRoomId || await redisClient.get(`socket:room:${socket.id}`);
       if (!currentRoomId) return;
-      const room = rooms.get(currentRoomId);
+      const room = await getRoom(currentRoomId);
       if (!room) return;
 
       const player = room.players.find((p) => p.socketId === socket.id);
       if (player) {
         player.finished = true;
-        console.log(`[Game] Player "${player.username}" finished video in room "${currentRoomId}"`);
+        logger.info(`[Game] Player finished video`, { username: player.username, roomId: currentRoomId });
         
         TelemetryEvent.create({
           username: player.username,
           eventType: "VIDEO_COMPLETED",
           metadata: { roomId: currentRoomId }
-        }).catch(err => console.error("Telemetry failed", err));
+        }).catch(err => logger.error("Telemetry failed in video completed", { error: err.message }));
 
+        await saveRoom(currentRoomId, room);
         io.to(currentRoomId).emit("room_update", room);
         
         // Notify other player that this player is already in the quiz!
@@ -149,10 +145,10 @@ export function registerSocketHandlers(io) {
       }
     });
 
-    socket.on("submit_answers", ({ answers, watchProgress, doubleDowns }) => {
-      const currentRoomId = socket.currentRoomId;
+    socket.on("submit_answers", async ({ answers, watchProgress, doubleDowns }) => {
+      const currentRoomId = socket.currentRoomId || await redisClient.get(`socket:room:${socket.id}`);
       if (!currentRoomId) return;
-      const room = rooms.get(currentRoomId);
+      const room = await getRoom(currentRoomId);
       if (!room) return;
 
       const player = room.players.find((p) => p.socketId === socket.id);
@@ -188,7 +184,7 @@ export function registerSocketHandlers(io) {
             username: player.username,
             eventType: "SANCTUM_QUESTION_ANSWERED",
             metadata: { roomId: currentRoomId, questionIndex: idx, isCorrect, selectedOption: answers[idx] }
-          }).catch(err => console.error("Telemetry failed", err));
+          }).catch(err => logger.error("Telemetry failed in question answer", { error: err.message }));
 
           if (isCorrect) {
             correctCount++;
@@ -200,15 +196,17 @@ export function registerSocketHandlers(io) {
         player.score = Math.max(0, Math.round(score * multiplier));
         player.correctCount = correctCount;
 
-        console.log(`[Game] Player "${player.username}" submitted quiz in room "${currentRoomId}". Correct: ${correctCount}/5, Mult: ${multiplier}x, Score: ${player.score}`);
+        logger.info(`[Game] Player submitted quiz`, { username: player.username, roomId: currentRoomId, correctCount, multiplier, score: player.score });
 
         // Send confirmation to this player
         socket.emit("answers_recorded", { score: player.score });
         
+        await saveRoom(currentRoomId, room);
+
         // Check if all players submitted
         const allSubmitted = room.players.every((p) => p.submitted);
         if (allSubmitted) {
-          evaluateGame(room);
+          await evaluateGame(currentRoomId);
         } else {
           // Notify others
           socket.to(currentRoomId).emit("opponent_submitted", { username: player.username });
@@ -216,10 +214,10 @@ export function registerSocketHandlers(io) {
       }
     });
 
-    socket.on("submit_in_video_answer", ({ questionIdx, answerIndex, remainingSeconds }) => {
-      const currentRoomId = socket.currentRoomId;
+    socket.on("submit_in_video_answer", async ({ questionIdx, answerIndex, remainingSeconds }) => {
+      const currentRoomId = socket.currentRoomId || await redisClient.get(`socket:room:${socket.id}`);
       if (!currentRoomId) return;
-      const room = rooms.get(currentRoomId);
+      const room = await getRoom(currentRoomId);
       if (!room) return;
 
       const player = room.players.find((p) => p.socketId === socket.id);
@@ -234,7 +232,7 @@ export function registerSocketHandlers(io) {
       let scoreGained = 0;
 
       if (isCorrect) {
-        // 50 XP base + speed bonus (10% of base XP, i.e., 5 XP, per remaining second on 6s timer)
+        // 50 XP base + speed bonus
         const speedBonus = Math.round(remainingSeconds) * 5;
         xpGained = 50 + speedBonus;
         scoreGained = 50 + speedBonus;
@@ -247,7 +245,7 @@ export function registerSocketHandlers(io) {
         username: player.username,
         eventType: "SANCTUM_QUESTION_ANSWERED",
         metadata: { roomId: currentRoomId, inVideoQuestionIndex: questionIdx, isCorrect, selectedOption: answerIndex, remainingSeconds }
-      }).catch(err => console.error("Telemetry failed", err));
+      }).catch(err => logger.error("Telemetry failed in in-video question answer", { error: err.message }));
 
       socket.emit("in_video_answer_result", { 
         questionIdx, 
@@ -258,15 +256,17 @@ export function registerSocketHandlers(io) {
         scoreGained
       });
 
+      await saveRoom(currentRoomId, room);
+
       // Emit room_update to broadcast score updates
       io.to(currentRoomId).emit("room_update", room);
-      console.log(`[Game] Player "${player.username}" answered in-video question ${questionIdx + 1} ${isCorrect ? "correctly" : "incorrectly"}. Gained: ${scoreGained} points.`);
+      logger.info(`[Game] Player answered in-video question`, { username: player.username, questionIdx, isCorrect, scoreGained, roomId: currentRoomId });
     });
 
-    socket.on("send_message", ({ message }) => {
-      const currentRoomId = socket.currentRoomId;
+    socket.on("send_message", async ({ message }) => {
+      const currentRoomId = socket.currentRoomId || await redisClient.get(`socket:room:${socket.id}`);
       if (!currentRoomId) return;
-      const room = rooms.get(currentRoomId);
+      const room = await getRoom(currentRoomId);
       if (!room) return;
 
       const player = room.players.find((p) => p.socketId === socket.id);
@@ -281,16 +281,16 @@ export function registerSocketHandlers(io) {
       }
     });
 
-    socket.on("use_powerup", ({ type }) => {
-      const currentRoomId = socket.currentRoomId;
+    socket.on("use_powerup", async ({ type }) => {
+      const currentRoomId = socket.currentRoomId || await redisClient.get(`socket:room:${socket.id}`);
       if (!currentRoomId) return;
-      const room = rooms.get(currentRoomId);
+      const room = await getRoom(currentRoomId);
       if (!room) return;
 
       const player = room.players.find((p) => p.socketId === socket.id);
       const opponent = room.players.find((p) => p.socketId !== socket.id);
       if (player && opponent) {
-        console.log(`[Powerup] Player "${player.username}" used "${type}" on "${opponent.username}"`);
+        logger.info(`[Powerup] Player used powerup`, { sender: player.username, target: opponent.username, type, roomId: currentRoomId });
         
         if (type === "__local_2x_speed__") {
           // Local self-buff, server does not propagate it as an attack/debuff to the opponent.
@@ -300,7 +300,7 @@ export function registerSocketHandlers(io) {
         if (!opponent.isBot) {
           io.to(opponent.socketId).emit("opponent_powerup", { type });
         } else {
-          handleBotHitByPowerup(room, opponent, type);
+          await handleBotHitByPowerup(currentRoomId, opponent, type);
         }
 
         const emoji = type === "freeze" ? "⚡ EMP FREEZE" : "🌫️ SMOKE SCREEN";
@@ -308,37 +308,34 @@ export function registerSocketHandlers(io) {
       }
     });
 
-    socket.on("disconnect", () => {
-      console.log(`[Socket] Disconnected: ${socket.id}`);
+    socket.on("disconnect", async () => {
+      logger.info(`[Socket] Disconnected`, { socketId: socket.id });
       
       // Global presence cleanup
       if (socket.username) {
         onlineUsers.delete(socket.username);
-        console.log(`[Presence] User "${socket.username}" went offline.`);
+        logger.info(`[Presence] User went offline`, { username: socket.username });
         socket.broadcast.emit("user_offline", socket.username);
       }
 
-      cleanUpQueue(socket);
+      await cleanUpQueue(socket);
       
-      const currentRoomId = socket.currentRoomId;
+      let currentRoomId = socket.currentRoomId;
+      if (!currentRoomId) {
+        currentRoomId = await redisClient.get(`socket:room:${socket.id}`);
+      }
       if (currentRoomId) {
-        const room = rooms.get(currentRoomId);
+        const room = await getRoom(currentRoomId);
         if (room) {
-          // Cancel bot intervals if any
-          const timers = activeIntervals.get(room.id);
-          if (timers) {
-            if (timers.botInterval) clearInterval(timers.botInterval);
-            if (timers.botChatInterval) clearInterval(timers.botChatInterval);
-            if (timers.countdownInterval) clearInterval(timers.countdownInterval);
-            activeIntervals.delete(room.id);
-          }
+          // Cancel bot/countdown intervals globally using pub/sub
+          await redisClient.publish("game-signals", JSON.stringify({ type: "clear-intervals", roomId: currentRoomId }));
 
           if (socket.username && room.status !== "finished") {
             TelemetryEvent.create({
               username: socket.username,
               eventType: "SANCTUM_ABANDONED",
               metadata: { roomId: currentRoomId, reason: "disconnected", videoId: room.video?.id }
-            }).catch(err => console.error("Telemetry failed", err));
+            }).catch(err => logger.error("Telemetry failed in match abandon", { error: err.message }));
           }
 
           // Notify remaining human players
@@ -348,7 +345,9 @@ export function registerSocketHandlers(io) {
               message: "Your opponent disconnected! You win by default." 
             });
           });
-          rooms.delete(currentRoomId);
+          
+          await deleteRoom(currentRoomId);
+          await redisClient.del(`socket:room:${socket.id}`);
         }
       }
     });

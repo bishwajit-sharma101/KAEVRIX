@@ -65,7 +65,7 @@ const telemetryEventSchema = new mongoose.Schema({
     required: true 
   },
   metadata: { type: mongoose.Schema.Types.Mixed, default: {} },
-  timestamp: { type: Date, default: Date.now }
+  timestamp: { type: Date, default: Date.now, expires: 604800 }
 });
 
 telemetryEventSchema.index({ eventType: 1, timestamp: -1 });

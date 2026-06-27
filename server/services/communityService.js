@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import logger from "../config/logger.js";
 
 // Utility to get user profiles safely
 const getUserProfileSafe = (user) => {
@@ -42,7 +43,7 @@ export async function getDiscoverUsers(username, filterQuery = "") {
 
     return discoverUsers;
   } catch (error) {
-    console.error("Error in getDiscoverUsers:", error);
+    logger.error("Error in getDiscoverUsers", { error: error.message, stack: error.stack });
     return [];
   }
 }
@@ -66,7 +67,7 @@ export async function getFriendsData(username) {
       incomingRequests: incomingRequests.map(getUserProfileSafe)
     };
   } catch (error) {
-    console.error("Error in getFriendsData:", error);
+    logger.error("Error in getFriendsData", { error: error.message, stack: error.stack });
     return { friends: [], incomingRequests: [] };
   }
 }
@@ -97,7 +98,7 @@ export async function sendFriendRequest(fromUsername, toUsername) {
     
     return { success: true };
   } catch (error) {
-    console.error("Error in sendFriendRequest:", error);
+    logger.error("Error in sendFriendRequest", { error: error.message, stack: error.stack });
     throw error;
   }
 }
@@ -130,7 +131,7 @@ export async function respondToRequest(username, fromUsername, action) {
     
     return { success: true };
   } catch (error) {
-    console.error("Error in respondToRequest:", error);
+    logger.error("Error in respondToRequest", { error: error.message, stack: error.stack });
     throw error;
   }
 }

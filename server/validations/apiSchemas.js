@@ -1,8 +1,14 @@
 import { z } from "zod";
 
+// Only alphanumeric, underscores, and hyphens — blocks XSS/HTML injection in usernames
+const usernameSchema = z.string()
+  .min(3, "Username must be at least 3 characters")
+  .max(30, "Username must be at most 30 characters")
+  .regex(/^[a-zA-Z0-9_\-]+$/, "Username can only contain letters, numbers, underscores, and hyphens");
+
 export const registerSchema = z.object({
   body: z.object({
-    username: z.string().min(1).max(30),
+    username: usernameSchema,
     password: z.string().min(8).max(100),
     avatar: z.string().url().optional(),
     selectedClass: z.string().max(50).optional()
@@ -18,7 +24,7 @@ export const loginSchema = z.object({
   }),
   query: z.object({}).optional(),
   params: z.object({}).optional()
-});
+}); // Note: login allows looser username for legacy compat; blocked at lockout+sanitize layer
 
 export const soloXpSchema = z.object({
   body: z.object({

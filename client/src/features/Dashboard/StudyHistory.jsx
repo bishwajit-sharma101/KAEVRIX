@@ -389,13 +389,7 @@ export default function StudyHistory({ username, isDarkMode, onStartSoloStudy })
         </div>
       ) : (
         /* 2. Main Double-Panel HUD Layout */
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "320px 1fr",
-          gap: "24px",
-          minHeight: "500px",
-          alignItems: "stretch"
-        }}>
+        <div className="study-history-grid">
           {/* LEFT SIDEBAR: Timeline List */}
           <div style={{
             display: "flex",

@@ -1,5 +1,6 @@
 import AITracking from "../models/AITracking.js";
 import SecurityEvent from "../models/SecurityEvent.js";
+import redisClient from "../config/redis.js";
 
 const MONTHLY_AI_BUDGET_USD = process.env.MONTHLY_AI_BUDGET_USD ? parseFloat(process.env.MONTHLY_AI_BUDGET_USD) : 100.0;
 
@@ -28,9 +29,13 @@ export async function trackAICost(userId, endpoint, inputTokens, outputTokens) {
     { upsert: true, new: true }
   );
 
-  // Check budget thresholds
   const totalCost = globalTracker.estimatedCostUSD;
-  
+
+  // Cache global cost in Redis for kill switch checking
+  const key = `ai:monthly_cost:${currentMonth}`;
+  await redisClient.set(key, String(totalCost), "EX", 3600); // 1 hour TTL
+
+  // Check budget thresholds
   if (totalCost >= MONTHLY_AI_BUDGET_USD * 1.0) {
     await logBudgetAlert("100%", totalCost);
   } else if (totalCost >= MONTHLY_AI_BUDGET_USD * 0.95) {
@@ -56,16 +61,25 @@ async function logBudgetAlert(threshold, currentCost) {
       endpoint: "budget_tracker",
       eventType: "AI_BUDGET_ALERT",
       details: { threshold, currentCost, budget: MONTHLY_AI_BUDGET_USD }
-    });
+    }).catch(() => {});
     console.error(`[CRITICAL] AI Budget Alert: ${threshold} consumed. Cost: $${currentCost}`);
   }
 }
 
 export async function checkKillSwitch() {
   const currentMonth = new Date().toISOString().substring(0, 7);
-  const globalTracker = await AITracking.findOne({ date: currentMonth, userId: null, endpoint: "GLOBAL_MONTHLY" });
-  if (globalTracker && globalTracker.estimatedCostUSD >= MONTHLY_AI_BUDGET_USD) {
-    return true; // Kill switch activated
+  const key = `ai:monthly_cost:${currentMonth}`;
+  try {
+    const cachedCost = await redisClient.get(key);
+    if (cachedCost !== null) {
+      return parseFloat(cachedCost) >= MONTHLY_AI_BUDGET_USD;
+    }
+    const globalTracker = await AITracking.findOne({ date: currentMonth, userId: null, endpoint: "GLOBAL_MONTHLY" });
+    const cost = globalTracker ? globalTracker.estimatedCostUSD : 0;
+    await redisClient.set(key, String(cost), "EX", 60); // Cache for 60s
+    return cost >= MONTHLY_AI_BUDGET_USD;
+  } catch (err) {
+    console.error("Error checking kill switch:", err);
+    return false;
   }
-  return false;
 }

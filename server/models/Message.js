@@ -23,8 +23,9 @@ const messageSchema = new mongoose.Schema({
   }
 });
 
-// Index to quickly fetch conversations between two users
-messageSchema.index({ sender: 1, receiver: 1, timestamp: -1 });
+// Indexes to quickly fetch conversations between two users in chronological order
+messageSchema.index({ sender: 1, receiver: 1, timestamp: 1 });
+messageSchema.index({ receiver: 1, sender: 1, timestamp: 1 });
 
 const Message = mongoose.model("Message", messageSchema);
 

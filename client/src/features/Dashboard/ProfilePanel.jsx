@@ -31,7 +31,19 @@ const PRESET_COSMETICS = [
   { banner: "https://images.unsplash.com/photo-1620802051772-52055660890c?w=800", avatarFrame: "kawaii-clouds", profileEffect: "magical-girl" },
   { banner: "https://images.unsplash.com/photo-1561485132-59468cd0b553?w=800", avatarFrame: "lightning-strike", profileEffect: "thunder-storm" },
   { banner: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800", avatarFrame: "hologram-ring", profileEffect: "matrix-glitch" },
-  { banner: "https://images.unsplash.com/photo-1483664852095-d6cc6870702d?w=800", avatarFrame: "frost-ring", profileEffect: "blizzard" }
+  { banner: "https://images.unsplash.com/photo-1483664852095-d6cc6870702d?w=800", avatarFrame: "frost-ring", profileEffect: "blizzard" },
+  
+  // 10 God Tier Presets
+  { banner: "none", avatarFrame: "phoenix-feather", profileEffect: "phoenix-aura" },
+  { banner: "none", avatarFrame: "chronos-dial", profileEffect: "temporal-rift" },
+  { banner: "none", avatarFrame: "neon-matrix", profileEffect: "hyperdrive" },
+  { banner: "none", avatarFrame: "ice-shards", profileEffect: "glacial-frost" },
+  { banner: "none", avatarFrame: "stellar-halo", profileEffect: "galaxy-nebula" },
+  { banner: "none", avatarFrame: "dragon-whisker", profileEffect: "emerald-dragon" },
+  { banner: "none", avatarFrame: "solar-flare", profileEffect: "supernova-blast" },
+  { banner: "none", avatarFrame: "shadow-mask", profileEffect: "shadow-reap" },
+  { banner: "none", avatarFrame: "samurai-helmet", profileEffect: "cyber-samurai" },
+  { banner: "none", avatarFrame: "runic-circle", profileEffect: "arcane-rift" }
 ];
 
 const getCatConfig = (effect) => {
@@ -155,6 +167,86 @@ const getCatConfig = (effect) => {
         accent: "#00e5ff",
         eye: "#00e5ff",
         accessory: "visor"
+      };
+    case "phoenix-aura":
+      return {
+        primary: "#ff1744",
+        secondary: "#ff3d00",
+        accent: "#ffea00",
+        eye: "#ffea00",
+        accessory: "flame-wings"
+      };
+    case "temporal-rift":
+      return {
+        primary: "#00e5ff",
+        secondary: "#00b0ff",
+        accent: "#ffd54f",
+        eye: "#ffd54f",
+        accessory: "clock-hands"
+      };
+    case "hyperdrive":
+      return {
+        primary: "#00ffcc",
+        secondary: "#00b0ff",
+        accent: "#ff00ff",
+        eye: "#ff00ff",
+        accessory: "cyber-visor"
+      };
+    case "glacial-frost":
+      return {
+        primary: "#e0f7fa",
+        secondary: "#80deea",
+        accent: "#00e5ff",
+        eye: "#00e5ff",
+        accessory: "frost-crown"
+      };
+    case "galaxy-nebula":
+      return {
+        primary: "#b388ff",
+        secondary: "#7c4dff",
+        accent: "#e040fb",
+        eye: "#ffffff",
+        accessory: "moon-orbit"
+      };
+    case "emerald-dragon":
+      return {
+        primary: "#00e676",
+        secondary: "#00c853",
+        accent: "#ffd54f",
+        eye: "#ffd54f",
+        accessory: "dragon-horns"
+      };
+    case "supernova-blast":
+      return {
+        primary: "#ffea00",
+        secondary: "#ff9100",
+        accent: "#ff3d00",
+        eye: "#ffffff",
+        accessory: "sun-orbit"
+      };
+    case "shadow-reap":
+      return {
+        primary: "#9c27b0",
+        secondary: "#4a148c",
+        accent: "#b0bec5",
+        eye: "#ff1744",
+        accessory: "soul-lantern"
+      };
+    case "cyber-samurai":
+      return {
+        primary: "#ff007f",
+        secondary: "#d500f9",
+        accent: "#00f5ff",
+        eye: "#00f5ff",
+        accessory: "neon-katana"
+      };
+    case "arcane-rift":
+      return {
+        primary: "#3f51b5",
+        secondary: "#1a237e",
+        accent: "#ffb74d",
+        eye: "#ffea00",
+        accessory: "floating-grimoire"
       };
     default:
       return {
@@ -289,7 +381,126 @@ const renderAccessory = (type, cfg, state) => {
     case "bat-wings":
       return (
         <g style={state === "sleep" ? { animation: "catSleepBreath 3s ease-in-out infinite", transformOrigin: "22px 24px" } : {}}>
-          <text x={state === "sleep" ? "5" : "3"} y={state === "sleep" ? "19" : "15"} style={{ fontSize: "14px", animation: "batWingsFlutter 2.5s infinite", transformOrigin: "right center" }}>🦇</text>
+          {/* Left bat wing */}
+          <path d="M 6 13 Q 1 11, -1 15 Q 3 16, 5 15 Q 2 18, 3 20 Q 6 17, 8 16" fill="#110007" stroke="#ff1744" strokeWidth="0.5" opacity="0.9" style={{ animation: "batWingsFlutter 2.5s infinite", transformOrigin: "right center" }} />
+          {/* Right bat wing */}
+          <path d="M 26 13 Q 31 11, 33 15 Q 29 16, 27 15 Q 30 18, 29 20 Q 26 17, 24 16" fill="#110007" stroke="#ff1744" strokeWidth="0.5" opacity="0.9" style={{ animation: "batWingsFlutterRight 2.5s infinite", transformOrigin: "left center" }} />
+        </g>
+      );
+    case "flame-wings":
+      return (
+        <g style={state === "sleep" ? { animation: "catSleepBreath 3s ease-in-out infinite", transformOrigin: "22px 24px" } : {}}>
+          {/* Left fire wing */}
+          <path d="M 6 12 C 1 10, 0 15, 2 16 C -1 18, 1 21, 5 19 C 3 22, 6 23, 8 18 Z" fill="#ff3d00" opacity="0.85" style={{ animation: "batWingsFlutter 2s infinite", transformOrigin: "right center" }} />
+          <path d="M 6 12 C 3 11, 2 14, 3 15 C 1 16, 2 19, 5 17 C 4 19, 6 20, 7 16 Z" fill="#ffea00" opacity="0.95" style={{ animation: "batWingsFlutter 2s infinite", transformOrigin: "right center" }} />
+          {/* Right fire wing */}
+          <path d="M 26 12 C 31 10, 32 15, 30 16 C 33 18, 31 21, 27 19 C 29 22, 26 23, 24 18 Z" fill="#ff3d00" opacity="0.85" style={{ animation: "batWingsFlutterRight 2s infinite", transformOrigin: "left center" }} />
+          <path d="M 26 12 C 29 11, 30 14, 29 15 C 31 16, 30 19, 27 17 C 28 19, 26 20, 25 16 Z" fill="#ffea00" opacity="0.95" style={{ animation: "batWingsFlutterRight 2s infinite", transformOrigin: "left center" }} />
+        </g>
+      );
+    case "clock-hands":
+      return (
+        <g style={state === "sleep" ? { animation: "catSleepBreath 3s ease-in-out infinite", transformOrigin: "22px 24px" } : { animation: "catHeadBob 2s ease-in-out infinite", transformOrigin: "19px 16px" }}>
+          {/* Monocle chain */}
+          <path d={`M ${18 + ox} ${11 + oy} Q ${14 + ox} ${14 + oy}, ${16 + ox} ${18 + oy}`} fill="none" stroke="#ffd54f" strokeWidth="0.5" />
+          {/* Monocle ring */}
+          <circle cx={17 + ox} cy={11 + oy} r="3.2" fill="rgba(0, 229, 255, 0.2)" stroke="#ffd54f" strokeWidth="0.75" />
+          {/* Inner rotating hand lines */}
+          <line x1={17 + ox} y1={11 + oy} x2={17 + ox} y2={9.2 + oy} stroke="#ffd54f" strokeWidth="0.65" strokeLinecap="round" style={{ animation: "handRotateHour 10s linear infinite", transformOrigin: `${17 + ox}px ${11 + oy}px` }} />
+          <line x1={17 + ox} y1={11 + oy} x2={19 + ox} y2={11 + oy} stroke="#00e5ff" strokeWidth="0.5" strokeLinecap="round" style={{ animation: "handRotateMinute 1.5s linear infinite", transformOrigin: `${17 + ox}px ${11 + oy}px` }} />
+        </g>
+      );
+    case "cyber-visor":
+      return (
+        <g style={state === "sleep" ? { animation: "catSleepBreath 3s ease-in-out infinite", transformOrigin: "22px 24px" } : { animation: "catHeadBob 2s ease-in-out infinite", transformOrigin: "19px 16px" }}>
+          {/* Visor body */}
+          <polygon points={`${15 + ox},${9 + oy} ${23 + ox},${9 + oy} ${24 + ox},${12 + oy} ${14 + ox},${12 + oy}`} fill="rgba(0, 255, 204, 0.45)" stroke="#00ffcc" strokeWidth="0.75" />
+          {/* Glowing cyber visor laser bar */}
+          <line x1={16 + ox} y1={10.5 + oy} x2={22 + ox} y2={10.5 + oy} stroke="#ff00ff" strokeWidth="0.65" style={{ animation: "supernovaPulse 1s infinite" }} />
+          {/* Cyber grid details */}
+          <rect x={15.5 + ox} y={9.5 + oy} width="1.2" height="2" fill="#00ffcc" opacity="0.8" />
+          <rect x={21.3 + ox} y={9.5 + oy} width="1.2" height="2" fill="#00ffcc" opacity="0.8" />
+        </g>
+      );
+    case "frost-crown":
+      return (
+        <g style={state === "sleep" ? { animation: "catSleepBreath 3s ease-in-out infinite", transformOrigin: "22px 24px" } : { animation: "catHeadBob 2s ease-in-out infinite", transformOrigin: "19px 16px" }}>
+          {/* Base band */}
+          <rect x={16 + ox} y={5 + oy} width="7" height="1" fill="#80deea" />
+          {/* Sharp spires */}
+          <polygon points={`${16 + ox},${5 + oy} ${17.2 + ox},${1 + oy} ${18.5 + ox},${5 + oy}`} fill="#e0f7fa" stroke="#00e5ff" strokeWidth="0.25" />
+          <polygon points={`${18 + ox},${5 + oy} ${19.5 + ox},${-1 + oy} ${21 + ox},${5 + oy}`} fill="#ffffff" stroke="#00e5ff" strokeWidth="0.25" />
+          <polygon points={`${20.5 + ox},${5 + oy} ${21.8 + ox},${1 + oy} ${23 + ox},${5 + oy}`} fill="#e0f7fa" stroke="#00e5ff" strokeWidth="0.25" />
+          {/* Sparkle dot */}
+          <circle cx={19.5 + ox} cy={-2 + oy} r="0.75" fill="#fff" style={{ animation: "supernovaPulse 1.5s infinite" }} />
+        </g>
+      );
+    case "moon-orbit":
+      return (
+        <g>
+          <circle cx={state === "sleep" ? "22" : "18"} cy={state === "sleep" ? "16" : "9"} r="6" fill="none" stroke="#b388ff" strokeWidth="0.75" strokeDasharray="1.5, 1.5" style={{ animation: "electricSpin 4s linear infinite" }} />
+          {/* Crescent moon shape orbiting */}
+          <g style={{ animation: "electricSpin 4s linear infinite", transformOrigin: `${state === "sleep" ? 22 : 18}px ${state === "sleep" ? 16 : 9}px` }}>
+            <path d={`M ${state === "sleep" ? 22 : 18} ${state === "sleep" ? 10 : 3} A 1.5 1.5 0 1 0 ${state === "sleep" ? 23.5 : 19.5} ${state === "sleep" ? 11.5 : 4.5} A 1.2 1.2 0 1 1 ${state === "sleep" ? 22 : 18} ${state === "sleep" ? 10 : 3}`} fill="#ffffff" filter="drop-shadow(0 0 2px #e040fb)" />
+          </g>
+        </g>
+      );
+    case "dragon-horns":
+      return (
+        <g style={state === "sleep" ? { animation: "catSleepBreath 3s ease-in-out infinite", transformOrigin: "22px 24px" } : { animation: "catHeadBob 2s ease-in-out infinite", transformOrigin: "19px 16px" }}>
+          {/* Left horn curved path */}
+          <path d={`M ${16 + ox} ${6 + oy} Q ${13 + ox} ${1 + oy}, ${11 + ox} ${3 + oy} Q ${14 + ox} ${4 + oy}, ${16 + ox} ${7 + oy}`} fill="#00e676" stroke="#00c853" strokeWidth="0.5" />
+          {/* Right horn curved path */}
+          <path d={`M ${23 + ox} ${6 + oy} Q ${26 + ox} ${1 + oy}, ${28 + ox} ${3 + oy} Q ${25 + ox} ${4 + oy}, ${23 + ox} ${7 + oy}`} fill="#00e676" stroke="#00c853" strokeWidth="0.5" />
+        </g>
+      );
+    case "sun-orbit":
+      return (
+        <g>
+          <circle cx={state === "sleep" ? "22" : "18"} cy={state === "sleep" ? "16" : "9"} r="7" fill="none" stroke="rgba(255, 234, 0, 0.25)" strokeWidth="0.5" style={{ animation: "electricSpin 3s linear infinite" }} />
+          <g style={{ animation: "electricSpin 3s linear infinite", transformOrigin: `${state === "sleep" ? 22 : 18}px ${state === "sleep" ? 16 : 9}px` }}>
+            {/* Mini Sun */}
+            <circle cx={state === "sleep" ? 22 : 18} cy={state === "sleep" ? 9 : 2} r="2.2" fill="#ff9100" style={{ filter: "drop-shadow(0 0 3px #ff3d00)" }} />
+            <circle cx={state === "sleep" ? 22 : 18} cy={state === "sleep" ? 9 : 2} r="1" fill="#ffea00" />
+          </g>
+        </g>
+      );
+    case "soul-lantern":
+      return (
+        <g style={state === "sleep" ? { animation: "catSleepBreath 3s ease-in-out infinite", transformOrigin: "22px 24px" } : { animation: "catHeadBob 2s ease-in-out infinite", transformOrigin: "19px 16px" }}>
+          {/* Lantern Pole/Hook */}
+          <rect x={12 + ox} y={5 + oy} width="1" height="4" fill="#37474f" />
+          <rect x={9 + ox} y={5 + oy} width="4" height="1" fill="#37474f" />
+          {/* Lantern Cap */}
+          <path d={`M ${7 + ox} ${9 + oy} L ${12 + ox} ${9 + oy} L ${10 + ox} ${7 + oy} Z`} fill="#cfd8dc" />
+          {/* Glass / Glow body */}
+          <rect x={8 + ox} y={9 + oy} width="3" height="4" fill="rgba(156, 39, 176, 0.4)" stroke="#cfd8dc" strokeWidth="0.5" />
+          {/* Soul Flame inside */}
+          <circle cx={9.5 + ox} cy={11 + oy} r="1" fill="#e040fb" style={{ animation: "supernovaPulse 1.5s infinite" }} />
+        </g>
+      );
+    case "neon-katana":
+      return (
+        <g style={state === "sleep" ? { animation: "catSleepBreath 3s ease-in-out infinite", transformOrigin: "22px 24px" } : {}}>
+          {/* Handle (Tsuka) */}
+          <rect x={state === "sleep" ? 4 : 2} y={state === "sleep" ? 17 : 13} width="3" height="1" fill="#1a1a1a" transform="rotate(-35, 10, 15)" />
+          {/* Guard (Tsuba) */}
+          <rect x={state === "sleep" ? 7 : 5} y={state === "sleep" ? 16 : 12} width="1" height="3" fill="#00f5ff" transform="rotate(-35, 10, 15)" />
+          {/* Blade (glowing pink) */}
+          <rect x={state === "sleep" ? 8 : 6} y={state === "sleep" ? 17 : 13} width="9" height="1" fill="#ff007f" transform="rotate(-35, 10, 15)" style={{ filter: "drop-shadow(0 0 2px #ff007f)" }} />
+        </g>
+      );
+    case "floating-grimoire":
+      return (
+        <g style={{ animation: "kawaiiFloat 2s ease-in-out infinite" }}>
+          {/* Book cover (back/spine) */}
+          <rect x={state === "sleep" ? "7" : "5"} y={state === "sleep" ? "9" : "5"} width="8" height="6" fill="#1a237e" rx="0.5" stroke="#3f51b5" strokeWidth="0.5" />
+          {/* Left page */}
+          <polygon points={`${state === "sleep" ? 7.5 : 5.5},${state === "sleep" ? 14 : 10} ${state === "sleep" ? 11 : 9},${state === "sleep" ? 13.5 : 9.5} ${state === "sleep" ? 11 : 9},${state === "sleep" ? 9.5 : 5.5} ${state === "sleep" ? 7.5 : 5.5},${state === "sleep" ? 10 : 6}`} fill="#ffedd5" />
+          {/* Right page */}
+          <polygon points={`${state === "sleep" ? 14.5 : 12.5},${state === "sleep" ? 14 : 10} ${state === "sleep" ? 11 : 9},${state === "sleep" ? 13.5 : 9.5} ${state === "sleep" ? 11 : 9},${state === "sleep" ? 9.5 : 5.5} ${state === "sleep" ? 14.5 : 12.5},${state === "sleep" ? 10 : 6}`} fill="#ffedd5" />
+          {/* Glowing runes rising from pages */}
+          <circle cx={state === "sleep" ? "11" : "9"} cy={state === "sleep" ? "10" : "6"} r="1.2" fill="#ffb74d" style={{ animation: "supernovaPulse 1s infinite" }} />
         </g>
       );
     default:
@@ -722,10 +933,96 @@ const ProfileStyles = () => (
           85% { opacity: 1; transform: translateY(0) scale(1); }
           100% { opacity: 0; transform: translateY(-10px) scale(0.8); }
         }
+        
+        /* ============================ */
+        /* 15. GOD TIER ANIMATIONS     */
+        /* ============================ */
+        @keyframes phoenixFeatherFloat {
+          0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+          50% { transform: translateY(-15px) rotate(15deg); opacity: 1; }
+        }
+        @keyframes phoenixFly {
+          0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(0.6); opacity: 0; }
+          15% { opacity: 0.85; }
+          85% { opacity: 0.85; }
+          100% { transform: translate3d(20px, -180px, 0) rotate(360deg) scale(1.1); opacity: 0; }
+        }
+        @keyframes timeDialSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes handRotateHour {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes handRotateMinute {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes circuitFlow {
+          0% { stroke-dashoffset: 120; }
+          100% { stroke-dashoffset: 0; }
+        }
+        @keyframes neonPulse {
+          0%, 100% { filter: drop-shadow(0 0 2px #00ffcc) drop-shadow(0 0 5px rgba(0, 255, 204, 0.4)); }
+          50% { filter: drop-shadow(0 0 8px #00ffcc) drop-shadow(0 0 20px rgba(0, 255, 204, 0.8)); }
+        }
+        @keyframes iceSharding {
+          0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+          50% { transform: translate(6px, -8px) rotate(8deg) scale(1.05); }
+        }
+        @keyframes orbitCosmic {
+          0% { transform: rotate(0deg) translateX(45px) rotate(0deg); }
+          100% { transform: rotate(360deg) translateX(45px) rotate(-360deg); }
+        }
+        @keyframes dragonWhiskerSwim {
+          0%, 100% { transform: rotate(0deg) scale(1); }
+          50% { transform: rotate(-8deg) scale(1.05); }
+        }
+        @keyframes whiskerMorph {
+          0%, 100% { stroke-dashoffset: 0; }
+          50% { stroke-dashoffset: 50; }
+        }
+        @keyframes supernovaPulse {
+          0%, 100% { transform: scale(1); opacity: 0.4; }
+          50% { transform: scale(1.25); opacity: 0.85; }
+        }
+        @keyframes solarCorona {
+          from { transform: rotate(0deg) scale(1); }
+          to { transform: rotate(360deg) scale(1.06); }
+        }
+        @keyframes shadowMist {
+          0%, 100% { transform: scale(1); filter: blur(6px) opacity(0.6); }
+          50% { transform: scale(1.08); filter: blur(10px) opacity(0.9); }
+        }
+        @keyframes samuraiGlow {
+          0%, 100% { box-shadow: 0 0 12px #ff007f; }
+          50% { box-shadow: 0 0 25px #00f5ff, 0 0 10px #ff007f; }
+        }
+        @keyframes cyberGlitch {
+          0%, 95%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
+          96% { clip-path: inset(15% 0 65% 0); transform: translate(-3px, 1px); }
+          98% { clip-path: inset(70% 0 12% 0); transform: translate(3px, -1px); }
+        }
+        @keyframes arcanePulse {
+          0% { transform: rotate(0deg) scale(1); opacity: 0.7; }
+          50% { transform: rotate(180deg) scale(1.05); opacity: 0.95; }
+          100% { transform: rotate(360deg) scale(1); opacity: 0.7; }
+        }
+        @keyframes runeSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(-360deg); }
+        }
+        @keyframes runeRise {
+          0% { transform: translateY(40px) scale(0.8) rotate(0deg); opacity: 0; }
+          15% { opacity: 0.75; }
+          85% { opacity: 0.75; }
+          100% { transform: translateY(-160px) scale(1.1) rotate(180deg); opacity: 0; }
+        }
   `}</style>
 );
 
-export default function ProfilePanel({ username, selectedClass, onSurpassLimits }) {
+export default function ProfilePanel({ username, selectedClass, onSurpassLimits, handleLogout }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cosmeticIndex, setCosmeticIndex] = useState(0);
@@ -953,6 +1250,75 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
       duration: 4 + Math.random() * 4
     }));
 
+    configs["phoenix-sparks"] = makeRandomArray(35, () => ({
+      left: Math.random() * 100,
+      size: 4 + Math.random() * 8,
+      color: Math.random() > 0.5 ? "#ff1744" : "#ffea00",
+      delay: Math.random() * 2,
+      duration: 1 + Math.random() * 2
+    }));
+
+    configs["temporal-clocks"] = makeRandomArray(6, () => ({
+      top: 10 + Math.random() * 80,
+      left: 5 + Math.random() * 90,
+      size: 16 + Math.random() * 14
+    }));
+
+    configs["hyper-stars"] = makeRandomArray(25, () => ({
+      left: Math.random() * 100,
+      height: 30 + Math.random() * 40,
+      delay: Math.random(),
+      duration: 0.15 + Math.random() * 0.25
+    }));
+
+    configs["glacial-snow"] = makeRandomArray(30, () => ({
+      left: Math.random() * 100,
+      size: 14 + Math.random() * 10,
+      delay: Math.random() * 2,
+      duration: 1.5 + Math.random() * 2.5
+    }));
+
+    configs["nebula-stars"] = makeRandomArray(20, () => ({
+      top: Math.random() * 100,
+      left: Math.random() * 100,
+      size: 2 + Math.random() * 4,
+      delay: Math.random() * 4,
+      duration: 5 + Math.random() * 5
+    }));
+
+    configs["jade-smoke-puffs"] = makeRandomArray(8, () => ({
+      left: 10 + Math.random() * 80,
+      delay: Math.random() * 3,
+      duration: 4 + Math.random() * 3
+    }));
+
+    configs["solar-flares"] = makeRandomArray(15, () => ({
+      left: Math.random() * 100,
+      size: 6 + Math.random() * 12,
+      delay: Math.random() * 2,
+      duration: 1 + Math.random() * 1.5
+    }));
+
+    configs["shadow-wisps"] = makeRandomArray(12, () => ({
+      left: 10 + Math.random() * 80,
+      size: 20 + Math.random() * 20,
+      delay: Math.random() * 3,
+      duration: 3 + Math.random() * 3
+    }));
+
+    configs["samurai-cyber-glyphs"] = makeRandomArray(8, () => ({
+      top: 15 + Math.random() * 70,
+      left: 5 + Math.random() * 90,
+      size: 12 + Math.random() * 10
+    }));
+
+    configs["arcane-runes"] = makeRandomArray(10, () => ({
+      left: 10 + Math.random() * 80,
+      size: 14 + Math.random() * 12,
+      delay: Math.random() * 3,
+      duration: 3 + Math.random() * 3
+    }));
+
     return configs;
   }, [profileEffect]);
 
@@ -1055,19 +1421,25 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
             <div key={i} style={{ 
               position: "absolute", 
               top: p.top + "%", left: p.left + "%", 
-              fontSize: p.fontSize + "px",
               opacity: 0.6,
               animation: "kawaiiFloat " + p.duration + "s ease-in-out " + p.delay + "s infinite"
-            }}>💖</div>
+            }}>
+              <svg width={p.fontSize} height={p.fontSize} viewBox="0 0 24 24" fill="#ff4081" style={{ filter: "drop-shadow(0 0 5px #ff80ab)" }}>
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            </div>
           ))}
           {/* Falling Sparkles */}
           {particlesConfig["magical-girl-sparkles"]?.map((p, i) => (
             <div key={i} style={{ 
               position: "absolute", 
               top: "-20px", left: p.left + "%", 
-              fontSize: "16px", color: "#ffd700",
               animation: "sparkleFall " + p.duration + "s linear " + p.delay + "s infinite"
-            }}>✨</div>
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#ffd700" style={{ filter: "drop-shadow(0 0 4px #ffd700)" }}>
+                <path d="M12 2L14.8 9.2L22 12L14.8 14.8L12 22L9.2 14.8L2 12L9.2 9.2L12 2Z"/>
+              </svg>
+            </div>
           ))}
         </div>
       )}
@@ -1078,10 +1450,20 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
           {particlesConfig["sakura-dream"]?.map((p, i) => (
             <div key={i} style={{ 
               position: "absolute", top: "-20px", left: p.left + "%", 
-              fontSize: p.fontSize + "px",
               animation: "sakuraPetalFall " + p.duration + "s linear " + p.delay + "s infinite",
               opacity: 0.8
-            }}>🌸</div>
+            }}>
+              <svg width={p.fontSize} height={p.fontSize} viewBox="0 0 24 24">
+                <g fill="#ff80ab" stroke="#ff4081" strokeWidth="0.5">
+                  <path d="M 12 12 Q 9 6, 12 2 Q 15 6, 12 12 Z" />
+                  <path d="M 12 12 Q 18 9, 22 12 Q 18 15, 12 12 Z" transform="rotate(72 12 12)" />
+                  <path d="M 12 12 Q 15 18, 12 22 Q 9 18, 12 12 Z" transform="rotate(144 12 12)" />
+                  <path d="M 12 12 Q 6 15, 2 12 Q 6 9, 12 12 Z" transform="rotate(216 12 12)" />
+                  <path d="M 12 12 Q 6 6, 2 6 Q 6 2, 12 12 Z" transform="rotate(288 12 12)" />
+                </g>
+                <circle cx="12" cy="12" r="2" fill="#ffd54f" />
+              </svg>
+            </div>
           ))}
         </div>
       )}
@@ -1136,10 +1518,19 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
           {particlesConfig["lofi-notes"]?.map((p, i) => (
             <div key={i} style={{ 
               position: "absolute", bottom: "-20px", left: p.left + "%", 
-              fontSize: p.fontSize + "px", color: "#f5e6d3",
               animation: "lofiNotesRise " + p.duration + "s linear " + p.delay + "s infinite",
               opacity: 0.45
-            }}>{i % 2 === 0 ? "🎵" : "🎶"}</div>
+            }}>
+              {i % 2 === 0 ? (
+                <svg width={p.fontSize} height={p.fontSize} viewBox="0 0 24 24" fill="#f5e6d3">
+                  <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                </svg>
+              ) : (
+                <svg width={p.fontSize} height={p.fontSize} viewBox="0 0 24 24" fill="#f5e6d3">
+                  <path d="M16 3h-7v11.05c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4v-7h5v4.05c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V3z"/>
+                </svg>
+              )}
+            </div>
           ))}
           
           {/* Floating dust motes in the warm light */}
@@ -1164,10 +1555,22 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
           {particlesConfig["pixel-retro"]?.map((p, i) => (
             <div key={i} style={{ 
               position: "absolute", bottom: "-20px", left: p.left + "%", 
-              fontSize: "20px",
               animation: "pixelFloat " + p.duration + "s linear " + p.delay + "s infinite",
               fontFamily: "monospace"
-            }}>{i % 2 === 0 ? "🪙" : "❤️"}</div>
+            }}>
+              {i % 2 === 0 ? (
+                <svg width="20" height="20" viewBox="0 0 8 8" style={{ imageRendering: "pixelated", shapeRendering: "crispEdges" }}>
+                  <path d="M2 1h4v1h1v4h-1v1h-4v-1h-1v-4h1z" fill="#ffd54f" />
+                  <path d="M3 2h2v4h-2z" fill="#fbc02d" />
+                  <rect x="4" y="3" width="1" height="2" fill="#fff" />
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 8 8" style={{ imageRendering: "pixelated", shapeRendering: "crispEdges" }}>
+                  <path d="M1 2h2v1h1v-1h2v1h1v3h-1v1h-1v1h-2v-1h-1v-1h-1z" fill="#ff1744" />
+                  <rect x="2" y="2" width="1" height="1" fill="#ff5252" />
+                </svg>
+              )}
+            </div>
           ))}
           {/* Pixel grid scan overlay */}
           <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(18, 10, 42, 0.15) 2px, transparent 2px)", backgroundSize: "100% 4px", zIndex: 2 }} />
@@ -1178,14 +1581,20 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
       {profileEffect === "cottagecore-forest" && (
         <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
           {/* Falling Autumn Leaves */}
-          {particlesConfig["cottagecore-leaves"]?.map((p, i) => (
-            <div key={i} style={{ 
-              position: "absolute", top: "-20px", left: p.left + "%", 
-              fontSize: p.fontSize + "px",
-              animation: "leafFall " + p.duration + "s linear " + p.delay + "s infinite",
-              opacity: 0.75
-            }}>{i % 2 === 0 ? "🍁" : "🍂"}</div>
-          ))}
+          {particlesConfig["cottagecore-leaves"]?.map((p, i) => {
+            const leafColor = i % 3 === 0 ? "#e64a19" : i % 3 === 1 ? "#ffb74d" : "#8d6e63";
+            return (
+              <div key={i} style={{ 
+                position: "absolute", top: "-20px", left: p.left + "%", 
+                animation: "leafFall " + p.duration + "s linear " + p.delay + "s infinite",
+                opacity: 0.75
+              }}>
+                <svg width={p.fontSize} height={p.fontSize} viewBox="0 0 24 24" fill={leafColor}>
+                  <path d="M12 2C11.5 2 6 7 6 12C6 15.3 8.7 18 12 18C15.3 18 18 15.3 18 12C18 7 12.5 2 12 2ZM12 16C9.8 16 8 14.2 8 12C8 9.8 12 5.5 12 5.5C12 5.5 16 9.8 16 12C16 14.2 14.2 16 12 16Z"/>
+                </svg>
+              </div>
+            );
+          })}
           {/* Fireflies floating around */}
           {particlesConfig["cottagecore-fireflies"]?.map((p, i) => (
             <div key={i} style={{ 
@@ -1217,8 +1626,12 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
           {particlesConfig["boba-cafe-sparkles"]?.map((p, i) => (
             <div key={i} style={{ 
               position: "absolute", top: p.top + "%", left: p.left + "%", 
-              fontSize: "16px", color: "#ffd54f", animation: "kawaiiFloat " + p.duration + "s ease-in-out infinite"
-            }}>✨</div>
+              animation: "kawaiiFloat " + p.duration + "s ease-in-out infinite"
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#ffd54f" style={{ filter: "drop-shadow(0 0 4px #ffd54f)" }}>
+                <path d="M12 2L14.8 9.2L22 12L14.8 14.8L12 22L9.2 14.8L2 12L9.2 9.2L12 2Z"/>
+              </svg>
+            </div>
           ))}
         </div>
       )}
@@ -1273,9 +1686,16 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
             <div key={i} style={{ 
               position: "absolute", 
               top: p.top + "%", left: p.left + "%", 
-              fontSize: p.size + "px", color: "rgba(255, 183, 77, 0.25)",
               animation: (i % 2 === 0 ? "gearSpinClockwise" : "gearSpinCounter") + " 10s linear infinite"
-            }}>⚙️</div>
+            }}>
+              <svg width={p.size} height={p.size} viewBox="0 0 24 24" fill="none" stroke="rgba(255, 183, 77, 0.25)" strokeWidth="1.5">
+                <circle cx="12" cy="12" r="5" />
+                {[...Array(8)].map((_, j) => (
+                  <rect key={j} x="10.5" y="1" width="3" height="3" fill="rgba(255, 183, 77, 0.25)" transform={`rotate(${j * 45} 12 12)`} />
+                ))}
+                <circle cx="12" cy="12" r="2" fill="transparent" />
+              </svg>
+            </div>
           ))}
           {/* Rising puffs of steam */}
           {particlesConfig["steampunk-steam"]?.map((p, i) => (
@@ -1305,19 +1725,25 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
           {particlesConfig["crimson-moon-petals"]?.map((p, i) => (
             <div key={i} style={{ 
               position: "absolute", top: "-20px", left: p.left + "%", 
-              fontSize: "18px",
               animation: "sakuraPetalFall " + p.duration + "s linear " + p.delay + "s infinite",
               opacity: 0.65
-            }}>🌹</div>
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#b71c1c">
+                <path d="M12 2C9 2 6 4.5 6 8.5c0 3.5 2.5 6.5 6 11.5c3.5-5 6-8 6-11.5C18 4.5 15 2 12 2zm0 10c-1.9 0-3.5-1.6-3.5-3.5S10.1 5 12 5s3.5 1.6 3.5 3.5S13.9 12 12 12z"/>
+              </svg>
+            </div>
           ))}
           {/* Small flying bat silhouettes */}
           {particlesConfig["crimson-moon-bats"]?.map((p, i) => (
             <div key={i} style={{ 
               position: "absolute", top: p.top + "%", left: "-50px",
-              fontSize: "20px", color: "rgba(0,0,0,0.65)",
               animation: "rainFall 6s linear " + p.delay + "s infinite",
               transform: "rotate(-75deg)"
-            }}>🦇</div>
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="rgba(26,0,5,0.75)" stroke="#ff1744" strokeWidth="0.5" style={{ filter: "drop-shadow(0 0 2px #ff1744)" }}>
+                <path d="M 2 12 Q 10 10, 16 4 Q 18 10, 22 14 C 18 14, 15 17, 16 22 Q 11 18, 2 12 Z" />
+              </svg>
+            </div>
           ))}
         </div>
       )}
@@ -1339,10 +1765,188 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
           {particlesConfig["vapor-glitch-items"]?.map((p, i) => (
             <div key={i} style={{ 
               position: "absolute", bottom: "-20px", left: p.left + "%", 
-              fontSize: "24px",
               animation: "pixelFloat " + p.duration + "s linear " + p.delay + "s infinite",
               opacity: 0.55
-            }}>{i % 2 === 0 ? "💾" : "🌴"}</div>
+            }}>
+              {i % 2 === 0 ? (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="#00e5ff" style={{ filter: "drop-shadow(0 0 4px #00e5ff)" }}>
+                  <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-7 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+                </svg>
+              ) : (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="#ff007f" style={{ filter: "drop-shadow(0 0 4px #ff007f)" }}>
+                  <path d="M2 22h20M12 22V10M12 10c-2-2-5-1-7 2c3-5 7-4 7-4M12 10c2-2 5-1 7 2c-3-5-7-4-7-4M12 10c1-3-1-6-4-7c4 2 4 5 4 5M12 10c-1-3 1-6 4-7c-4 2-4 5-4 5"/>
+                </svg>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Phoenix Resurrection Effect */}
+      {profileEffect === "phoenix-aura" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "320px", background: "linear-gradient(to top, rgba(255,23,68,0.35), transparent)", mixBlendMode: "screen" }} />
+          {particlesConfig["phoenix-sparks"]?.map((p, i) => (
+            <div key={i} style={{ 
+              position: "absolute", bottom: "-20px", left: p.left + "%", 
+              width: p.size + "px", height: p.size + "px", 
+              background: p.color, borderRadius: "50%", boxShadow: "0 0 10px " + p.color,
+              animation: "fireEmber " + p.duration + "s ease-in " + p.delay + "s infinite"
+            }} />
+          ))}
+        </div>
+      )}
+
+      {/* Chronos Time Warp Effect */}
+      {profileEffect === "temporal-rift" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          {particlesConfig["temporal-clocks"]?.map((p, i) => (
+            <div key={i} style={{ 
+              position: "absolute", top: p.top + "%", left: p.left + "%", 
+              animation: (i % 2 === 0 ? "gearSpinClockwise" : "gearSpinCounter") + " 12s linear infinite"
+            }}>
+              <svg width={p.size} height={p.size} viewBox="0 0 24 24" fill="none" stroke="rgba(0, 229, 255, 0.25)" strokeWidth="1.5">
+                <circle cx="12" cy="12" r="8" />
+                <path d="M12 6v6l4 2" />
+                <circle cx="12" cy="4" r="1" fill="rgba(0, 229, 255, 0.25)" />
+                <circle cx="12" cy="20" r="1" fill="rgba(0, 229, 255, 0.25)" />
+                <circle cx="4" cy="12" r="1" fill="rgba(0, 229, 255, 0.25)" />
+                <circle cx="20" cy="12" r="1" fill="rgba(0, 229, 255, 0.25)" />
+              </svg>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Hyperdrive Overdrive Effect */}
+      {profileEffect === "hyperdrive" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
+          {/* Neon lines speeding */}
+          {particlesConfig["hyper-stars"]?.map((p, i) => (
+            <div key={i} style={{ 
+              position: "absolute", left: p.left + "%", top: "-100px",
+              width: "1.5px", height: p.height + "px", background: "linear-gradient(to bottom, #ff00ff, #00ffcc)",
+              animation: "rainFall " + p.duration + "s linear " + p.delay + "s infinite"
+            }} />
+          ))}
+        </div>
+      )}
+
+      {/* Glacial Overlord Effect */}
+      {profileEffect === "glacial-frost" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          {particlesConfig["glacial-snow"]?.map((p, i) => (
+            <div key={i} style={{ 
+              position: "absolute", top: "-20px", left: p.left + "%", 
+              animation: "snowFall " + p.duration + "s linear " + p.delay + "s infinite"
+            }}>
+              <svg width={p.size} height={p.size} viewBox="0 0 24 24" fill="none" stroke="rgba(0, 229, 255, 0.45)" strokeWidth="2">
+                <line x1="12" y1="2" x2="12" y2="22" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <line x1="5" y1="5" x2="19" y2="19" />
+                <line x1="5" y1="19" x2="19" y2="5" />
+                <circle cx="12" cy="12" r="3" strokeWidth="1.5" />
+              </svg>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Galaxy Nebula Effect */}
+      {profileEffect === "galaxy-nebula" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
+          {/* Swirling Nebula background layer */}
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 70% 30%, rgba(224,64,251,0.15), transparent 60%), radial-gradient(circle at 20% 80%, rgba(179,136,255,0.12), transparent 50%)", zIndex: -1 }} />
+          {particlesConfig["nebula-stars"]?.map((p, i) => (
+            <div key={i} style={{ 
+              position: "absolute", top: p.top + "%", left: p.left + "%", 
+              width: p.size + "px", height: p.size + "px", background: "#fff", borderRadius: "50%",
+              animation: "fireflyFloat " + p.duration + "s ease-in-out " + p.delay + "s infinite",
+              boxShadow: "0 0 6px #fff"
+            }} />
+          ))}
+        </div>
+      )}
+
+      {/* Divine Jade Dragon Effect */}
+      {profileEffect === "emerald-dragon" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          {/* Jade smoke rising */}
+          {particlesConfig["jade-smoke-puffs"]?.map((p, i) => (
+            <div key={i} style={{ 
+              position: "absolute", bottom: "-40px", left: p.left + "%", 
+              width: "50px", height: "50px", background: "rgba(0, 230, 118, 0.08)", borderRadius: "50%",
+              filter: "blur(15px)",
+              animation: "steamRise " + p.duration + "s ease-out " + p.delay + "s infinite"
+            }} />
+          ))}
+        </div>
+      )}
+
+      {/* Cosmic Supernova Effect */}
+      {profileEffect === "supernova-blast" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
+          <div style={{ 
+            position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+            width: "350px", height: "350px", background: "radial-gradient(circle, rgba(255,234,0,0.12) 0%, transparent 70%)",
+            filter: "blur(20px)", zIndex: -1
+          }} />
+          {particlesConfig["solar-flares"]?.map((p, i) => (
+            <div key={i} style={{ 
+              position: "absolute", bottom: "-20px", left: p.left + "%", 
+              width: p.size + "px", height: p.size + "px", 
+              background: "#ff3d00", borderRadius: "50%", boxShadow: "0 0 12px #ff3d00",
+              animation: "fireEmber " + p.duration + "s ease-in " + p.delay + "s infinite"
+            }} />
+          ))}
+        </div>
+      )}
+
+      {/* Grim Shadow Reaper Effect */}
+      {profileEffect === "shadow-reap" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          {particlesConfig["shadow-wisps"]?.map((p, i) => (
+            <div key={i} style={{ 
+              position: "absolute", bottom: "-30px", left: p.left + "%", 
+              width: p.size + "px", height: p.size + "px", background: "rgba(156, 39, 176, 0.15)", borderRadius: "50%",
+              filter: "blur(8px)",
+              animation: "steamRise " + p.duration + "s ease-out " + p.delay + "s infinite"
+            }} />
+          ))}
+        </div>
+      )}
+
+      {/* Cyber Samurai Effect */}
+      {profileEffect === "cyber-samurai" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
+          {/* Cyber sparks/slash grid */}
+          <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255, 0, 127, 0.05) 1.5px, transparent 1.5px)", backgroundSize: "100% 25px", zIndex: -1 }} />
+          {particlesConfig["samurai-cyber-glyphs"]?.map((p, i) => (
+            <div key={i} style={{ 
+              position: "absolute", top: p.top + "%", left: p.left + "%", 
+              animation: "cyberGlitch 5s infinite"
+            }}>
+              <svg width={p.size} height={p.size * 2} viewBox="0 0 10 20" fill="none" stroke="rgba(0, 245, 255, 0.35)" strokeWidth="1.5">
+                <path d="M 7 2 L 2 10 L 8 10 L 3 18" />
+              </svg>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Arcane Overlord Effect */}
+      {profileEffect === "arcane-rift" && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
+          {particlesConfig["arcane-runes"]?.map((p, i) => (
+            <div key={i} style={{ 
+              position: "absolute", bottom: "-30px", left: p.left + "%", 
+              animation: "runeRise " + p.duration + "s ease-out " + p.delay + "s infinite"
+            }}>
+              <svg width={p.size} height={p.size} viewBox="0 0 24 24" fill="none" stroke="rgba(140, 158, 255, 0.45)" strokeWidth="1.5" style={{ transform: `rotate(${i * 36}deg)` }}>
+                <circle cx="12" cy="12" r="10" />
+                <polygon points="12,4 17,20 5,10 19,10 7,20" />
+              </svg>
+            </div>
           ))}
         </div>
       )}
@@ -1497,7 +2101,7 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
       return;
     }
 
-    if (["rage", "void", "inferno", "matrix-glitch", "blizzard", "thunder-storm", "cyberpunk-neon", "blackhole", "abyssal-glow", "steampunk-gear", "crimson-moon", "vapor-glitch"].includes(profileEffect)) {
+    if (["rage", "void", "inferno", "matrix-glitch", "blizzard", "thunder-storm", "cyberpunk-neon", "blackhole", "abyssal-glow", "steampunk-gear", "crimson-moon", "vapor-glitch", "phoenix-aura", "temporal-rift", "hyperdrive", "glacial-frost", "galaxy-nebula", "emerald-dragon", "supernova-blast", "shadow-reap", "cyber-samurai", "arcane-rift"].includes(profileEffect)) {
       document.body.style.setProperty("--text-light", "#ffffff");
       document.body.style.setProperty("--text-muted", "rgba(255, 255, 255, 0.6)");
       document.body.style.setProperty("--bg-dark-base", "rgba(0, 0, 0, 0.5)");
@@ -1581,6 +2185,46 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
       document.body.style.background = "linear-gradient(135deg, #10061e 0%, #05020a 100%)";
       document.body.style.setProperty("--text-light", "#ff007f");
       document.body.style.setProperty("--text-muted", "#00e5ff");
+    } else if (profileEffect === "phoenix-aura") {
+      document.body.style.background = "radial-gradient(circle at center, #1b0408 0%, #050102 100%)";
+      document.body.style.setProperty("--text-light", "#ff1744");
+      document.body.style.setProperty("--text-muted", "#ffea00");
+    } else if (profileEffect === "temporal-rift") {
+      document.body.style.background = "linear-gradient(135deg, #021a1e 0%, #00090a 100%)";
+      document.body.style.setProperty("--text-light", "#00e5ff");
+      document.body.style.setProperty("--text-muted", "#ffd54f");
+    } else if (profileEffect === "hyperdrive") {
+      document.body.style.background = "radial-gradient(circle at center, #050c12 0%, #010305 100%)";
+      document.body.style.setProperty("--text-light", "#00ffcc");
+      document.body.style.setProperty("--text-muted", "#ff00ff");
+    } else if (profileEffect === "glacial-frost") {
+      document.body.style.background = "linear-gradient(135deg, #091724 0%, #02060c 100%)";
+      document.body.style.setProperty("--text-light", "#e0f7fa");
+      document.body.style.setProperty("--text-muted", "#00e5ff");
+    } else if (profileEffect === "galaxy-nebula") {
+      document.body.style.background = "radial-gradient(circle at center, #0d0826 0%, #020108 100%)";
+      document.body.style.setProperty("--text-light", "#b388ff");
+      document.body.style.setProperty("--text-muted", "#e040fb");
+    } else if (profileEffect === "emerald-dragon") {
+      document.body.style.background = "linear-gradient(135deg, #041a13 0%, #010806 100%)";
+      document.body.style.setProperty("--text-light", "#00e676");
+      document.body.style.setProperty("--text-muted", "#ffd54f");
+    } else if (profileEffect === "supernova-blast") {
+      document.body.style.background = "radial-gradient(circle at center, #260f04 0%, #080301 100%)";
+      document.body.style.setProperty("--text-light", "#ffea00");
+      document.body.style.setProperty("--text-muted", "#ff3d00");
+    } else if (profileEffect === "shadow-reap") {
+      document.body.style.background = "linear-gradient(135deg, #0f0214 0%, #040008 100%)";
+      document.body.style.setProperty("--text-light", "#9c27b0");
+      document.body.style.setProperty("--text-muted", "#b0bec5");
+    } else if (profileEffect === "cyber-samurai") {
+      document.body.style.background = "linear-gradient(135deg, #120314 0%, #040107 100%)";
+      document.body.style.setProperty("--text-light", "#ff007f");
+      document.body.style.setProperty("--text-muted", "#00f5ff");
+    } else if (profileEffect === "arcane-rift") {
+      document.body.style.background = "radial-gradient(circle at center, #0a0b26 0%, #020208 100%)";
+      document.body.style.setProperty("--text-light", "#8c9eff");
+      document.body.style.setProperty("--text-muted", "#ffb74d");
     }
 
     return () => {
@@ -1659,7 +2303,7 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
         position: "relative",
         borderBottom: "1px solid rgba(255,255,255,0.1)"
       }}>
-        <div style={{ position: "absolute", top: "20px", right: "30px", display: "flex", gap: "12px" }}>
+        <div style={{ position: "absolute", top: "20px", right: "30px", display: "flex", gap: "12px", flexWrap: "wrap", justifyContent: "flex-end" }}>
           <button onClick={handleCycleCosmetics} style={{ 
             background: "rgba(59,130,246,0.5)", border: "1px solid rgba(59,130,246,0.8)", 
             color: "#fff", padding: "8px 16px", borderRadius: "20px", fontSize: "12px", 
@@ -1674,6 +2318,18 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
           }}>
             EDIT BANNER
           </button>
+          {handleLogout && (
+            <button 
+              onClick={() => { sound.playClockTick(); handleLogout(); }}
+              style={{ 
+                background: "rgba(239, 68, 68, 0.5)", border: "1px solid rgba(239, 68, 68, 0.8)", 
+                color: "#fff", padding: "8px 16px", borderRadius: "20px", fontSize: "12px", 
+                fontWeight: "800", cursor: "pointer", backdropFilter: "blur(4px)"
+              }}
+            >
+              🚪 SIGN OUT
+            </button>
+          )}
         </div>
       </div>
 
@@ -1730,11 +2386,49 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
                   ))}
                 </div>
                 {/* Cute Ribbons */}
-                <div style={{ position: "absolute", top: "50%", left: "-45px", fontSize: "40px", transform: "translateY(-50%) scaleX(-1) rotate(-15deg)", animation: "kawaiiFloat 2s ease-in-out infinite" }}>🎀</div>
-                <div style={{ position: "absolute", top: "50%", right: "-45px", fontSize: "40px", transform: "translateY(-50%) rotate(15deg)", animation: "kawaiiFloat 2s ease-in-out 0.5s infinite" }}>🎀</div>
+                <div style={{ position: "absolute", top: "35%", left: "-45px", animation: "kawaiiFloat 2s ease-in-out infinite" }}>
+                  <svg width="40" height="40" viewBox="0 0 40 40" style={{ transform: "scaleX(-1) rotate(-15deg)", filter: "drop-shadow(0 0 4px #ff80ab)" }}>
+                    <path d="M 20 20 C 15 10, 5 15, 10 20 C 5 25, 15 30, 20 20 Z" fill="#ff4081" />
+                    <path d="M 20 20 C 25 10, 35 15, 30 20 C 35 25, 25 30, 20 20 Z" fill="#ff4081" />
+                    <circle cx="20" cy="20" r="3" fill="#ffffff" />
+                    <path d="M 18 22 C 14 30, 10 32, 12 35 C 15 32, 17 28, 19 23" fill="none" stroke="#ff4081" strokeWidth="2.5" />
+                    <path d="M 22 22 C 26 30, 30 32, 28 35 C 25 32, 23 28, 21 23" fill="none" stroke="#ff4081" strokeWidth="2.5" />
+                  </svg>
+                </div>
+                <div style={{ position: "absolute", top: "35%", right: "-45px", animation: "kawaiiFloat 2s ease-in-out 0.5s infinite" }}>
+                  <svg width="40" height="40" viewBox="0 0 40 40" style={{ transform: "rotate(15deg)", filter: "drop-shadow(0 0 4px #ff80ab)" }}>
+                    <path d="M 20 20 C 15 10, 5 15, 10 20 C 5 25, 15 30, 20 20 Z" fill="#ff4081" />
+                    <path d="M 20 20 C 25 10, 35 15, 30 20 C 35 25, 25 30, 20 20 Z" fill="#ff4081" />
+                    <circle cx="20" cy="20" r="3" fill="#ffffff" />
+                    <path d="M 18 22 C 14 30, 10 32, 12 35 C 15 32, 17 28, 19 23" fill="none" stroke="#ff4081" strokeWidth="2.5" />
+                    <path d="M 22 22 C 26 30, 30 32, 28 35 C 25 32, 23 28, 21 23" fill="none" stroke="#ff4081" strokeWidth="2.5" />
+                  </svg>
+                </div>
                 {/* Extra Sparkles */}
-                <div style={{ position: "absolute", top: "-10px", left: "0px", fontSize: "20px", animation: "kawaiiFloat 1.5s ease-in-out 0.2s infinite" }}>🌸</div>
-                <div style={{ position: "absolute", bottom: "-10px", right: "0px", fontSize: "20px", animation: "kawaiiFloat 1.8s ease-in-out 0.7s infinite" }}>🌸</div>
+                <div style={{ position: "absolute", top: "-10px", left: "0px", animation: "kawaiiFloat 1.5s ease-in-out 0.2s infinite" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24">
+                    <g fill="#ff80ab" stroke="#ff4081" strokeWidth="0.5">
+                      <path d="M 12 12 Q 9 6, 12 2 Q 15 6, 12 12 Z" />
+                      <path d="M 12 12 Q 18 9, 22 12 Q 18 15, 12 12 Z" transform="rotate(72 12 12)" />
+                      <path d="M 12 12 Q 15 18, 12 22 Q 9 18, 12 12 Z" transform="rotate(144 12 12)" />
+                      <path d="M 12 12 Q 6 15, 2 12 Q 6 9, 12 12 Z" transform="rotate(216 12 12)" />
+                      <path d="M 12 12 Q 6 6, 2 6 Q 6 2, 12 12 Z" transform="rotate(288 12 12)" />
+                    </g>
+                    <circle cx="12" cy="12" r="2" fill="#ffd54f" />
+                  </svg>
+                </div>
+                <div style={{ position: "absolute", bottom: "-10px", right: "0px", animation: "kawaiiFloat 1.8s ease-in-out 0.7s infinite" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24">
+                    <g fill="#ff80ab" stroke="#ff4081" strokeWidth="0.5">
+                      <path d="M 12 12 Q 9 6, 12 2 Q 15 6, 12 12 Z" />
+                      <path d="M 12 12 Q 18 9, 22 12 Q 18 15, 12 12 Z" transform="rotate(72 12 12)" />
+                      <path d="M 12 12 Q 15 18, 12 22 Q 9 18, 12 12 Z" transform="rotate(144 12 12)" />
+                      <path d="M 12 12 Q 6 15, 2 12 Q 6 9, 12 12 Z" transform="rotate(216 12 12)" />
+                      <path d="M 12 12 Q 6 6, 2 6 Q 6 2, 12 12 Z" transform="rotate(288 12 12)" />
+                    </g>
+                    <circle cx="12" cy="12" r="2" fill="#ffd54f" />
+                  </svg>
+                </div>
               </>
             )}
 
@@ -1778,8 +2472,30 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
                   animation: "sakuraSpin 15s linear infinite", filter: "drop-shadow(0 0 8px #ff80ab)" 
                 }} />
                 {/* Cute Floating Blossoms */}
-                <div style={{ position: "absolute", top: "-5px", left: "-5px", fontSize: "22px", animation: "kawaiiFloat 2s ease-in-out infinite" }}>🌸</div>
-                <div style={{ position: "absolute", bottom: "-5px", right: "-5px", fontSize: "22px", animation: "kawaiiFloat 2.5s ease-in-out infinite" }}>🌸</div>
+                <div style={{ position: "absolute", top: "-5px", left: "-5px", animation: "kawaiiFloat 2s ease-in-out infinite" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24">
+                    <g fill="#ff80ab" stroke="#ff4081" strokeWidth="0.5">
+                      <path d="M 12 12 Q 9 6, 12 2 Q 15 6, 12 12 Z" />
+                      <path d="M 12 12 Q 18 9, 22 12 Q 18 15, 12 12 Z" transform="rotate(72 12 12)" />
+                      <path d="M 12 12 Q 15 18, 12 22 Q 9 18, 12 12 Z" transform="rotate(144 12 12)" />
+                      <path d="M 12 12 Q 6 15, 2 12 Q 6 9, 12 12 Z" transform="rotate(216 12 12)" />
+                      <path d="M 12 12 Q 6 6, 2 6 Q 6 2, 12 12 Z" transform="rotate(288 12 12)" />
+                    </g>
+                    <circle cx="12" cy="12" r="2" fill="#ffd54f" />
+                  </svg>
+                </div>
+                <div style={{ position: "absolute", bottom: "-5px", right: "-5px", animation: "kawaiiFloat 2.5s ease-in-out infinite" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24">
+                    <g fill="#ff80ab" stroke="#ff4081" strokeWidth="0.5">
+                      <path d="M 12 12 Q 9 6, 12 2 Q 15 6, 12 12 Z" />
+                      <path d="M 12 12 Q 18 9, 22 12 Q 18 15, 12 12 Z" transform="rotate(72 12 12)" />
+                      <path d="M 12 12 Q 15 18, 12 22 Q 9 18, 12 12 Z" transform="rotate(144 12 12)" />
+                      <path d="M 12 12 Q 6 15, 2 12 Q 6 9, 12 12 Z" transform="rotate(216 12 12)" />
+                      <path d="M 12 12 Q 6 6, 2 6 Q 6 2, 12 12 Z" transform="rotate(288 12 12)" />
+                    </g>
+                    <circle cx="12" cy="12" r="2" fill="#ffd54f" />
+                  </svg>
+                </div>
               </>
             )}
 
@@ -1816,15 +2532,30 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
                   <div style={{ position: "absolute", inset: "25px", border: "2px solid rgba(217,119,6,0.3)", borderRadius: "50%" }} />
                 </div>
                 {/* Floating gold music notes */}
-                <div style={{ position: "absolute", top: "-10px", left: "-10px", fontSize: "20px", color: "#d97706", animation: "kawaiiFloat 2s ease-in-out infinite" }}>🎵</div>
-                <div style={{ position: "absolute", bottom: "-10px", right: "-10px", fontSize: "20px", color: "#d97706", animation: "kawaiiFloat 3s ease-in-out infinite" }}>🎶</div>
+                <div style={{ position: "absolute", top: "-10px", left: "-10px", animation: "kawaiiFloat 2s ease-in-out infinite" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffd54f" style={{ filter: "drop-shadow(0 0 3px #d97706)" }}>
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                  </svg>
+                </div>
+                <div style={{ position: "absolute", bottom: "-10px", right: "-10px", animation: "kawaiiFloat 3s ease-in-out infinite" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffd54f" style={{ filter: "drop-shadow(0 0 3px #d97706)" }}>
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                  </svg>
+                </div>
               </>
             )}
 
             {avatarFrame === "pixel-crown" && (
               <>
                 {/* 8-bit gold Crown floating */}
-                <div style={{ position: "absolute", top: "-32px", left: "50%", transform: "translateX(-50%) scale(0.9)", animation: "kawaiiFloat 3s ease-in-out infinite", zIndex: 11, fontSize: "40px" }}>👑</div>
+                <div style={{ position: "absolute", top: "-32px", left: "50%", transform: "translateX(-50%)", animation: "kawaiiFloat 3s ease-in-out infinite", zIndex: 11 }}>
+                  <svg width="40" height="40" viewBox="0 0 16 16" style={{ imageRendering: "pixelated", shapeRendering: "crispEdges" }}>
+                    <path d="M 2 12 L 14 12 L 14 10 L 13 10 L 13 8 L 11 8 L 11 10 L 9 10 L 9 6 L 7 6 L 7 10 L 5 10 L 5 8 L 3 8 L 3 10 L 2 10 Z" fill="#fbc02d" stroke="#f57f17" strokeWidth="0.5" />
+                    <rect x="4" y="9" width="1" height="1" fill="#d32f2f" />
+                    <rect x="8" y="7" width="1" height="1" fill="#1976d2" />
+                    <rect x="11" y="9" width="1" height="1" fill="#388e3c" />
+                  </svg>
+                </div>
                 <div style={{ position: "absolute", inset: "-12px", border: "4px dotted #ffeb3b", borderRadius: "50%", animation: "pixelSpinStep 8s steps(8) infinite" }} />
               </>
             )}
@@ -1833,10 +2564,38 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
               <>
                 {/* Mossy, leaf-woven border */}
                 <div style={{ position: "absolute", inset: "-15px", border: "4px double #aed581", borderRadius: "50%", filter: "drop-shadow(0 0 5px rgba(174,213,129,0.5))", animation: "vinylSpin 25s linear infinite" }} />
-                <div style={{ position: "absolute", top: "-14px", left: "50%", transform: "translateX(-50%)", fontSize: "18px" }}>🌿</div>
-                <div style={{ position: "absolute", bottom: "-14px", left: "50%", transform: "translateX(-50%)", fontSize: "18px" }}>🌿</div>
-                <div style={{ position: "absolute", left: "-14px", top: "50%", transform: "translateY(-50%) rotate(90deg)", fontSize: "18px" }}>🌿</div>
-                <div style={{ position: "absolute", right: "-14px", top: "50%", transform: "translateY(-50%) rotate(-90deg)", fontSize: "18px" }}>🌿</div>
+                <div style={{ position: "absolute", top: "-14px", left: "50%", transform: "translateX(-50%)" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#aed581" strokeWidth="2" strokeLinecap="round" style={{ transform: "rotate(90deg)" }}>
+                    <path d="M2 22C2 22 8 18 12 12C16 6 22 2 22 2" />
+                    <path d="M12 12 Q 10 7, 7 8 Q 10 11, 12 12 Z" fill="#aed581" />
+                    <path d="M16 6 Q 14 2, 11 3 Q 14 7, 16 6 Z" fill="#aed581" />
+                    <path d="M6 18 Q 4 13, 1 14 Q 4 17, 6 18 Z" fill="#aed581" />
+                  </svg>
+                </div>
+                <div style={{ position: "absolute", bottom: "-14px", left: "50%", transform: "translateX(-50%)" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#aed581" strokeWidth="2" strokeLinecap="round" style={{ transform: "rotate(-90deg)" }}>
+                    <path d="M2 22C2 22 8 18 12 12C16 6 22 2 22 2" />
+                    <path d="M12 12 Q 10 7, 7 8 Q 10 11, 12 12 Z" fill="#aed581" />
+                    <path d="M16 6 Q 14 2, 11 3 Q 14 7, 16 6 Z" fill="#aed581" />
+                    <path d="M6 18 Q 4 13, 1 14 Q 4 17, 6 18 Z" fill="#aed581" />
+                  </svg>
+                </div>
+                <div style={{ position: "absolute", left: "-14px", top: "50%", transform: "translateY(-50%)" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#aed581" strokeWidth="2" strokeLinecap="round" style={{ transform: "rotate(180deg)" }}>
+                    <path d="M2 22C2 22 8 18 12 12C16 6 22 2 22 2" />
+                    <path d="M12 12 Q 10 7, 7 8 Q 10 11, 12 12 Z" fill="#aed581" />
+                    <path d="M16 6 Q 14 2, 11 3 Q 14 7, 16 6 Z" fill="#aed581" />
+                    <path d="M6 18 Q 4 13, 1 14 Q 4 17, 6 18 Z" fill="#aed581" />
+                  </svg>
+                </div>
+                <div style={{ position: "absolute", right: "-14px", top: "50%", transform: "translateY(-50%)" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#aed581" strokeWidth="2" strokeLinecap="round">
+                    <path d="M2 22C2 22 8 18 12 12C16 6 22 2 22 2" />
+                    <path d="M12 12 Q 10 7, 7 8 Q 10 11, 12 12 Z" fill="#aed581" />
+                    <path d="M16 6 Q 14 2, 11 3 Q 14 7, 16 6 Z" fill="#aed581" />
+                    <path d="M6 18 Q 4 13, 1 14 Q 4 17, 6 18 Z" fill="#aed581" />
+                  </svg>
+                </div>
                 {/* Glowing fireflies */}
                 <div style={{ position: "absolute", top: "10px", left: "-5px", width: "5px", height: "5px", borderRadius: "50%", background: "#ffd54f", boxShadow: "0 0 8px #ffd54f", animation: "fireflyFloat 3s ease-in-out infinite" }} />
                 <div style={{ position: "absolute", bottom: "10px", right: "-5px", width: "5px", height: "5px", borderRadius: "50%", background: "#ffd54f", boxShadow: "0 0 8px #ffd54f", animation: "fireflyFloat 4s ease-in-out 1s infinite" }} />
@@ -1853,8 +2612,26 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
                   <div style={{ position: "absolute", inset: "6px", background: "#ff80ab", borderRadius: "0 10px 0 0" }} />
                 </div>
                 <div style={{ position: "absolute", inset: "-10px", border: "4px dashed #5c3a21", borderRadius: "50%" }} />
-                <div style={{ position: "absolute", bottom: "-10px", left: "0px", fontSize: "24px" }}>🧋</div>
-                <div style={{ position: "absolute", bottom: "-10px", right: "0px", fontSize: "24px" }}>🧋</div>
+                <div style={{ position: "absolute", bottom: "-14px", left: "0px" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <line x1="14" y1="2" x2="11" y2="10" stroke="#ff80ab" strokeWidth="2.5" strokeLinecap="round" />
+                    <path d="M 6 8 L 18 8 L 16 20 C 16 21, 15 22, 14 22 L 10 22 C 9 22, 8 21, 8 20 Z" fill="#fbf3e6" stroke="#5c3a21" strokeWidth="1.5" />
+                    <path d="M 7.5 12 L 16.5 12 L 15.5 19 C 15.5 19.5, 15 20.5, 14 20.5 L 10 20.5 C 9 20.5, 8.5 19.5, 8.5 19 Z" fill="#a87c5b" />
+                    <circle cx="10" cy="18" r="1.2" fill="#5c3a21" />
+                    <circle cx="12" cy="16" r="1.2" fill="#5c3a21" />
+                    <circle cx="14" cy="18" r="1.2" fill="#5c3a21" />
+                  </svg>
+                </div>
+                <div style={{ position: "absolute", bottom: "-14px", right: "0px" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <line x1="14" y1="2" x2="11" y2="10" stroke="#ff80ab" strokeWidth="2.5" strokeLinecap="round" />
+                    <path d="M 6 8 L 18 8 L 16 20 C 16 21, 15 22, 14 22 L 10 22 C 9 22, 8 21, 8 20 Z" fill="#fbf3e6" stroke="#5c3a21" strokeWidth="1.5" />
+                    <path d="M 7.5 12 L 16.5 12 L 15.5 19 C 15.5 19.5, 15 20.5, 14 20.5 L 10 20.5 C 9 20.5, 8.5 19.5, 8.5 19 Z" fill="#a87c5b" />
+                    <circle cx="10" cy="18" r="1.2" fill="#5c3a21" />
+                    <circle cx="12" cy="16" r="1.2" fill="#5c3a21" />
+                    <circle cx="14" cy="18" r="1.2" fill="#5c3a21" />
+                  </svg>
+                </div>
               </>
             )}
 
@@ -1871,16 +2648,46 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
                 {/* Bioluminescent pulse border */}
                 <div style={{ position: "absolute", inset: "-15px", border: "4px solid #00ffff", borderRadius: "50%", animation: "jellyPulse 4s ease-in-out infinite", boxShadow: "0 0 15px rgba(0, 255, 255, 0.4)", zIndex: 1 }} />
                 {/* Floating bioluminescent tentacles */}
-                <div style={{ position: "absolute", bottom: "-25px", left: "20px", fontSize: "24px", color: "#00ffff", opacity: 0.8, filter: "blur(0.5px)", animation: "kawaiiFloat 3s ease-in-out infinite" }}>🎐</div>
-                <div style={{ position: "absolute", bottom: "-25px", right: "20px", fontSize: "24px", color: "#00ffff", opacity: 0.8, filter: "blur(0.5px)", animation: "kawaiiFloat 3s ease-in-out 0.5s infinite" }}>🎐</div>
+                <div style={{ position: "absolute", bottom: "-25px", left: "20px", opacity: 0.8, animation: "kawaiiFloat 3s ease-in-out infinite" }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ filter: "drop-shadow(0 0 4px #00ffff)" }}>
+                    <path d="M 4 12 C 4 6, 20 6, 20 12 C 20 13, 4 13, 4 12 Z" fill="rgba(0, 255, 255, 0.5)" stroke="#00ffff" strokeWidth="1.5" />
+                    <path d="M 7 13 Q 5 18, 7 22" stroke="#00ffff" strokeWidth="1" strokeLinecap="round" />
+                    <path d="M 12 13 Q 12 19, 10 23" stroke="#00ffff" strokeWidth="1" strokeLinecap="round" />
+                    <path d="M 17 13 Q 19 18, 17 22" stroke="#00ffff" strokeWidth="1" strokeLinecap="round" />
+                  </svg>
+                </div>
+                <div style={{ position: "absolute", bottom: "-25px", right: "20px", opacity: 0.8, animation: "kawaiiFloat 3s ease-in-out 0.5s infinite" }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ filter: "drop-shadow(0 0 4px #00ffff)" }}>
+                    <path d="M 4 12 C 4 6, 20 6, 20 12 C 20 13, 4 13, 4 12 Z" fill="rgba(0, 255, 255, 0.5)" stroke="#00ffff" strokeWidth="1.5" />
+                    <path d="M 7 13 Q 5 18, 7 22" stroke="#00ffff" strokeWidth="1" strokeLinecap="round" />
+                    <path d="M 12 13 Q 12 19, 10 23" stroke="#00ffff" strokeWidth="1" strokeLinecap="round" />
+                    <path d="M 17 13 Q 19 18, 17 22" stroke="#00ffff" strokeWidth="1" strokeLinecap="round" />
+                  </svg>
+                </div>
               </>
             )}
 
             {avatarFrame === "clockwork-gears" && (
               <>
                 {/* Interlocking Gears */}
-                <div style={{ position: "absolute", top: "-20px", left: "-20px", fontSize: "32px", color: "#ffd54f", animation: "gearSpinClockwise 12s linear infinite" }}>⚙️</div>
-                <div style={{ position: "absolute", bottom: "-20px", right: "-20px", fontSize: "28px", color: "#ffb74d", animation: "gearSpinCounter 8s linear infinite" }}>⚙️</div>
+                <div style={{ position: "absolute", top: "-20px", left: "-20px", animation: "gearSpinClockwise 12s linear infinite" }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffd54f" strokeWidth="1.5">
+                    <circle cx="12" cy="12" r="6" />
+                    {[...Array(8)].map((_, i) => (
+                      <rect key={i} x="10.5" y="1" width="3" height="4" fill="#ffd54f" transform={`rotate(${i * 45} 12 12)`} />
+                    ))}
+                    <circle cx="12" cy="12" r="2.5" fill="var(--bg-dark-base)" />
+                  </svg>
+                </div>
+                <div style={{ position: "absolute", bottom: "-20px", right: "-20px", animation: "gearSpinCounter 8s linear infinite" }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffb74d" strokeWidth="1.5">
+                    <circle cx="12" cy="12" r="6" />
+                    {[...Array(8)].map((_, i) => (
+                      <rect key={i} x="10.5" y="1" width="3" height="4" fill="#ffb74d" transform={`rotate(${i * 45} 12 12)`} />
+                    ))}
+                    <circle cx="12" cy="12" r="2.5" fill="var(--bg-dark-base)" />
+                  </svg>
+                </div>
                 <div style={{ position: "absolute", inset: "-10px", border: "4px solid #8d6e63", borderRadius: "50%", boxShadow: "inset 0 0 10px rgba(0,0,0,0.5), 0 0 10px rgba(255,213,79,0.3)" }} />
               </>
             )}
@@ -1888,8 +2695,16 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
             {avatarFrame === "bat-wings" && (
               <>
                 {/* Bat wings flanking */}
-                <div style={{ position: "absolute", top: "35%", left: "-45px", fontSize: "35px", transformOrigin: "right center", animation: "batWingsFlutter 2.5s ease-in-out infinite", zIndex: 1 }}>🦇</div>
-                <div style={{ position: "absolute", top: "35%", right: "-45px", fontSize: "35px", transformOrigin: "left center", transform: "scaleX(-1)", animation: "batWingsFlutterRight 2.5s ease-in-out 0.2s infinite", zIndex: 1 }}>🦇</div>
+                <div style={{ position: "absolute", top: "30%", left: "-45px", animation: "batWingsFlutter 2.5s ease-in-out infinite", zIndex: 1 }}>
+                  <svg width="35" height="35" viewBox="0 0 24 24" fill="#110007" stroke="#ff1744" strokeWidth="1" style={{ filter: "drop-shadow(0 0 3px #ff1744)" }}>
+                    <path d="M 2 12 Q 10 10, 16 4 Q 18 10, 22 14 C 18 14, 15 17, 16 22 Q 11 18, 2 12 Z" />
+                  </svg>
+                </div>
+                <div style={{ position: "absolute", top: "30%", right: "-45px", animation: "batWingsFlutterRight 2.5s ease-in-out 0.2s infinite", zIndex: 1 }}>
+                  <svg width="35" height="35" viewBox="0 0 24 24" fill="#110007" stroke="#ff1744" strokeWidth="1" style={{ transform: "scaleX(-1)", filter: "drop-shadow(0 0 3px #ff1744)" }}>
+                    <path d="M 2 12 Q 10 10, 16 4 Q 18 10, 22 14 C 18 14, 15 17, 16 22 Q 11 18, 2 12 Z" />
+                  </svg>
+                </div>
                 <div style={{ position: "absolute", inset: "-12px", border: "3px solid #ff1744", borderRadius: "50%", boxShadow: "0 0 15px #ff1744", animation: "eclipseGlow 3s infinite" }} />
               </>
             )}
@@ -1903,11 +2718,461 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits 
               </>
             )}
 
+            {/* Phoenix Resurrection Frame (God Tier) */}
+            {avatarFrame === "phoenix-feather" && (
+              <div style={{ position: "absolute", inset: "-25px", pointerEvents: "none", zIndex: 10 }}>
+                <svg width="100%" height="100%" viewBox="0 0 200 200" style={{ overflow: "visible" }}>
+                  <defs>
+                    <linearGradient id="phoenixGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                      <stop offset="0%" stopColor="#d50000" />
+                      <stop offset="50%" stopColor="#ff3d00" />
+                      <stop offset="100%" stopColor="#ffea00" />
+                    </linearGradient>
+                    <filter id="phoenixGlow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="6" result="blur" />
+                      <feComponentTransfer in="blur" result="glow">
+                        <feFuncA type="linear" slope="1.8" />
+                      </feComponentTransfer>
+                      <feMerge>
+                        <feMergeNode in="glow" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <g filter="url(#phoenixGlow)">
+                    <circle cx="100" cy="100" r="88" fill="none" stroke="url(#phoenixGrad)" strokeWidth="3" opacity="0.9" />
+                    <circle cx="100" cy="100" r="91" fill="none" stroke="#ff3d00" strokeWidth="1" strokeDasharray="10, 15" style={{ animation: "timeDialSpin 10s linear infinite" }} />
+                    {[...Array(12)].map((_, i) => {
+                      const angle = (i * 360) / 12;
+                      const scale = 0.7 + (i % 3) * 0.15;
+                      const duration = 1.2 + (i % 4) * 0.25;
+                      return (
+                        <path
+                          key={i}
+                          d="M 100 12 C 90 25, 110 25, 100 38 C 94 28, 106 28, 100 12 Z"
+                          fill="url(#phoenixGrad)"
+                          transform={`rotate(${angle} 100 100) translate(0 -5) scale(${scale})`}
+                          style={{
+                            animation: `supernovaPulse ${duration}s ease-in-out infinite`,
+                            transformOrigin: "100px 100px"
+                          }}
+                        />
+                      );
+                    })}
+                  </g>
+                </svg>
+              </div>
+            )}
+
+            {/* Chronos Time Warp Frame (God Tier) */}
+            {avatarFrame === "chronos-dial" && (
+              <div style={{ position: "absolute", inset: "-26px", pointerEvents: "none", zIndex: 10 }}>
+                <svg width="100%" height="100%" viewBox="0 0 200 200" style={{ overflow: "visible" }}>
+                  <defs>
+                    <linearGradient id="chronosGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#ffe082" />
+                      <stop offset="50%" stopColor="#ffd54f" />
+                      <stop offset="100%" stopColor="#ffb300" />
+                    </linearGradient>
+                    <filter id="temporalGlow">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <g filter="url(#temporalGlow)">
+                    <circle cx="100" cy="100" r="92" fill="none" stroke="url(#chronosGold)" strokeWidth="4" />
+                    <circle cx="100" cy="100" r="86" fill="none" stroke="#00e5ff" strokeWidth="1.5" strokeDasharray="3, 5" />
+                    {[...Array(12)].map((_, i) => {
+                      const angle = i * 30;
+                      return (
+                        <line
+                          key={i}
+                          x1="100" y1="8" x2="100" y2="16"
+                          stroke="url(#chronosGold)"
+                          strokeWidth={i % 3 === 0 ? "3.5" : "1.5"}
+                          transform={`rotate(${angle} 100 100)`}
+                        />
+                      );
+                    })}
+                    <g transform="translate(165, 35) scale(0.65)">
+                      <g style={{ animation: "gearSpinClockwise 8s linear infinite", transformOrigin: "0 0" }}>
+                        <circle cx="0" cy="0" r="16" fill="none" stroke="url(#chronosGold)" strokeWidth="3" />
+                        {[...Array(8)].map((_, j) => (
+                          <rect key={j} x="-3" y="-20" width="6" height="8" fill="url(#chronosGold)" transform={`rotate(${j * 45})`} />
+                        ))}
+                      </g>
+                    </g>
+                    <g transform="translate(35, 165) scale(0.55)">
+                      <g style={{ animation: "gearSpinCounter 6s linear infinite", transformOrigin: "0 0" }}>
+                        <circle cx="0" cy="0" r="14" fill="none" stroke="#00e5ff" strokeWidth="2" />
+                        {[...Array(6)].map((_, j) => (
+                          <rect key={j} x="-2.5" y="-18" width="5" height="7" fill="#00e5ff" transform={`rotate(${j * 60})`} />
+                        ))}
+                      </g>
+                    </g>
+                    <g style={{ filter: "drop-shadow(0 0 3px #ffd54f)" }}>
+                      <line x1="100" y1="100" x2="100" y2="52" stroke="url(#chronosGold)" strokeWidth="4" strokeLinecap="round" style={{ animation: "handRotateHour 20s linear infinite", transformOrigin: "100px 100px" }} />
+                      <line x1="100" y1="100" x2="100" y2="38" stroke="#00e5ff" strokeWidth="2.5" strokeLinecap="round" style={{ animation: "handRotateMinute 3s linear infinite", transformOrigin: "100px 100px" }} />
+                      <circle cx="100" cy="100" r="6" fill="#ffd54f" stroke="#fff" strokeWidth="1" />
+                    </g>
+                  </g>
+                </svg>
+              </div>
+            )}
+
+            {/* Hyperdrive Overdrive Frame (God Tier) */}
+            {avatarFrame === "neon-matrix" && (
+              <div style={{ position: "absolute", inset: "-22px", pointerEvents: "none", zIndex: 10 }}>
+                <svg width="100%" height="100%" viewBox="0 0 200 200" style={{ overflow: "visible" }}>
+                  <defs>
+                    <linearGradient id="cyberCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#00ffcc" />
+                      <stop offset="100%" stopColor="#00b0ff" />
+                    </linearGradient>
+                    <linearGradient id="cyberPink" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#ff00ff" />
+                      <stop offset="100%" stopColor="#9d00ff" />
+                    </linearGradient>
+                    <filter id="cyberGlow">
+                      <feGaussianBlur stdDeviation="4" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <g filter="url(#cyberGlow)">
+                    <polygon points="30,12 170,12 188,30 188,170 170,188 30,188 12,170 12,30" fill="none" stroke="url(#cyberPink)" strokeWidth="3" />
+                    <polygon points="34,16 166,16 184,34 184,166 166,184 34,184 16,166 16,34" fill="none" stroke="url(#cyberCyan)" strokeWidth="1.5" strokeDasharray="30, 150" style={{ animation: "circuitFlow 4s linear infinite" }} />
+                    <path d="M 12,50 L 12,30 L 30,12 L 50,12" fill="none" stroke="url(#cyberCyan)" strokeWidth="4" />
+                    <path d="M 188,50 L 188,30 L 170,12 L 150,12" fill="none" stroke="url(#cyberCyan)" strokeWidth="4" />
+                    <path d="M 12,150 L 12,170 L 30,188 L 50,188" fill="none" stroke="url(#cyberCyan)" strokeWidth="4" />
+                    <path d="M 188,150 L 188,170 L 170,188 L 150,188" fill="none" stroke="url(#cyberCyan)" strokeWidth="4" />
+                    <line x1="16" y1="20" x2="184" y2="20" stroke="#00ffcc" strokeWidth="1" opacity="0.8" style={{ animation: "matrixScan 2s linear infinite" }} />
+                    <circle cx="20" cy="20" r="3" fill="#ff00ff" />
+                    <circle cx="180" cy="20" r="3" fill="#ff00ff" />
+                    <circle cx="20" cy="180" r="3" fill="#ff00ff" />
+                    <circle cx="180" cy="180" r="3" fill="#ff00ff" />
+                    <text x="100" y="178" fill="#00ffcc" fontSize="8" fontFamily="monospace" textAnchor="middle" letterSpacing="1" opacity="0.8" style={{ animation: "supernovaPulse 1.5s infinite" }}>SYS_ACTIVE</text>
+                  </g>
+                </svg>
+              </div>
+            )}
+
+            {/* Glacial Overlord Frame (God Tier) */}
+            {avatarFrame === "ice-shards" && (
+              <div style={{ position: "absolute", inset: "-26px", pointerEvents: "none", zIndex: 10 }}>
+                <svg width="100%" height="100%" viewBox="0 0 200 200" style={{ overflow: "visible" }}>
+                  <defs>
+                    <linearGradient id="iceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#ffffff" />
+                      <stop offset="50%" stopColor="#b2ebf2" />
+                      <stop offset="100%" stopColor="#00e5ff" />
+                    </linearGradient>
+                    <filter id="iceGlow">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feColorMatrix type="matrix" values="0 0 0 0 0.0   0 0 0 0 0.9   0 0 0 0 1.0  0 0 0 1 0" />
+                      <feMerge>
+                        <feMergeNode />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <g filter="url(#iceGlow)">
+                    <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(224, 247, 250, 0.4)" strokeWidth="4" />
+                    <circle cx="100" cy="100" r="92" fill="none" stroke="rgba(0, 229, 255, 0.6)" strokeWidth="1" strokeDasharray="5, 10" style={{ animation: "timeDialSpin 20s linear infinite" }} />
+                    <g style={{ animation: "iceSharding 6s ease-in-out infinite", transformOrigin: "100px 100px" }}>
+                      {[...Array(10)].map((_, i) => {
+                        const angle = i * 36;
+                        return (
+                          <g key={i} transform={`rotate(${angle} 100 100) translate(100 10)`}>
+                            <polygon points="0,-18 10,0 0,10 -10,0" fill="url(#iceGrad)" stroke="#ffffff" strokeWidth="0.75" opacity="0.9" />
+                            <line x1="0" y1="-18" x2="0" y2="10" stroke="#ffffff" strokeWidth="0.5" opacity="0.6" />
+                          </g>
+                        );
+                      })}
+                    </g>
+                    <g style={{ animation: "timeDialSpin 30s linear reverse infinite", transformOrigin: "100px 100px" }} opacity="0.8">
+                      {[...Array(4)].map((_, i) => (
+                        <path
+                          key={i}
+                          d="M 100 40 L 100 160 M 40 100 L 160 100"
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                          transform={`rotate(${i * 45} 100 100)`}
+                        />
+                      ))}
+                    </g>
+                  </g>
+                </svg>
+              </div>
+            )}
+
+            {/* Galaxy Nebula Frame (God Tier) */}
+            {avatarFrame === "stellar-halo" && (
+              <div style={{ position: "absolute", inset: "-26px", pointerEvents: "none", zIndex: 10 }}>
+                <svg width="100%" height="100%" viewBox="0 0 200 200" style={{ overflow: "visible" }}>
+                  <defs>
+                    <linearGradient id="nebulaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#e040fb" />
+                      <stop offset="50%" stopColor="#7c4dff" />
+                      <stop offset="100%" stopColor="#00e5ff" />
+                    </linearGradient>
+                    <filter id="cosmicBlur">
+                      <feGaussianBlur stdDeviation="4" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <g filter="url(#cosmicBlur)">
+                    <circle cx="100" cy="100" r="90" fill="none" stroke="url(#nebulaGrad)" strokeWidth="3" opacity="0.8" />
+                    <g transform="rotate(25 100 100)">
+                      <ellipse cx="100" cy="100" rx="104" ry="32" fill="none" stroke="url(#nebulaGrad)" strokeWidth="2.5" strokeDasharray="6, 12" style={{ animation: "timeDialSpin 25s linear infinite" }} />
+                      <g style={{ animation: "timeDialSpin 8s linear infinite", transformOrigin: "100px 100px" }}>
+                        <circle cx="100" cy="68" r="8" fill="#e040fb" stroke="#ffffff" strokeWidth="1" />
+                        <ellipse cx="100" cy="68" rx="14" ry="4" fill="none" stroke="#00e5ff" strokeWidth="1" />
+                      </g>
+                      <g style={{ animation: "timeDialSpin 14s linear reverse infinite", transformOrigin: "100px 100px" }}>
+                        <circle cx="100" cy="132" r="5" fill="#ffd54f" />
+                      </g>
+                    </g>
+                    {[...Array(6)].map((_, i) => {
+                      const angle = i * 60;
+                      return (
+                        <polygon
+                          key={i}
+                          points="100,6 102,12 108,12 103,15 105,21 100,17 95,21 97,15 92,12 98,12"
+                          fill="#ffffff"
+                          transform={`rotate(${angle} 100 100) translate(0 8)`}
+                          style={{ animation: `supernovaPulse ${2 + (i % 2)}s infinite` }}
+                        />
+                      );
+                    })}
+                  </g>
+                </svg>
+              </div>
+            )}
+
+            {/* Divine Jade Dragon Frame (God Tier) */}
+            {avatarFrame === "dragon-whisker" && (
+              <div style={{ position: "absolute", inset: "-26px", pointerEvents: "none", zIndex: 10 }}>
+                <svg width="100%" height="100%" viewBox="0 0 200 200" style={{ overflow: "visible" }}>
+                  <defs>
+                    <linearGradient id="jadeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#69f0ae" />
+                      <stop offset="50%" stopColor="#00e676" />
+                      <stop offset="100%" stopColor="#004d40" />
+                    </linearGradient>
+                    <filter id="dragonGlow">
+                      <feGaussianBlur stdDeviation="4" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <g filter="url(#dragonGlow)">
+                    <circle cx="100" cy="100" r="92" fill="none" stroke="url(#jadeGrad)" strokeWidth="3" />
+                    <circle cx="100" cy="100" r="87" fill="none" stroke="#ffd54f" strokeWidth="1" strokeDasharray="8, 6" />
+                    <path d="M 25 100 C 15 60, 40 25, 100 25 C 160 25, 185 60, 175 100" fill="none" stroke="url(#jadeGrad)" strokeWidth="6" strokeLinecap="round" />
+                    <g transform="translate(100, 182)">
+                      <path d="M -16 -12 L 16 -12 L 12 6 L 0 14 L -12 6 Z" fill="#004d40" stroke="url(#jadeGrad)" strokeWidth="2" />
+                      <polygon points="0,-16 -6,-6 6,-6" fill="#ffd54f" />
+                      <circle cx="-5" cy="-4" r="2.5" fill="#ffd54f" style={{ animation: "supernovaPulse 1.5s infinite" }} />
+                      <circle cx="5" cy="-4" r="2.5" fill="#ffd54f" style={{ animation: "supernovaPulse 1.5s infinite" }} />
+                    </g>
+                    <g style={{ animation: "dragonWhiskerSwim 4s ease-in-out infinite", transformOrigin: "100px 182px" }}>
+                      <path d="M 88 176 Q 60 185, 45 160 Q 60 165, 84 174" fill="none" stroke="#69f0ae" strokeWidth="1.5" strokeLinecap="round" />
+                      <path d="M 112 176 Q 140 185, 155 160 Q 140 165, 116 174" fill="none" stroke="#69f0ae" strokeWidth="1.5" strokeLinecap="round" />
+                    </g>
+                  </g>
+                </svg>
+              </div>
+            )}
+
+            {/* Cosmic Supernova Frame (God Tier) */}
+            {avatarFrame === "solar-flare" && (
+              <div style={{ position: "absolute", inset: "-30px", pointerEvents: "none", zIndex: 10 }}>
+                <svg width="100%" height="100%" viewBox="0 0 200 200" style={{ overflow: "visible" }}>
+                  <defs>
+                    <radialGradient id="solarBlast" cx="50%" cy="50%" r="50%">
+                      <stop offset="60%" stopColor="#ffea00" stopOpacity="0.95" />
+                      <stop offset="78%" stopColor="#ff9100" stopOpacity="0.75" />
+                      <stop offset="92%" stopColor="#ff3d00" stopOpacity="0.45" />
+                      <stop offset="100%" stopColor="#ff3d00" stopOpacity="0" />
+                    </radialGradient>
+                    <filter id="supernovaGlow">
+                      <feGaussianBlur stdDeviation="8" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <g filter="url(#supernovaGlow)">
+                    <path 
+                      d="M 100 10 Q 120 30, 160 20 Q 145 65, 185 100 Q 145 135, 160 180 Q 120 170, 100 190 Q 80 170, 40 180 Q 55 135, 15 100 Q 55 65, 40 20 Q 80 30, 100 10 Z" 
+                      fill="url(#solarBlast)" 
+                      style={{ animation: "solarCorona 6s linear infinite", transformOrigin: "100px 100px" }} 
+                    />
+                    <circle cx="100" cy="100" r="82" fill="none" stroke="#ffea00" strokeWidth="4" style={{ animation: "supernovaPulse 2s infinite" }} />
+                    {[...Array(6)].map((_, i) => {
+                      const angle = i * 60;
+                      return (
+                        <path
+                          key={i}
+                          d="M 92 22 Q 100 4, 108 22"
+                          fill="none"
+                          stroke="#ff9100"
+                          strokeWidth="2.5"
+                          transform={`rotate(${angle} 100 100)`}
+                          style={{ animation: "supernovaPulse 1.2s ease-in-out infinite", transformOrigin: "100px 100px" }}
+                        />
+                      );
+                    })}
+                  </g>
+                </svg>
+              </div>
+            )}
+
+            {/* Grim Shadow Reaper Frame (God Tier) */}
+            {avatarFrame === "shadow-mask" && (
+              <div style={{ position: "absolute", inset: "-26px", pointerEvents: "none", zIndex: 10 }}>
+                <svg width="100%" height="100%" viewBox="0 0 200 200" style={{ overflow: "visible" }}>
+                  <defs>
+                    <linearGradient id="reaperGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#ba68c8" />
+                      <stop offset="50%" stopColor="#4a148c" />
+                      <stop offset="100%" stopColor="#12001e" />
+                    </linearGradient>
+                    <filter id="reaperGlow">
+                      <feGaussianBlur stdDeviation="5" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <g filter="url(#reaperGlow)">
+                    <circle cx="100" cy="100" r="90" fill="none" stroke="url(#reaperGrad)" strokeWidth="3" style={{ animation: "shadowMist 4s infinite" }} />
+                    <circle cx="100" cy="100" r="86" fill="none" stroke="#ba68c8" strokeWidth="1" strokeDasharray="4 6" style={{ animation: "runeSpin 20s linear infinite" }} />
+                    <g opacity="0.85">
+                      <path d="M 30 50 Q 80 80, 170 170" fill="none" stroke="#b0bec5" strokeWidth="3.5" strokeLinecap="round" />
+                      <path d="M 30 50 Q 15 30, 45 25 C 40 32, 42 45, 30 50 Z" fill="#9c27b0" stroke="#b0bec5" strokeWidth="1" />
+                      <path d="M 170 50 Q 120 80, 30 170" fill="none" stroke="#b0bec5" strokeWidth="3.5" strokeLinecap="round" />
+                      <path d="M 170 50 Q 185 30, 155 25 C 160 32, 158 45, 170 50 Z" fill="#9c27b0" stroke="#b0bec5" strokeWidth="1" />
+                    </g>
+                    <g transform="translate(100, 24)" style={{ filter: "drop-shadow(0 0 5px #e040fb)" }}>
+                      <path d="M -14 -10 C -14 -18, 14 -18, 14 -10 L 10 4 L 0 10 L -10 4 Z" fill="#12001e" stroke="#ba68c8" strokeWidth="2" />
+                      <circle cx="-5" cy="-7" r="2" fill="#ff1744" style={{ animation: "supernovaPulse 1.2s infinite" }} />
+                      <circle cx="5" cy="-7" r="2" fill="#ff1744" style={{ animation: "supernovaPulse 1.2s infinite" }} />
+                      <line x1="-8" y1="-2" x2="8" y2="-2" stroke="#ba68c8" strokeWidth="1.5" />
+                      <polygon points="0,-4 -2,0 2,0" fill="#ba68c8" />
+                      <line x1="-5" y1="2" x2="-5" y2="6" stroke="#ba68c8" strokeWidth="1" />
+                      <line x1="0" y1="2" x2="0" y2="6" stroke="#ba68c8" strokeWidth="1" />
+                      <line x1="5" y1="2" x2="5" y2="6" stroke="#ba68c8" strokeWidth="1" />
+                    </g>
+                  </g>
+                </svg>
+              </div>
+            )}
+
+            {/* Cyber Samurai Frame (God Tier) */}
+            {avatarFrame === "samurai-helmet" && (
+              <div style={{ position: "absolute", inset: "-26px", pointerEvents: "none", zIndex: 10 }}>
+                <svg width="100%" height="100%" viewBox="0 0 200 200" style={{ overflow: "visible" }}>
+                  <defs>
+                    <linearGradient id="samuraiRed" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#ff007f" />
+                      <stop offset="100%" stopColor="#a3003c" />
+                    </linearGradient>
+                    <filter id="samuraiGlow">
+                      <feGaussianBlur stdDeviation="4" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <g filter="url(#samuraiGlow)">
+                    <circle cx="100" cy="100" r="92" fill="none" stroke="url(#samuraiRed)" strokeWidth="3" />
+                    <circle cx="100" cy="100" r="88" fill="none" stroke="#00f5ff" strokeWidth="1.5" strokeDasharray="30, 4" />
+                    <g transform="translate(100, 22)">
+                      <path d="M 0 10 L -25 -25 L -10 -15 L 0 10 Z" fill="#120314" stroke="url(#samuraiRed)" strokeWidth="2.5" />
+                      <path d="M 0 10 L 25 -25 L 10 -15 L 0 10 Z" fill="#120314" stroke="url(#samuraiRed)" strokeWidth="2.5" />
+                      <polygon points="-8,-8 0,-22 8,-8" fill="#00f5ff" />
+                      <circle cx="0" cy="5" r="3" fill="#00f5ff" style={{ animation: "supernovaPulse 1s infinite" }} />
+                    </g>
+                    <g style={{ animation: "cyberGlitch 4s infinite" }}>
+                      <rect x="25" y="90" width="150" height="20" fill="rgba(255, 0, 127, 0.4)" stroke="#ff007f" strokeWidth="1.5" rx="4" />
+                      <line x1="30" y1="100" x2="170" y2="100" stroke="#00f5ff" strokeWidth="2" style={{ animation: "supernovaPulse 0.5s infinite" }} />
+                    </g>
+                    <g transform="translate(100, 180)">
+                      <rect x="-35" y="-3" width="20" height="6" fill="#1a1a1a" stroke="url(#samuraiRed)" strokeWidth="1" transform="rotate(-25)" />
+                      <rect x="-17" y="-7" width="2" height="14" fill="#00f5ff" transform="rotate(-25)" />
+                      <rect x="15" y="-3" width="20" height="6" fill="#1a1a1a" stroke="url(#samuraiRed)" strokeWidth="1" transform="rotate(25)" />
+                      <rect x="15" y="-7" width="2" height="14" fill="#00f5ff" transform="rotate(25)" />
+                      <circle cx="0" cy="0" r="7" fill="#120314" stroke="#ff007f" strokeWidth="2" />
+                      <polygon points="0,-4 3,3 -3,3" fill="#00f5ff" />
+                    </g>
+                  </g>
+                </svg>
+              </div>
+            )}
+
+            {/* Arcane Overlord Frame (God Tier) */}
+            {avatarFrame === "runic-circle" && (
+              <div style={{ position: "absolute", inset: "-26px", pointerEvents: "none", zIndex: 10 }}>
+                <svg width="100%" height="100%" viewBox="0 0 200 200" style={{ overflow: "visible" }}>
+                  <defs>
+                    <linearGradient id="arcaneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#3f51b5" />
+                      <stop offset="50%" stopColor="#8c9eff" />
+                      <stop offset="100%" stopColor="#ffb74d" />
+                    </linearGradient>
+                    <filter id="arcaneGlow">
+                      <feGaussianBlur stdDeviation="4" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <g filter="url(#arcaneGlow)">
+                    <circle cx="100" cy="100" r="92" fill="none" stroke="url(#arcaneGrad)" strokeWidth="2.5" />
+                    <circle cx="100" cy="100" r="86" fill="none" stroke="#ffb74d" strokeWidth="1" strokeDasharray="4, 12" style={{ animation: "timeDialSpin 30s linear infinite" }} />
+                    <g style={{ animation: "timeDialSpin 40s linear reverse infinite", transformOrigin: "100px 100px" }} opacity="0.65">
+                      <polygon points="100,14 135,160 55,60 145,60 65,160" fill="none" stroke="url(#arcaneGrad)" strokeWidth="1.5" />
+                    </g>
+                    <g style={{ animation: "runeSpin 20s linear infinite", transformOrigin: "100px 100px" }}>
+                      {[...Array(8)].map((_, i) => {
+                        const angle = i * 45;
+                        return (
+                          <g key={i} transform={`rotate(${angle} 100 100) translate(0 -92)`}>
+                            <polygon points="0,-8 2,-2 8,-2 3,1 5,7 0,3 -5,7 -3,1 -8,-2 -2,-2" fill="#ffb74d" stroke="#8c9eff" strokeWidth="0.5" transform="scale(0.85)" />
+                          </g>
+                        );
+                      })}
+                    </g>
+                    <circle cx="100" cy="12" r="2.5" fill="#ffea00" style={{ animation: "supernovaPulse 1s infinite" }} />
+                    <circle cx="100" cy="188" r="2.5" fill="#ffea00" style={{ animation: "supernovaPulse 1s infinite 0.5s" }} />
+                    <circle cx="12" cy="100" r="2.5" fill="#ffea00" style={{ animation: "supernovaPulse 1s infinite 0.25s" }} />
+                    <circle cx="188" cy="100" r="2.5" fill="#ffea00" style={{ animation: "supernovaPulse 1s infinite 0.75s" }} />
+                  </g>
+                </svg>
+              </div>
+            )}
+
             <div style={{ 
               width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden",
               background: "var(--bg-dark-surface)", display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: "60px", position: "relative", zIndex: 5,
-              ...(!["lightning-strike", "inferno-aura", "rage-aura", "void-aura", "kawaii-clouds", "hologram-ring", "frost-ring", "sakura-bunny", "synth-ring", "vinyl-glow", "pixel-crown", "vine-wreath", "boba-ears", "event-horizon", "jelly-pulse", "clockwork-gears", "bat-wings", "cyber-visor"].includes(avatarFrame) ? getAvatarFrameStyle(avatarFrame) : { border: "2px solid transparent" })
+              ...(!["lightning-strike", "inferno-aura", "rage-aura", "void-aura", "kawaii-clouds", "hologram-ring", "frost-ring", "sakura-bunny", "synth-ring", "vinyl-glow", "pixel-crown", "vine-wreath", "boba-ears", "event-horizon", "jelly-pulse", "clockwork-gears", "bat-wings", "cyber-visor", "phoenix-feather", "chronos-dial", "neon-matrix", "ice-shards", "stellar-halo", "dragon-whisker", "solar-flare", "shadow-mask", "samurai-helmet", "runic-circle"].includes(avatarFrame) ? getAvatarFrameStyle(avatarFrame) : { border: "2px solid transparent" })
             }}>
               {profile?.avatar ? (
                 profile.avatar.includes('http') ? <img src={profile.avatar} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : profile.avatar

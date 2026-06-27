@@ -1,12 +1,31 @@
 import * as Sentry from "@sentry/node";
 import TelemetryEvent from "../models/TelemetryEvent.js";
+import logger from "../config/logger.js";
 
 export function errorHandler(err, req, res, next) {
-  console.error("[ErrorHandler] Error:", err.message);
+  logger.error("[ErrorHandler] Error occurred", { message: err.message, stack: err.stack, statusCode: err.statusCode || 500 });
   
-  // Capture unhandled errors in Sentry
-  if (process.env.NODE_ENV === "production" && !err.isJoi && !err.isZod) {
-    Sentry.captureException(err);
+  // Capture unhandled errors in Sentry for all environments if SENTRY_DSN is configured
+  if (process.env.SENTRY_DSN && !err.isJoi && err.name !== "ZodError" && err.name !== "ValidationError") {
+    Sentry.withScope((scope) => {
+      if (req.user) {
+        scope.setUser({
+          id: req.user.userId || req.user.id || "",
+          username: req.user.username || "",
+          email: req.user.email || ""
+        });
+      }
+      if (req.requestId) {
+        scope.setTag("requestId", req.requestId);
+      }
+      if (req.correlationId) {
+        scope.setTag("correlationId", req.correlationId);
+      }
+      scope.setTag("method", req.method);
+      scope.setTag("url", req.originalUrl);
+      scope.setTag("statusCode", String(err.statusCode || 500));
+      Sentry.captureException(err);
+    });
   }
 
   // Log API_ERROR to Telemetry
@@ -21,7 +40,7 @@ export function errorHandler(err, req, res, next) {
         stack: err.stack,
         statusCode: err.statusCode || 500
       }
-    }).catch(e => console.error("[Telemetry] Failed to log API_ERROR:", e));
+    }).catch(e => logger.error("[Telemetry] Failed to log API_ERROR", { error: e.message }));
   } catch (telemetryErr) {
     // Ignore telemetry insertion failures
   }
@@ -31,11 +50,13 @@ export function errorHandler(err, req, res, next) {
     return res.status(400).json({ error: "Resource already exists", code: 400 });
   }
 
-  // Handle Zod Validation Errors
+
+  // Handle Zod Validation Errors (Zod v4 uses .issues, Zod v3 used .errors)
   if (err.name === "ZodError") {
-    return res.status(400).json({ 
-      error: "Validation Error", 
-      details: err.errors.map(e => `${e.path.join(".")}: ${e.message}`)
+    const issues = err.issues || err.errors || [];
+    return res.status(400).json({
+      error: "Validation Error",
+      details: issues.map(e => `${Array.isArray(e.path) ? e.path.join(".") : e.path}: ${e.message}`)
     });
   }
 

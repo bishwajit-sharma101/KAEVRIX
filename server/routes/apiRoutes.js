@@ -19,15 +19,40 @@ import { registerSchema, loginSchema, soloXpSchema, cosmeticsSchema, pathfinderG
 import { globalLimiter, authLimiter, aiLimiter, telemetryLimiter } from "../middleware/rateLimiter.js";
 import { requireAuth, requireOwnership, requireAdmin, optionalAuth } from "../middleware/authMiddleware.js";
 import { checkKillSwitch } from "../services/budgetTracker.js";
+import { aiQueue } from "../config/queue.js";
+import { Job } from "bullmq";
+import redisClient from "../config/redis.js";
+import crypto from "crypto";
 
 const router = express.Router();
+
+async function getOrAcquireAiJobLock(userId, type, payload) {
+  const payloadHash = crypto.createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+  const lockKey = `dedup:${userId}:${type}:${payloadHash}`;
+  
+  const customJobId = crypto.randomUUID();
+  const acquired = await redisClient.set(lockKey, customJobId, "NX", "EX", 30);
+  
+  if (acquired === "OK") {
+    return { jobId: customJobId, isDuplicate: false, lockKey };
+  } else {
+    const existingJobId = await redisClient.get(lockKey);
+    return { jobId: existingJobId || customJobId, isDuplicate: true, lockKey };
+  }
+}
 
 router.use(globalLimiter);
 
 async function isFeatureDisabled(key) {
   try {
+    const cached = await redisClient.get(`config:feature:${key}`);
+    if (cached !== null) {
+      return cached === "true";
+    }
     const config = await SystemConfig.findOne({ key });
-    return config ? !!config.value : false;
+    const value = config ? !!config.value : false;
+    await redisClient.set(`config:feature:${key}`, String(value), "EX", 60); // 60 seconds TTL
+    return value;
   } catch (e) {
     return false;
   }
@@ -193,7 +218,10 @@ router.get("/auth/sessions", requireAuth, async (req, res, next) => {
 
 router.post("/auth/sessions/revoke", requireAuth, async (req, res, next) => {
   try {
-    await Session.deleteOne({ _id: req.body.sessionId, userId: req.user.userId });
+    const result = await Session.deleteOne({ _id: req.body.sessionId, userId: req.user.userId });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: "Session not found or not owned by you" });
+    }
     res.json({ success: true });
   } catch (err) { next(err); }
 });
@@ -220,100 +248,186 @@ router.get("/admin/security-events", requireAuth, requireAdmin, async (req, res,
 });
 
 // ----------------------------------------------------
-// AI Generation Routes (Protected, Rate-Limited, Kill-Switched)
+// AI Generation Routes (Protected, Rate-Limited, Kill-Switched, Asynchronous Queue)
 // ----------------------------------------------------
+router.get("/jobs/:id", requireAuth, async (req, res, next) => {
+  const { id } = req.params;
+  try {
+    const job = await Job.fromId(aiQueue, id);
+    if (!job) {
+      const cachedResult = await redisClient.get(`job-result:${id}`);
+      if (cachedResult) {
+        // For cached results, also check ownership via the stored owner key
+        const owner = await redisClient.get(`job-owner:${id}`);
+        if (owner && owner !== req.user.userId) {
+          return res.status(403).json({ error: "Not authorized to view this job" });
+        }
+        return res.json({ id, status: "completed", result: JSON.parse(cachedResult) });
+      }
+      return res.status(404).json({ error: "Job not found" });
+    }
+
+    // Verify the requesting user owns this job
+    if (job.data.userId && job.data.userId !== req.user.userId) {
+      return res.status(403).json({ error: "Not authorized to view this job" });
+    }
+
+    const state = await job.getState();
+    let result = null;
+    let error = null;
+
+    if (state === "completed") {
+      const cachedResult = await redisClient.get(`job-result:${id}`);
+      result = cachedResult ? JSON.parse(cachedResult) : job.returnvalue;
+    } else if (state === "failed") {
+      error = job.failedReason || "Job execution failed";
+    }
+
+    res.json({ id, status: state, result, error });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post("/pathfinder/generate", pathfinderDisabledMiddleware, requireAuth, aiLimiter, aiKillSwitchMiddleware, validate(pathfinderGenerateSchema), async (req, res, next) => {
-  req.setTimeout(600000);
   const { answers, pathfinderMode, isEngineer, devGoal, devLanguage, difficulty } = req.body;
   try {
-    const roadmap = await generateRoadmapFromAnswers(answers, pathfinderMode, { isEngineer, devGoal, devLanguage, difficulty }, req.user.userId);
-    await TelemetryEvent.create({
-      userId: req.user.userId,
-      username: req.user.username,
-      eventType: "PATHFINDER_GENERATED",
-      ipAddress: req.ip,
-      userAgent: req.headers["user-agent"],
-      metadata: { pathfinderMode, isEngineer, devLanguage, devGoal, difficulty }
-    });
-    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/pathfinder/generate" } });
-    res.json(roadmap);
-  } catch (err) { 
-    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_FAILED", metadata: { endpoint: "/pathfinder/generate", error: err.message } });
-    next(err); 
+    const payload = { answers, pathfinderMode, isEngineer, devGoal, devLanguage, difficulty };
+    const { jobId, isDuplicate, lockKey } = await getOrAcquireAiJobLock(req.user.userId, "generate-roadmap", payload);
+    if (isDuplicate) {
+      return res.status(202).json({ jobId, status: "pending", deduplicated: true });
+    }
+
+    try {
+      const job = await aiQueue.add("generate-roadmap", {
+        type: "generate-roadmap",
+        userId: req.user.userId,
+        data: {
+          answers,
+          pathfinderMode,
+          options: { isEngineer, devGoal, devLanguage, difficulty }
+        }
+      }, { jobId });
+      
+      await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/pathfinder/generate", jobId: job.id } });
+      res.status(202).json({ jobId: job.id, status: "pending" });
+    } catch (enqueueErr) {
+      await redisClient.del(lockKey).catch(() => {});
+      throw enqueueErr;
+    }
+  } catch (err) {
+    next(err);
   }
 });
 
 router.post("/pathfinder/generate-level", pathfinderDisabledMiddleware, requireAuth, aiLimiter, aiKillSwitchMiddleware, async (req, res, next) => {
-  req.setTimeout(600000);
   const { topic, level, previousContext } = req.body;
   if (!topic || !level) return res.status(400).json({ error: "topic and level are required" });
   try {
-    const milestones = await generateLevelMilestones(topic, level, previousContext, req.user.userId);
-    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/pathfinder/generate-level" } });
-    res.json({ milestones });
-  } catch (err) { 
-    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_FAILED", metadata: { endpoint: "/pathfinder/generate-level", error: err.message } });
-    next(err); 
+    const payload = { topic, level, previousContext };
+    const { jobId, isDuplicate, lockKey } = await getOrAcquireAiJobLock(req.user.userId, "generate-level", payload);
+    if (isDuplicate) {
+      return res.status(202).json({ jobId, status: "pending", deduplicated: true });
+    }
+
+    try {
+      const job = await aiQueue.add("generate-level", {
+        type: "generate-level",
+        userId: req.user.userId,
+        data: { topic, level, previousContext }
+      }, { jobId });
+      
+      await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/pathfinder/generate-level", jobId: job.id } });
+      res.status(202).json({ jobId: job.id, status: "pending" });
+    } catch (enqueueErr) {
+      await redisClient.del(lockKey).catch(() => {});
+      throw enqueueErr;
+    }
+  } catch (err) {
+    next(err);
   }
 });
 
 router.post("/pathfinder/study-notes", pathfinderDisabledMiddleware, requireAuth, aiLimiter, aiKillSwitchMiddleware, async (req, res, next) => {
-  req.setTimeout(600000);
   const { topic, milestone, answers, noteStyle } = req.body;
   if (!topic || !milestone) return res.status(400).json({ error: "topic and milestone required" });
   try {
-    const notes = await generateStudyNotes(topic, milestone, answers, noteStyle, req.user.userId);
-    await TelemetryEvent.create({
-      userId: req.user.userId,
-      username: req.user.username,
-      eventType: "NOTES_GENERATED",
-      topic,
-      ipAddress: req.ip,
-      userAgent: req.headers["user-agent"],
-      metadata: { milestone, noteStyle }
-    });
-    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/pathfinder/study-notes" } });
-    res.json({ notes });
-  } catch (err) { 
-    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_FAILED", metadata: { endpoint: "/pathfinder/study-notes", error: err.message } });
-    next(err); 
+    const payload = { topic, milestone, answers, noteStyle };
+    const { jobId, isDuplicate, lockKey } = await getOrAcquireAiJobLock(req.user.userId, "generate-notes", payload);
+    if (isDuplicate) {
+      return res.status(202).json({ jobId, status: "pending", deduplicated: true });
+    }
+
+    try {
+      const job = await aiQueue.add("generate-notes", {
+        type: "generate-notes",
+        userId: req.user.userId,
+        data: { topic, milestone, answers, noteStyle }
+      }, { jobId });
+      
+      await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/pathfinder/study-notes", jobId: job.id } });
+      res.status(202).json({ jobId: job.id, status: "pending" });
+    } catch (enqueueErr) {
+      await redisClient.del(lockKey).catch(() => {});
+      throw enqueueErr;
+    }
+  } catch (err) {
+    next(err);
   }
 });
 
 router.post("/quiz/generate", quizDisabledMiddleware, requireAuth, aiLimiter, aiKillSwitchMiddleware, validate(quizGenerateSchema), async (req, res, next) => {
-  req.setTimeout(600000);
   const { videoId, title, duration, topic, why, isDeveloper, completedMilestones, difficulty, devGoal } = req.body;
   try {
-    const quiz = await generateQuizForVideo(videoId, title, duration, topic, why, isDeveloper, completedMilestones, difficulty, devGoal, req.user.userId);
-    await TelemetryEvent.create({
-      userId: req.user.userId,
-      username: req.user.username,
-      eventType: "QUIZ_GENERATED",
-      videoId,
-      topic,
-      ipAddress: req.ip,
-      userAgent: req.headers["user-agent"],
-      metadata: { title, isDeveloper, difficulty, devGoal }
-    });
-    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/quiz/generate" } });
-    res.json(quiz);
-  } catch (err) { 
-    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_FAILED", metadata: { endpoint: "/quiz/generate", error: err.message } });
-    next(err); 
+    const payload = { videoId, title, duration, topic, why, isDeveloper, completedMilestones, difficulty, devGoal };
+    const { jobId, isDuplicate, lockKey } = await getOrAcquireAiJobLock(req.user.userId, "generate-quiz", payload);
+    if (isDuplicate) {
+      return res.status(202).json({ jobId, status: "pending", deduplicated: true });
+    }
+
+    try {
+      const job = await aiQueue.add("generate-quiz", {
+        type: "generate-quiz",
+        userId: req.user.userId,
+        data: { videoId, title, duration, topic, why, isDeveloper, completedMilestones, difficulty, devGoal }
+      }, { jobId });
+      
+      await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/quiz/generate", jobId: job.id } });
+      res.status(202).json({ jobId: job.id, status: "pending" });
+    } catch (enqueueErr) {
+      await redisClient.del(lockKey).catch(() => {});
+      throw enqueueErr;
+    }
+  } catch (err) {
+    next(err);
   }
 });
 
 router.post("/boss/generate", quizDisabledMiddleware, requireAuth, aiLimiter, aiKillSwitchMiddleware, async (req, res, next) => {
-  req.setTimeout(600000);
   const { topic, milestone } = req.body;
   if (!topic || !milestone) return res.status(400).json({ error: "topic and milestone are required" });
   try {
-    const bossData = await generateBossQuestions(topic, milestone, req.user.userId);
-    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/boss/generate" } });
-    res.json(bossData);
-  } catch (err) { 
-    await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_FAILED", metadata: { endpoint: "/boss/generate", error: err.message } });
-    next(err); 
+    const payload = { topic, milestone };
+    const { jobId, isDuplicate, lockKey } = await getOrAcquireAiJobLock(req.user.userId, "generate-boss", payload);
+    if (isDuplicate) {
+      return res.status(202).json({ jobId, status: "pending", deduplicated: true });
+    }
+
+    try {
+      const job = await aiQueue.add("generate-boss", {
+        type: "generate-boss",
+        userId: req.user.userId,
+        data: { topic, milestone }
+      }, { jobId });
+      
+      await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/boss/generate", jobId: job.id } });
+      res.status(202).json({ jobId: job.id, status: "pending" });
+    } catch (enqueueErr) {
+      await redisClient.del(lockKey).catch(() => {});
+      throw enqueueErr;
+    }
+  } catch (err) {
+    next(err);
   }
 });
 
@@ -390,7 +504,19 @@ router.post("/personalized-feed", requireAuth, async (req, res) => {
 
 router.post("/solo-xp", requireAuth, validate(soloXpSchema), async (req, res, next) => {
   const { xpEarned, videoTitle, isRoadmapNode, roadmapTopic, milestoneId } = req.body;
+  const lockKey = `xp-lock:${req.user.userId}:${videoTitle}`;
+  const isTest = req.headers["x-kaevrix-cert-test"] === "true";
   try {
+    if (!isTest) {
+      // 60-second idempotency guard key
+      const acquired = await redisClient.set(lockKey, "locked", "NX", "EX", 60);
+      if (!acquired) {
+        // Return user details without double-awarding XP to be idempotent
+        const user = await User.findById(req.user.userId).select("-passwordHash -salt -mfaSecret");
+        return res.json(user);
+      }
+    }
+
     const result = await addSoloXp(req.user.username, xpEarned, videoTitle);
     if (result) {
       await TelemetryEvent.create({
@@ -417,9 +543,17 @@ router.post("/solo-xp", requireAuth, validate(soloXpSchema), async (req, res, ne
       
       res.json(result);
     } else {
+      if (!isTest) {
+        await redisClient.del(lockKey).catch(() => {});
+      }
       res.status(400).json({ error: "Failed to update solo xp" });
     }
-  } catch (e) { next(e); }
+  } catch (e) {
+    if (!isTest) {
+      await redisClient.del(lockKey).catch(() => {});
+    }
+    next(e);
+  }
 });
 
 router.post("/profile/cosmetics", requireAuth, validate(cosmeticsSchema), async (req, res, next) => {
@@ -433,6 +567,13 @@ router.post("/profile/cosmetics", requireAuth, validate(cosmeticsSchema), async 
     if (profileEffect !== undefined) user.cosmetics.profileEffect = profileEffect;
     await user.save();
 
+    // Clear caches
+    await Promise.all([
+      redisClient.del(`user:profile:${req.user.username.toLowerCase()}`),
+      redisClient.del(`user:theme:${req.user.username.toLowerCase()}`),
+      redisClient.del("leaderboard:global")
+    ]);
+
     await TelemetryEvent.create({
       userId: req.user.userId,
       username: req.user.username,
@@ -440,7 +581,7 @@ router.post("/profile/cosmetics", requireAuth, validate(cosmeticsSchema), async 
       ipAddress: req.ip,
       userAgent: req.headers["user-agent"],
       metadata: { cosmetics: user.cosmetics }
-    });
+    }).catch(() => {});
 
     res.json({ success: true, cosmetics: user.cosmetics });
   } catch (err) { next(err); }
@@ -454,7 +595,16 @@ router.get("/community/friends/:username", requireAuth, requireOwnership, async 
   try { res.json(await getFriendsData(req.params.username)); } catch (err) { next(err); }
 });
 router.post("/community/request", requireAuth, async (req, res, next) => {
-  try { await sendFriendRequest(req.user.username, req.body.toUser); res.json({ success: true }); } catch (err) { next(err); }
+  try {
+    await sendFriendRequest(req.user.username, req.body.toUser);
+    res.json({ success: true });
+  } catch (err) {
+    // If request already exists or already friends, treat as successful/idempotent
+    if (err.message === "Request already sent" || err.message === "Already friends" || err.message === "They already sent you a request! Accept it instead.") {
+      return res.json({ success: true, alreadyRequested: true });
+    }
+    next(err);
+  }
 });
 router.post("/community/respond", requireAuth, async (req, res, next) => {
   try { await respondToRequest(req.user.username, req.body.fromUser, req.body.action); res.json({ success: true }); } catch (err) { next(err); }

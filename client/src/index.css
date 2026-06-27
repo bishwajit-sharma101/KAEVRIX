@@ -3338,5 +3338,868 @@ body {
   background: rgba(255,106,0,0.1) !important;
 }
 
+/* ==========================================
+   PREMIUM RESPONSIVE DESIGN SYSTEM OVERLAYS
+   ========================================== */
+
+/* Main Layout Grids and Flexbox Wrappers */
+.dashboard-wrapper {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 0;
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+  box-sizing: border-box;
+}
+
+.dashboard-sidebar {
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 20px;
+  box-sizing: border-box;
+}
+
+.dashboard-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.dashboard-content {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.header-search-container {
+  flex: 1;
+  max-width: 600px;
+  margin: 0 40px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-sizing: border-box;
+}
+
+.study-history-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+  min-height: 500px;
+  align-items: stretch;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.scheduler-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 32px;
+  align-items: start;
+  margin-bottom: 40px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Tablet Layout (max-width: 1024px) */
+@media (max-width: 1024px) {
+  .dashboard-wrapper {
+    flex-direction: column;
+    padding: 24px 16px;
+    gap: 24px;
+  }
+
+  .dashboard-sidebar {
+    width: 100%;
+    position: static;
+    gap: 12px;
+  }
+
+  .dashboard-sidebar-title {
+    display: none !important;
+  }
+
+  /* Transform sidebar buttons into a sleek horizontal swipe menu for gaming consoles */
+  .dashboard-sidebar-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    gap: 8px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Custom scrollbar hiding styling for horizontal nav */
+  .dashboard-sidebar-nav::-webkit-scrollbar {
+    height: 4px;
+  }
+  .dashboard-sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 106, 0, 0.3);
+    border-radius: 4px;
+  }
+
+  .dashboard-sidebar-nav .hud-nav-btn {
+    width: auto !important;
+    white-space: nowrap;
+    padding: 8px 16px;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+
+  .dashboard-stats-widget {
+    display: none !important;
+  }
+}
+
+/* Mobile & Global Responsive Layout (max-width: 768px) */
+@media (max-width: 768px) {
+  .app-header {
+    display: grid !important;
+    grid-template-columns: auto 1fr !important;
+    align-items: center !important;
+    gap: 12px 8px !important;
+    padding: 12px !important;
+  }
+
+  .header-left {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .header-right {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    justify-content: flex-end !important;
+  }
+
+  /* Search row: Spans 100% width on Row 2 */
+  .header-search-container {
+    grid-column: 1 / span 2 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+    margin: 4px 0 0 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  /* Force the Search Form to occupy the entire width of Row 2 */
+  .header-search-form {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Push Settings/Audio buttons to Row 3 (wrapped automatically) */
+  .header-search-container > button,
+  .header-search-container > div {
+    flex: 0 0 auto !important;
+  }
+
+  /* Grid Layouts Stacked */
+  .study-history-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .scheduler-dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  /* Avatar Nickname Selector */
+  .welcome-box {
+    padding: 16px !important;
+  }
+  .avatar-selector {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* VS Screen for Matchmaking */
+  .vs-container {
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+  .vs-divider {
+    transform: rotate(90deg) !important;
+    margin: 10px 0 !important;
+  }
+}
+
+/* Narrow Screens (max-width: 480px) */
+@media (max-width: 480px) {
+  /* Prevent Header Profile Card from squeezing */
+  .header-profile {
+    padding: 4px 10px 4px 4px !important;
+    gap: 8px !important;
+    border-radius: 20px !important;
+  }
+
+  .profile-avatar {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .profile-name {
+    font-size: 11.5px !important;
+  }
+
+  .profile-level-badge {
+    font-size: 9px !important;
+  }
+
+  .header-left img {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .logo-text {
+    display: none !important;
+  }
+
+  /* Study Quests layout rows */
+  .hud-directive-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 14px !important;
+    padding: 12px 14px !important;
+  }
+
+  .hud-directive-row > div:last-child {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .hud-quest-btn {
+    flex: 1 !important;
+    text-align: center !important;
+    padding: 10px !important;
+    font-size: 11px !important;
+  }
+
+  /* Horizontal Navigation console sizing */
+  .dashboard-sidebar-nav .hud-nav-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+/* Hide side navbar menu row entirely under 1024px since side drawer has all features */
+@media (max-width: 1024px) {
+  .dashboard-sidebar {
+    display: none !important;
+  }
+}
+
+/* ═══════════════ SLIDE-OVER MOBILE DRAWER ═══════════════ */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(10px);
+  z-index: 9999;
+  display: flex;
+  justify-content: flex-start;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.drawer-content {
+  width: 300px;
+  max-width: 85%;
+  height: 100%;
+  background: #090d16;
+  border-right: 1px solid var(--neon-orange);
+  box-shadow: 15px 0 50px rgba(0, 0, 0, 0.75);
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  animation: slideRight 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  border-bottom: 1px dashed rgba(255, 106, 0, 0.25);
+  padding-bottom: 12px;
+}
+
+.drawer-title {
+  font-family: var(--font-gamer);
+  font-size: 13.5px;
+  font-weight: 950;
+  color: var(--neon-orange);
+  letter-spacing: 1.5px;
+  text-shadow: 0 0 10px rgba(255, 106, 0, 0.3);
+}
+
+.drawer-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.drawer-close-btn:hover {
+  color: var(--neon-orange);
+  transform: rotate(90deg);
+}
+
+.drawer-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.drawer-nav-btn {
+  padding: 14px 18px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14.5px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.25s ease;
+  border-left: 3px solid transparent;
+}
+
+.drawer-nav-btn:hover {
+  background: rgba(255, 106, 0, 0.05);
+  color: var(--text-light);
+  border-left-color: rgba(255, 106, 0, 0.4);
+  transform: translateX(4px);
+}
+
+.drawer-nav-btn-active {
+  background: linear-gradient(90deg, rgba(255, 106, 0, 0.09), transparent) !important;
+  color: var(--neon-orange) !important;
+  border-left-color: var(--neon-orange) !important;
+  font-weight: 900 !important;
+  box-shadow: inset 1px 0 0 rgba(255,106,0,0.1);
+}
+
+.drawer-divider {
+  height: 1px;
+  background: rgba(255, 106, 0, 0.15);
+  margin: 16px 0;
+}
+
+/* System Settings section in Drawer */
+.drawer-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.drawer-settings-toggle {
+  background: rgba(255, 106, 0, 0.03);
+  border: 1px solid rgba(255, 106, 0, 0.25);
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-gamer);
+  transition: all 0.2s;
+}
+
+.drawer-settings-toggle:hover {
+  color: var(--text-light);
+  border-color: var(--neon-orange);
+  box-shadow: 0 0 12px rgba(255, 106, 0, 0.15);
+}
+
+.drawer-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: #05070c;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 106, 0, 0.15);
+  margin-top: 4px;
+  animation: scaleUpIn 0.2s ease-out;
+}
+
+.drawer-setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--text-light);
+}
+
+.drawer-toggle-switch {
+  background: #090d16;
+  border: 1px solid rgba(255, 106, 0, 0.3);
+  color: var(--neon-orange);
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.drawer-toggle-switch:hover {
+  border-color: var(--neon-orange);
+  background: var(--neon-orange);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(255,106,0,0.4);
+}
+
+.drawer-music-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px dashed rgba(255, 106, 0, 0.15);
+  padding-top: 10px;
+}
+
+.drawer-setting-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.drawer-music-btn {
+  text-align: left;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid rgba(255, 106, 0, 0.12);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.drawer-music-btn:hover {
+  border-color: rgba(255, 106, 0, 0.4);
+  color: var(--text-light);
+}
+
+.drawer-music-btn-active {
+  background: linear-gradient(135deg, #ff6a00, #ea580c) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px rgba(255, 106, 0, 0.3);
+}
+
+/* ═══════════════ FLOATING TODO WIDGET (FAB) ═══════════════ */
+.floating-todo-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6a00, #ea580c);
+  border: none;
+  box-shadow: 0 8px 30px rgba(255, 106, 0, 0.4), 0 0 15px rgba(255, 106, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 999;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.floating-todo-fab:hover {
+  transform: scale(1.1) translateY(-3px);
+  box-shadow: 0 12px 35px rgba(255, 106, 0, 0.6), 0 0 25px rgba(255, 106, 0, 0.35);
+}
+
+.todo-fab-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-dark-base);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.todo-badge-clear {
+  background: #10b981 !important;
+}
+
+.floating-todo-popup {
+  position: fixed;
+  bottom: 90px;
+  right: 24px;
+  width: 320px;
+  max-width: 90vw;
+  background: #090d16;
+  border: 1.5px solid var(--neon-orange);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 106, 0, 0.25);
+  border-radius: 16px;
+  padding: 16px;
+  z-index: 998;
+  animation: scaleUpIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.todo-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px dashed rgba(255, 106, 0, 0.2);
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+.todo-popup-title {
+  font-family: var(--font-gamer);
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--neon-orange);
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(255, 106, 0, 0.25);
+}
+
+.todo-popup-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.todo-popup-close:hover {
+  color: var(--neon-orange);
+}
+
+.todo-popup-body {
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.todo-tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.todo-task-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: rgba(255, 106, 0, 0.02);
+  border: 1px solid rgba(255,106,0,0.12);
+  border-radius: 8px;
+}
+
+.todo-task-num {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--neon-orange);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  font-weight: 900;
+  color: var(--neon-orange);
+  flex-shrink: 0;
+  box-shadow: 0 0 5px rgba(255,106,0,0.2);
+}
+
+.todo-task-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-light);
+  line-height: 1.35;
+}
+
+.todo-task-node {
+  font-size: 9.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  display: block;
+}
+
+.todo-task-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.todo-action-btn {
+  background: rgba(255, 106, 0, 0.08);
+  border: 1px solid rgba(255, 106, 0, 0.25);
+  color: var(--neon-orange);
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.todo-action-btn:hover {
+  background: var(--neon-orange);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(255,106,0,0.3);
+}
+
+.todo-clear-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px 10px;
+}
+
+/* Slide and Scale Keyframes */
+@keyframes slideRight {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes scaleUpIn {
+  from { transform: scale(0.95) translateY(12px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Desktop Hide Hamburger Button */
+.header-hamburger-btn {
+  display: none !important;
+}
+
+/* Tablet & Mobile Show Menu Button */
+@media (max-width: 1024px) {
+  .header-hamburger-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 24px !important;
+    color: var(--neon-orange) !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    transition: all 0.2s !important;
+  }
+  .header-hamburger-btn:hover {
+    background: transparent !important;
+    color: var(--neon-orange) !important;
+    box-shadow: none !important;
+    opacity: 0.8 !important;
+  }
+}
+
+/* ═══════════════ YOUTUBE MOBILE LAYOUT & SEARCH OVERRIDES ═══════════════ */
+
+/* Hide search triggers on desktop */
+.mobile-search-trigger {
+  display: none !important;
+}
+.mobile-search-active-bar {
+  display: none !important;
+}
+
+@media (min-width: 769px) {
+  .desktop-search-only {
+    display: flex !important;
+  }
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .desktop-search-only {
+    display: none !important;
+  }
+  
+  .mobile-search-trigger {
+    display: flex !important;
+  }
+  .mobile-search-active-bar {
+    display: flex !important;
+  }
+
+  /* Bottom Nav Layout space buffer */
+  body {
+    padding-bottom: 72px !important;
+  }
+
+  /* YouTube-style Mobile Bottom Navigation Bar */
+  .mobile-bottom-nav {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 60px !important;
+    background: #0b0f17 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    display: flex !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    z-index: 9999 !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  .bottom-nav-btn {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-muted) !important;
+    cursor: pointer !important;
+    gap: 2px !important;
+    font-family: inherit !important;
+    flex: 1 !important;
+    height: 100% !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .bottom-nav-icon {
+    font-size: 20px !important;
+    transition: transform 0.2s ease !important;
+  }
+
+  .bottom-nav-label {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.3px !important;
+  }
+
+  .bottom-nav-btn-active {
+    color: var(--neon-orange) !important;
+  }
+
+  .bottom-nav-btn-active .bottom-nav-icon {
+    transform: scale(1.15) !important;
+  }
+
+  /* Push Todo Floating HUD above the bottom navigation bar */
+  .floating-todo-fab {
+    bottom: 84px !important;
+    right: 16px !important;
+  }
+  .floating-todo-popup {
+    bottom: 150px !important;
+    right: 16px !important;
+  }
+
+  /* Scrollable Drawer content preventing cutoffs */
+  .drawer-content {
+    overflow-y: auto !important;
+  }
+  .drawer-nav-list {
+    flex: none !important;
+    overflow-y: visible !important;
+  }
+}
+
+/* Edge-to-edge video list styling for mobile */
+@media (max-width: 600px) {
+  .dashboard-wrapper {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 10px !important;
+  }
+
+  .dashboard-content {
+    padding: 0 !important;
+  }
+
+  /* Force video sections to occupy 100% width and remove spaces */
+  .dashboard-content > div {
+    padding: 0 !important;
+  }
+
+  .hud-feed-header {
+    padding: 0 16px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .hud-card {
+    width: 100% !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
+    background: transparent !important;
+    margin-bottom: 24px !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  /* Edge-to-edge thumbnail format */
+  .hud-thumbnail-wrap {
+    border-radius: 0 !important;
+    aspect-ratio: 16/9 !important;
+    margin-bottom: 10px !important;
+  }
+
+  .hud-thumbnail-img {
+    border-radius: 0 !important;
+  }
+
+  .hud-card-active {
+    border-bottom: 2px solid var(--neon-orange) !important;
+    background: rgba(255, 106, 0, 0.03) !important;
+  }
+
+  /* Add padding to the metadata under thumbnail */
+  .hud-card > div:not(.hud-thumbnail-wrap) {
+    padding: 0 16px !important;
+  }
+}
+
 
 

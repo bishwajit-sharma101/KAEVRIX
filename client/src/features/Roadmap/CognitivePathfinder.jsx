@@ -48,96 +48,87 @@ export default function CognitivePathfinder({ username, onTriggerSearch, onStart
   // Landing page — shown if no roadmap yet
   if (view === "landing") {
     return (
-      <div style={{ maxWidth: "800px", margin: "0 auto", padding: "24px 20px", position: "relative", minHeight: "78vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+      <div className="pathfinder-empty-container">
         <style>{`
-          @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 200%; }
-          }
-          @keyframes breathe {
-            0%, 100% { 
-              box-shadow: 0 0 20px rgba(255,106,0,0.15), 0 0 40px rgba(255,106,0,0.05);
-            }
-            50% { 
-              box-shadow: 0 0 30px rgba(255,106,0,0.3), 0 0 60px rgba(255,106,0,0.1);
-            }
-          }
-          .ultra-btn-wrap {
-            position: relative;
-            padding: 2px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #ff6a00, #ff8f00, #ffb300, #ff8f00, #ff6a00);
-            background-size: 300% 300%;
-            animation: breathe 3s ease-in-out infinite;
-            transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
-            cursor: pointer;
-          }
-          .ultra-btn-wrap:hover {
-            transform: translateY(-3px) scale(1.02);
-            animation: none;
-            box-shadow: 0 0 35px rgba(255,106,0,0.5), 0 12px 30px rgba(255,106,0,0.2);
-          }
-          .ultra-btn-wrap:active {
-            transform: translateY(0px) scale(0.99);
-          }
-          .ultra-btn-inner {
-            position: relative;
-            overflow: hidden;
+          .pathfinder-empty-container {
+            width: 100%;
+            max-width: 800px;
+            margin: -25px auto 0 auto;
+            min-height: 480px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 14px;
-            padding: 18px 48px;
-            border-radius: 12px;
-            background: var(--bg-dark-base);
-            font-size: 14px;
-            font-weight: 900;
-            font-family: var(--font-gamer), sans-serif;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            color: #ff6a00;
-            border: none;
+            padding: 0px 20px;
+            text-align: center;
+            position: relative;
+            overflow: visible;
+            transition: all 0.4s ease;
+          }
+          .pathfinder-cta-btn {
+            position: relative;
+            background: linear-gradient(135deg, #ff6a00 0%, #ff4500 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff !important;
+            padding: 12px 32px;
+            border-radius: 10px;
+            font-size: 14.5px;
+            font-weight: 800;
+            font-family: var(--font-outfit);
             cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 15px rgba(255, 106, 0, 0.3);
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-decoration: none;
+            margin-bottom: 20px;
+            z-index: 1;
           }
-          .ultra-btn-wrap:hover .ultra-btn-inner {
-            background: linear-gradient(135deg, #ff6a00 0%, #ff8f00 100%);
-            color: #ffffff;
-          }
-          .ultra-btn-inner::after {
+          .pathfinder-cta-btn::after {
             content: '';
             position: absolute;
-            top: 0;
-            left: -100%;
-            width: 60%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-            transform: skewX(-20deg);
-            animation: shimmer 4s ease-in-out infinite;
+            top: -50%;
+            left: -60%;
+            width: 30%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.25);
+            transform: rotate(30deg);
+            transition: all 0.6s ease;
             pointer-events: none;
           }
-          .ultra-btn-wrap:hover .ultra-btn-inner::after {
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation-duration: 1.5s;
+          .pathfinder-cta-btn:hover {
+            transform: translateY(-2.5px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(255, 106, 0, 0.45);
           }
-          .ultra-btn-arrow {
-            transition: transform 0.35s cubic-bezier(0.19, 1, 0.22, 1);
-            font-size: 16px;
-            display: inline-block;
+          .pathfinder-cta-btn:hover::after {
+            left: 140%;
           }
-          .ultra-btn-wrap:hover .ultra-btn-arrow {
-            transform: translateX(6px);
+          .pathfinder-cta-btn:hover .btn-arrow {
+            transform: translateX(4px);
+          }
+          .pathfinder-cta-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 10px rgba(255, 106, 0, 0.2);
+          }
+          @media (max-width: 640px) {
+            .steps-container {
+              flex-direction: column !important;
+              gap: 16px !important;
+            }
           }
         `}</style>
 
         {/* Ambient glow */}
         <div style={{
           position: "absolute",
-          top: "30%",
+          top: "40%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: "600px",
-          height: "400px",
+          width: "500px",
+          height: "260px",
           background: isDarkMode 
             ? "radial-gradient(circle, rgba(255,106,0,0.04) 0%, transparent 60%)"
             : "radial-gradient(circle, rgba(255,106,0,0.025) 0%, transparent 60%)",
@@ -145,98 +136,123 @@ export default function CognitivePathfinder({ username, onTriggerSearch, onStart
           pointerEvents: "none"
         }} />
 
-        {/* Badge */}
-        <div style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "7px",
-          background: isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed",
-          border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.2)" : "1px solid #fed7aa",
-          padding: "6px 16px",
-          borderRadius: "100px",
-          marginBottom: "24px",
-          fontSize: "10px",
-          fontWeight: "900",
-          color: "#ff6a00",
-          textTransform: "uppercase",
-          letterSpacing: "2px",
-          fontFamily: "var(--font-gamer), sans-serif",
-          position: "relative",
-          zIndex: 1
-        }}>
-          <span style={{ fontSize: "13px" }}>🧠</span> AI LEARNING ENGINE
+        {/* Pathfinder core visual illustration (feather blended background) */}
+        <div style={{ position: "relative", marginBottom: "8px", zIndex: 1 }}>
+          <img 
+            src="/pathfinder_orb.png" 
+            alt="Pathfinder Core Engine" 
+            style={{
+              width: "270px",
+              height: "auto",
+              display: "block",
+              mixBlendMode: isDarkMode ? "screen" : "multiply",
+              filter: isDarkMode 
+                ? "invert(0.92) hue-rotate(180deg) brightness(0.65) contrast(1.15)" 
+                : "brightness(1.06) contrast(1.03)",
+              WebkitMaskImage: "radial-gradient(ellipse at center, black 50%, transparent 74%)",
+              maskImage: "radial-gradient(ellipse at center, black 50%, transparent 74%)"
+            }}
+          />
         </div>
 
-        {/* Title */}
         <h1 style={{
-          fontSize: "56px",
-          fontWeight: "900",
-          fontFamily: "var(--font-gamer), sans-serif",
-          background: isDarkMode 
-            ? "linear-gradient(135deg, #ffffff 25%, #ff8f00 100%)" 
-            : "linear-gradient(135deg, #0f172a 25%, #ff6a00 100%)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          margin: "0 0 16px",
-          letterSpacing: "3px",
-          lineHeight: "1.1",
-          textTransform: "uppercase",
-          textAlign: "center",
-          position: "relative",
+          fontSize: "28px",
+          fontWeight: "800",
+          lineHeight: "1.3",
+          color: "var(--text-light)",
+          margin: "0 0 10px 0",
+          fontFamily: "var(--font-outfit)",
+          letterSpacing: "-0.5px",
           zIndex: 1
         }}>
-          COGNITIVE<br />PATHFINDER
+          Initialize your Pathfinder
         </h1>
 
-        {/* Tagline */}
         <p style={{
-          color: isDarkMode ? "rgba(255,255,255,0.55)" : "var(--text-muted)",
-          fontSize: "16px",
-          lineHeight: "1.7",
-          textAlign: "center",
+          fontSize: "15px",
+          fontWeight: "500",
+          color: "var(--text-muted)",
           maxWidth: "480px",
-          fontFamily: "var(--font-sans)",
-          margin: "0 0 20px",
-          position: "relative",
+          lineHeight: "1.6",
+          margin: "0 0 20px 0",
+          fontFamily: "var(--font-outfit)",
           zIndex: 1
         }}>
-          Tell the AI what you want to master. It builds a personalized 3-level roadmap with curated videos, study notes, and XP rewards.
+          Your learning engine is ready, but it needs a destination.<br />
+          Generate your first pathway to unlock structured learning, quizzes, challenges, and XP rewards.
         </p>
 
-        {/* Feature words */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          marginBottom: "44px",
-          fontSize: "11px",
-          fontWeight: "800",
-          fontFamily: "var(--font-outfit), sans-serif",
-          textTransform: "uppercase",
-          letterSpacing: "1.5px",
-          color: isDarkMode ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)",
-          position: "relative",
-          zIndex: 1
-        }}>
-          <span>5 Questions</span>
-          <span style={{ color: "#ff6a00", fontSize: "6px" }}>●</span>
-          <span>AI Synthesis</span>
-          <span style={{ color: "#ff6a00", fontSize: "6px" }}>●</span>
-          <span>Duel Mode</span>
-        </div>
-
-        {/* Ultra Premium Button */}
-        <div 
-          className="ultra-btn-wrap"
+        {/* Generate Button */}
+        <button 
+          className="pathfinder-cta-btn" 
           onClick={() => {
             sound.playClockTick();
             setView("onboarding");
           }}
-          style={{ position: "relative", zIndex: 1 }}
         >
-          <div className="ultra-btn-inner">
-            <span>INITIALIZE PATHFINDER</span>
-            <span className="ultra-btn-arrow">→</span>
+          <span style={{ fontWeight: "700" }}>Generate Your First Pathway</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform 0.3s" }} className="btn-arrow">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </button>
+
+        {/* Guide Steps Panel (Optimized dense padding) */}
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: "16px",
+          width: "100%",
+          maxWidth: "760px",
+          background: isDarkMode ? "rgba(255, 255, 255, 0.015)" : "#ffffff",
+          border: "1px solid var(--glass-border)",
+          borderRadius: "14px",
+          padding: "16px 20px",
+          boxShadow: isDarkMode ? "none" : "0 4px 20px rgba(0,0,0,0.02)",
+          zIndex: 1,
+          flexDirection: "row"
+        }} className="steps-container">
+          {/* Step 1 */}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "50%", background: "rgba(255, 106, 0, 0.08)", flexShrink: 0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff6a00" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <circle cx="12" cy="12" r="6" />
+                <circle cx="12" cy="12" r="2" />
+              </svg>
+            </div>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: "12.5px", fontWeight: "800", color: "var(--text-light)", marginBottom: "2px", fontFamily: "var(--font-outfit)" }}>Set your goal</div>
+              <div style={{ fontSize: "11px", fontWeight: "500", color: "var(--text-muted)", lineHeight: "1.35", fontFamily: "var(--font-outfit)" }}>Tell us what you want to master</div>
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "50%", background: "rgba(255, 106, 0, 0.08)", flexShrink: 0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff6a00" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
+              </svg>
+            </div>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: "12.5px", fontWeight: "800", color: "var(--text-light)", marginBottom: "2px", fontFamily: "var(--font-outfit)" }}>Get your path</div>
+              <div style={{ fontSize: "11px", fontWeight: "500", color: "var(--text-muted)", lineHeight: "1.35", fontFamily: "var(--font-outfit)" }}>AI builds a personalized learning roadmap</div>
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "50%", background: "rgba(255, 106, 0, 0.08)", flexShrink: 0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff6a00" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+            </div>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: "12.5px", fontWeight: "800", color: "var(--text-light)", marginBottom: "2px", fontFamily: "var(--font-outfit)" }}>Start progressing</div>
+              <div style={{ fontSize: "11px", fontWeight: "500", color: "var(--text-muted)", lineHeight: "1.35", fontFamily: "var(--font-outfit)" }}>Unlock rewards, quests and level up</div>
+            </div>
           </div>
         </div>
 
@@ -250,6 +266,7 @@ export default function CognitivePathfinder({ username, onTriggerSearch, onStart
         username={username}
         backendUrl={BACKEND_URL}
         onRoadmapReady={handleRoadmapReady}
+        isDarkMode={isDarkMode}
       />
     );
   }

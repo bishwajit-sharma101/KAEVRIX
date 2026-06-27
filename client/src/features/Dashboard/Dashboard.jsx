@@ -58,10 +58,22 @@ export default function Dashboard({
   isSearching,
   onStartSoloStudy,
   setStatus,
-  socket
+  socket,
+  isDrawerOpen,
+  setIsDrawerOpen,
+  setIsDarkMode,
+  isMusicMuted,
+  setIsMusicMuted,
+  musicProfile,
+  setMusicProfile,
+  activeTab,
+  setActiveTab,
+  handleLogout
 }) {
-  const [activeTab, setActiveTab] = useState("duels");
+  const [isRobotHovered, setIsRobotHovered] = useState(false);
   const [personalizedFeed, setPersonalizedFeed] = useState([]);
+  const [showDrawerSettings, setShowDrawerSettings] = useState(false);
+  const [showTodoPopup, setShowTodoPopup] = useState(false);
   const [loadingFeed, setLoadingFeed] = useState(false);
   const [activeMilestones, setActiveMilestones] = useState([]);
   const [todayVideos, setTodayVideos] = useState([]);
@@ -158,6 +170,7 @@ export default function Dashboard({
 
   let dailyTarget = 0;
   let completedToday = 0;
+  let remainingTodayTarget = 0;
   let velocityStatus = "TRACK";
   let streak = 0;
   let todaysTasks = [];
@@ -200,6 +213,7 @@ export default function Dashboard({
     const remainingSubtopicsStartOfToday = Math.max(0, totalSubtopics - completedBeforeToday);
     
     dailyTarget = remainingSubtopicsStartOfToday > 0 ? Math.ceil(remainingSubtopicsStartOfToday / remainingDays) : 0;
+    remainingTodayTarget = Math.max(0, dailyTarget - completedToday);
     streak = schedule.streak;
 
     const targetSubtopicsSoFar = Math.round(totalSubtopics * (elapsedDays / schedule.durationDays));
@@ -529,27 +543,29 @@ export default function Dashboard({
   ];
 
   return (
-    <div style={{ width: "100%", maxWidth: "1400px", margin: "0 auto", padding: "40px 0", display: "flex", gap: "28px", alignItems: "flex-start" }}>
+    <div className="dashboard-wrapper">
 
       {/* Sidebar Navigation */}
-      <div style={{ width: "220px", display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0, position: "sticky", top: "20px" }}>
-        <div style={{ marginBottom: "8px", padding: "0 12px" }}>
+      <div className="dashboard-sidebar">
+        <div style={{ marginBottom: "8px", padding: "0 12px" }} className="dashboard-sidebar-title">
           <span style={{ fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "2px", fontFamily: "var(--font-gamer)" }}>NAVIGATION SYSTEM</span>
         </div>
-        {navItems.map(item => (
-          <button
-            key={item.id}
-            onClick={() => handleTabChange(item.id)}
-            className={`hud-nav-btn ${activeTab === item.id ? "hud-nav-btn-active" : ""}`}
-            style={{ width: "100%" }}
-          >
-            <span style={{ fontSize: "15px" }}>{item.icon}</span>
-            <span style={{ fontFamily: "var(--font-outfit)" }}>{item.label}</span>
-          </button>
-        ))}
+        <div className="dashboard-sidebar-nav">
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              onClick={() => handleTabChange(item.id)}
+              className={`hud-nav-btn ${activeTab === item.id ? "hud-nav-btn-active" : ""}`}
+              style={{ width: "100%" }}
+            >
+              <span style={{ fontSize: "15px" }}>{item.icon}</span>
+              <span style={{ fontFamily: "var(--font-outfit)" }}>{item.label}</span>
+            </button>
+          ))}
+        </div>
 
         {/* Quick Stats Widget */}
-        <div className="hud-stats-box" style={{ marginTop: "24px" }}>
+        <div className="hud-stats-box dashboard-stats-widget" style={{ marginTop: "24px" }}>
           <div style={{ fontSize: "10px", fontWeight: "800", color: "#ea580c", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "12px", fontFamily: "var(--font-gamer)", display: "flex", alignItems: "center", gap: "5px" }}>
             <span className="hud-pulse-dot" style={{ color: "#ea580c" }} />
             LIVE ACTIVITY
@@ -582,95 +598,119 @@ export default function Dashboard({
       </div>
 
       {/* Content Area */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="dashboard-content">
         {activeTab === "profile" && (
-          <ProfilePanel username={username} selectedClass={selectedClass} onSurpassLimits={onSurpassLimits} onTestJourneyDay={onTestJourneyDay} />
+          <ProfilePanel username={username} selectedClass={selectedClass} onSurpassLimits={onSurpassLimits} onTestJourneyDay={onTestJourneyDay} handleLogout={handleLogout} />
         )}
 
         {activeTab === "duels" && (
           <div>
-            {/* Premium Topic Header */}
-            {/* Main Duels Content Logic */}
             {!searchQuery && !topic ? (
-              <div style={{
-                width: "100%",
-                minHeight: "60vh",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "40px",
-                textAlign: "center",
-                background: "transparent"
-              }}>
+              <div className="arena-empty-container">
                 <style>{`
-                  .premium-empty-text {
-                    font-size: 6vw;
-                    max-font-size: 80px;
-                    min-font-size: 40px;
-                    font-weight: 900;
-                    line-height: 1.1;
-                    letter-spacing: 4px;
-                    font-family: var(--font-gamer);
-                    text-transform: uppercase;
-                    color: var(--text-light);
-                    margin-bottom: 24px;
-                    opacity: 0.9;
-                  }
-                  .premium-empty-subtext {
-                    font-size: 20px;
-                    font-weight: 500;
-                    color: var(--text-muted);
+                  .arena-empty-container {
+                    width: 100%;
                     max-width: 600px;
-                    line-height: 1.6;
-                    margin-bottom: 48px;
-                    font-family: var(--font-outfit);
-                  }
-                  .premium-text-link {
-                    font-size: 18px;
-                    font-weight: 800;
-                    color: #ea580c;
-                    text-transform: uppercase;
-                    letter-spacing: 2px;
-                    font-family: var(--font-gamer);
-                    cursor: pointer;
-                    position: relative;
-                    padding: 10px 20px;
-                    transition: all 0.3s ease;
+                    margin: -10px auto 0 auto;
+                    min-height: 320px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 0px 24px;
+                    text-align: center;
                     background: transparent;
                     border: none;
+                    box-shadow: none;
+                    backdrop-filter: none;
+                    position: relative;
+                    overflow: visible;
+                    transition: all 0.4s ease;
                   }
-                  .premium-text-link::after {
-                    content: '';
-                    position: absolute;
-                    bottom: 0;
-                    left: 50%;
-                    width: 0;
-                    height: 2px;
-                    background: #ea580c;
+                  .popular-paths-link {
                     transition: all 0.3s ease;
-                    transform: translateX(-50%);
                   }
-                  .premium-text-link:hover {
-                    color: #f97316;
-                    text-shadow: 0 0 20px rgba(234, 88, 12, 0.4);
-                  }
-                  .premium-text-link:hover::after {
-                    width: 80%;
+                  .popular-paths-link:hover .link-arrow {
+                    transform: translateX(3px);
                   }
                 `}</style>
-                
-                <h2 className="premium-empty-text" style={{ fontSize: "clamp(40px, 6vw, 80px)" }}>
-                  ARENA OFFLINE
+
+                {/* Character visual wrapper (no motion, blended background, shifted up) */}
+                <div style={{ position: "relative", marginBottom: "12px" }}>
+                  <img 
+                    src="/empty_state_robot.png" 
+                    alt="Explorer Robot Map" 
+                    style={{
+                      width: "330px",
+                      height: "auto",
+                      display: "block",
+                      mixBlendMode: isDarkMode ? "screen" : "multiply",
+                      filter: isDarkMode 
+                        ? "invert(0.92) hue-rotate(180deg) brightness(0.65) contrast(1.15)" 
+                        : "brightness(1.06) contrast(1.03)",
+                      WebkitMaskImage: "radial-gradient(ellipse at center, black 60%, transparent 76%)",
+                      maskImage: "radial-gradient(ellipse at center, black 60%, transparent 76%)"
+                    }}
+                  />
+                </div>
+
+                <h2 style={{
+                  fontSize: "28px",
+                  fontWeight: "800",
+                  lineHeight: "1.3",
+                  color: "var(--text-light)",
+                  margin: "0 0 12px 0",
+                  fontFamily: "var(--font-outfit)",
+                  letterSpacing: "-0.5px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  justifyContent: "center",
+                  zIndex: 1
+                }}>
+                  No path found yet <span style={{ whiteSpace: "nowrap" }}>🧭</span>
                 </h2>
-                
-                <p className="premium-empty-subtext">
-                  You cannot enter the training grounds without a target directive. Engage the Pathfinder to establish your learning roadmap and unlock the Arena.
+
+                <p style={{
+                  fontSize: "15px",
+                  fontWeight: "500",
+                  color: "var(--text-muted)",
+                  maxWidth: "460px",
+                  lineHeight: "1.6",
+                  margin: "0 0 16px 0",
+                  fontFamily: "var(--font-outfit)",
+                  zIndex: 1
+                }}>
+                  Even the best warriors need a map.<br />
+                  Generate your first learning pathway and start your journey towards mastery.
                 </p>
 
-                <button className="premium-text-link" onClick={() => handleTabChange("pathfinder")}>
-                  Setup Pathfinder →
-                </button>
+                <div 
+                  className="popular-paths-link"
+                  onClick={() => handleTabChange("pathfinder")}
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "var(--text-muted)",
+                    cursor: "pointer",
+                    transition: "color 0.2s",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    zIndex: 1
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--text-light)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--text-muted)";
+                  }}
+                >
+                  <span>Not sure where to start? Browse </span>
+                  <span style={{ color: "#ff6a00", display: "inline-flex", alignItems: "center", gap: "2px" }}>
+                    popular paths <span style={{ transition: "transform 0.2s", display: "inline-block" }} className="link-arrow">→</span>
+                  </span>
+                </div>
               </div>
             ) : (
               <>
@@ -739,7 +779,7 @@ export default function Dashboard({
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
                 {(searchResults || []).map((video, idx) => (
                   <div
-                    key={`${video.id}-${idx}`}
+                    key={`search-vid-${video.id || idx}-${idx}`}
                     onClick={() => handleSelectVideo(video)}
                     className={`hud-card ${selectedVideo?.id === video.id ? "hud-card-active" : ""}`}
                     style={getVideoCardStyle(video)}
@@ -764,7 +804,7 @@ export default function Dashboard({
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
                       {todayVideos.map((video, idx) => (
                         <div
-                          key={`${video.id}-${idx}`}
+                          key={`today-vid-${video.id || idx}-${idx}`}
                           onClick={() => handleSelectVideo(video)}
                           className={`hud-card ${selectedVideo?.id === video.id ? "hud-card-active" : ""}`}
                           style={getVideoCardStyle(video)}
@@ -793,7 +833,7 @@ export default function Dashboard({
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
                       {personalizedFeed.map((video, idx) => (
                         <div
-                          key={`${video.id}-${idx}`}
+                          key={`feed-vid-${video.id || idx}-${idx}`}
                           onClick={() => handleSelectVideo(video)}
                           className={`hud-card ${selectedVideo?.id === video.id ? "hud-card-active" : ""}`}
                           style={getVideoCardStyle(video)}
@@ -814,7 +854,7 @@ export default function Dashboard({
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
                 {(curatedVideos || []).map((video, idx) => (
                   <div
-                    key={`${video.id}-${idx}`}
+                    key={`curated-vid-${video.id || idx}-${idx}`}
                     onClick={() => handleSelectVideo(video)}
                     className={`hud-card ${selectedVideo?.id === video.id ? "hud-card-active" : ""}`}
                     style={getVideoCardStyle(video)}
@@ -1188,6 +1228,194 @@ export default function Dashboard({
             </div>
           </div>
         </div>
+      )}
+
+      {/* 6. Mobile/Tablet Side Drawer */}
+      {isDrawerOpen && (
+        <div 
+          className="drawer-overlay"
+          onClick={() => setIsDrawerOpen(false)}
+        >
+          <div 
+            className="drawer-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="drawer-header">
+              <span className="drawer-title">KAEVRIX COMMANDS</span>
+              <button 
+                className="drawer-close-btn"
+                onClick={() => setIsDrawerOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="drawer-nav-list">
+              {navItems.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    handleTabChange(item.id);
+                    setIsDrawerOpen(false);
+                  }}
+                  className={`drawer-nav-btn ${activeTab === item.id ? "drawer-nav-btn-active" : ""}`}
+                >
+                  <span style={{ fontSize: "16px" }}>{item.icon}</span>
+                  <span style={{ fontFamily: "var(--font-outfit)" }}>{item.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="drawer-divider" />
+
+            {/* Gear Icon settings */}
+            <div className="drawer-settings-section">
+              <button 
+                className="drawer-settings-toggle"
+                onClick={() => {
+                  sound.playClockTick();
+                  setShowDrawerSettings(!showDrawerSettings);
+                }}
+              >
+                <span>⚙️ System Settings</span>
+                <span>{showDrawerSettings ? "▼" : "▶"}</span>
+              </button>
+
+              {showDrawerSettings && (
+                <div className="drawer-settings-panel">
+                  {/* Dark Mode toggle */}
+                  <div className="drawer-setting-row">
+                    <span>Dark Theme</span>
+                    <button 
+                      onClick={() => { sound.playClockTick(); setIsDarkMode(!isDarkMode); }}
+                      className="drawer-toggle-switch"
+                    >
+                      {isDarkMode ? "🌙 ON" : "☀️ OFF"}
+                    </button>
+                  </div>
+
+                  {/* Ambient Music toggle */}
+                  <div className="drawer-setting-row">
+                    <span>Ambient Music</span>
+                    <button 
+                      onClick={() => { 
+                        sound.playClockTick(); 
+                        const nextMuted = !isMusicMuted;
+                        setIsMusicMuted(nextMuted); 
+                        localStorage.setItem("kaevrix_music_muted", String(nextMuted));
+                      }}
+                      className="drawer-toggle-switch"
+                    >
+                      {!isMusicMuted ? "🔊 ON" : "🔇 OFF"}
+                    </button>
+                  </div>
+
+                  {/* Station selection */}
+                  <div className="drawer-music-list">
+                    <span className="drawer-setting-label">Music Profile:</span>
+                    {sound.MUSIC_PROFILES.map((p, idx) => {
+                      const isActive = musicProfile === idx;
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            sound.playClockTick();
+                            setMusicProfile(idx);
+                            localStorage.setItem("kaevrix_music_profile", String(idx));
+                          }}
+                          className={`drawer-music-btn ${isActive ? "drawer-music-btn-active" : ""}`}
+                        >
+                          {p.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. Floating ToDo Action Button & Popup */}
+      {schedule && savedRoadmap && (
+        <>
+          <button 
+            className="floating-todo-fab"
+            onClick={() => {
+              sound.playClockTick();
+              setShowTodoPopup(!showTodoPopup);
+            }}
+            title="Daily Neuronal Directives"
+          >
+            <span>📋</span>
+            {remainingTodayTarget > 0 ? (
+              <span className="todo-fab-badge">{remainingTodayTarget}</span>
+            ) : (
+              <span className="todo-fab-badge todo-badge-clear">✓</span>
+            )}
+          </button>
+
+          {showTodoPopup && (
+            <div className="floating-todo-popup">
+              <div className="todo-popup-header">
+                <span className="todo-popup-title">🛡️ NEURAL DIRECTIVES</span>
+                <button 
+                  className="todo-popup-close"
+                  onClick={() => setShowTodoPopup(false)}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="todo-popup-body">
+                {activePendingTasks.length > 0 ? (
+                  <div className="todo-tasks-list">
+                    <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px", fontWeight: "600" }}>
+                      PENDING DAILY QUOTA:
+                    </div>
+                    {activePendingTasks.map((t, idx) => {
+                      const taskNum = completedToday + idx + 1;
+                      return (
+                        <div key={`${t.milestone.id}_${t.subtopicIndex}`} className="todo-task-item">
+                          <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+                            <span className="todo-task-num">{taskNum}</span>
+                            <div>
+                              <div className="todo-task-text">{t.text}</div>
+                              <span className="todo-task-node">Node: {t.milestone.title}</span>
+                            </div>
+                          </div>
+                          {!t.isEncrypted && (
+                            <div className="todo-task-actions" style={{ marginTop: "6px" }}>
+                              <button
+                                onClick={() => {
+                                  sound.playClockTick();
+                                  onStartSoloStudy && onStartSoloStudy(t.milestone);
+                                  setShowTodoPopup(false);
+                                }}
+                                className="todo-action-btn"
+                              >
+                                📖 Study Node
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="todo-clear-state">
+                    <span style={{ fontSize: "28px" }}>🌟</span>
+                    <h4 style={{ color: "var(--neon-green)", margin: "8px 0 4px 0", fontSize: "14px", fontWeight: "900" }}>DIRECTIVES CLEAR</h4>
+                    <p style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                      Daily quota cleared! Limit break mode active. Keep studying to gain extra XP multiplier.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { fetchWithJobPolling } from "../../utils/asyncJob";
 import * as sound from "../../utils/audio";
 
 // Detailed 32x32 Pixel Art SVG Components
@@ -720,7 +721,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
     const fetchBossData = async () => {
       try {
         const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
-        const res = await fetch(`${BACKEND_URL}/api/boss/generate`, {
+        const res = await fetchWithJobPolling(`${BACKEND_URL}/api/boss/generate`, {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",

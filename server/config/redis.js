@@ -1,4 +1,5 @@
 import Redis from "ioredis";
+import logger from "./logger.js";
 
 const redisClient = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379", {
   retryStrategy(times) {
@@ -9,11 +10,11 @@ const redisClient = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379",
 });
 
 redisClient.on("error", (err) => {
-  console.error("[Redis Error]", err.message);
+  logger.error("[Redis Error]", { error: err.message, stack: err.stack });
 });
 
 redisClient.on("connect", () => {
-  console.log("[Redis] Connected to Redis caching server");
+  logger.info("[Redis] Connected to Redis caching server");
 });
 
 export default redisClient;

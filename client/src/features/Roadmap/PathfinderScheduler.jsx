@@ -27,6 +27,7 @@ export default function PathfinderScheduler({
   
   const [chartView, setChartView] = useState("daily"); // "daily" | "weekly" | "monthly"
   const [showSettings, setShowSettings] = useState(false);
+  const [selectedWeek, setSelectedWeek] = useState(null);
 
   // YYYY-MM-DD helper
   const getTodayDateString = () => {
@@ -463,7 +464,7 @@ export default function PathfinderScheduler({
       const start = new Date(schedule.startDate);
       const maxWeeks = Math.max(1, Math.ceil(schedule.durationDays / 7));
       const currentWeekIdx = Math.floor(elapsedDays / 7);
-      const w = Math.min(Math.max(0, currentWeekIdx), maxWeeks - 1);
+      const w = Math.min(Math.max(0, selectedWeek !== null ? selectedWeek : currentWeekIdx), maxWeeks - 1);
 
       const remainingDaysFromTomorrow = Math.max(1, schedule.durationDays - (elapsedDays + 1));
       
@@ -532,8 +533,9 @@ export default function PathfinderScheduler({
       const datesList = getCompletedDates();
       const data = [];
       const start = new Date(schedule.startDate);
+      const maxWeeks = Math.max(1, Math.ceil(schedule.durationDays / 7));
       
-      for (let w = 0; w < 4; w++) {
+      for (let w = 0; w < maxWeeks; w++) {
         let completedDaysInWeek = 0;
         for (let d = 0; d < 7; d++) {
           const checkDate = new Date(start);
@@ -554,7 +556,7 @@ export default function PathfinderScheduler({
         
         const isCurrentWeek = Math.floor(elapsedDays / 7) === w;
         data.push({
-          label: w === 0 ? "This Week" : `Week ${w + 1}`,
+          label: isCurrentWeek ? "This Week" : `Week ${w + 1}`,
           target: 7,
           completed: completedDaysInWeek,
           isCurrent: isCurrentWeek
@@ -565,8 +567,9 @@ export default function PathfinderScheduler({
       const datesList = getCompletedDates();
       const data = [];
       const start = new Date(schedule.startDate);
+      const maxMonths = Math.max(1, Math.ceil(schedule.durationDays / 30));
       
-      for (let m = 0; m < 3; m++) {
+      for (let m = 0; m < maxMonths; m++) {
         let completedWeeksInMonth = 0;
         for (let w = 0; w < 4; w++) {
           let completedDaysInWeek = 0;
@@ -624,6 +627,7 @@ export default function PathfinderScheduler({
   // Configurations
   const handleDurationChange = (days) => {
     sound.playClockTick();
+    setSelectedWeek(null);
     setSchedule(prev => {
       const next = { ...prev, durationDays: days };
       localStorage.setItem(scheduleKey, JSON.stringify(next));
@@ -642,6 +646,7 @@ export default function PathfinderScheduler({
 
   const handleResetTimeline = () => {
     sound.playClockTick();
+    setSelectedWeek(null);
     setSchedule(prev => {
       const next = {
         ...prev,
@@ -818,6 +823,10 @@ export default function PathfinderScheduler({
     quotaSubtext = `🍀 Decreased from baseline of ${baselineTarget}/day due to fast progress!`;
     quotaColor = "#10b981";
   }
+
+  const maxWeeks = Math.max(1, Math.ceil(schedule.durationDays / 7));
+  const currentWeekIdx = Math.floor(elapsedDays / 7);
+  const activeWeek = selectedWeek !== null ? selectedWeek : Math.min(Math.max(0, currentWeekIdx), maxWeeks - 1);
 
   return (
     <div style={{
@@ -1088,13 +1097,7 @@ export default function PathfinderScheduler({
       `}</style>
 
       {/* 3. Main Dashboard: Bar Chart (Focus) + Telemetry Stack (Sidebar) */}
-      <div style={{ 
-        display: "grid", 
-        gridTemplateColumns: "1fr 280px", 
-        gap: "32px", 
-        alignItems: "start", 
-        marginBottom: "40px" 
-      }}>
+      <div className="scheduler-dashboard-grid">
         
         {/* Left/Center Area: Focus Bar Chart wrapped in HUD corners panel */}
         <div className="hud-panel-wrapper" style={{ display: "flex", flexDirection: "column", gap: "16px", flex: 1 }}>
@@ -1105,9 +1108,60 @@ export default function PathfinderScheduler({
 
           {/* High-tech Header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.05)", paddingBottom: "10px", marginBottom: "8px" }}>
-            <span style={{ fontSize: "10px", fontWeight: "900", color: "#ff6a00", letterSpacing: "1.5px", textTransform: "uppercase" }}>
-              📊 TIMELINE CHRONOS SYNC MATRIX
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <span style={{ fontSize: "10px", fontWeight: "900", color: "#ff6a00", letterSpacing: "1.5px", textTransform: "uppercase" }}>
+                📊 TIMELINE CHRONOS SYNC MATRIX
+              </span>
+              {chartView === "daily" && maxWeeks > 1 && (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <button
+                    disabled={activeWeek === 0}
+                    onClick={() => {
+                      sound.playClockTick();
+                      setSelectedWeek(activeWeek - 1);
+                    }}
+                    style={{
+                      background: isDarkMode ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+                      border: isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.12)",
+                      borderRadius: "6px",
+                      padding: "2px 8px",
+                      color: activeWeek === 0 ? "var(--text-muted)" : "#ff6a00",
+                      cursor: activeWeek === 0 ? "default" : "pointer",
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                      opacity: activeWeek === 0 ? 0.4 : 1,
+                      fontFamily: "var(--font-gamer)"
+                    }}
+                  >
+                    ◀ Prev
+                  </button>
+                  <span style={{ fontSize: "11px", fontWeight: "bold", color: "var(--text-light)" }}>
+                    Week {activeWeek + 1} of {maxWeeks}
+                  </span>
+                  <button
+                    disabled={activeWeek >= maxWeeks - 1}
+                    onClick={() => {
+                      sound.playClockTick();
+                      setSelectedWeek(activeWeek + 1);
+                    }}
+                    style={{
+                      background: isDarkMode ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+                      border: isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.12)",
+                      borderRadius: "6px",
+                      padding: "2px 8px",
+                      color: activeWeek >= maxWeeks - 1 ? "var(--text-muted)" : "#ff6a00",
+                      cursor: activeWeek >= maxWeeks - 1 ? "default" : "pointer",
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                      opacity: activeWeek >= maxWeeks - 1 ? 0.4 : 1,
+                      fontFamily: "var(--font-gamer)"
+                    }}
+                  >
+                    Next ▶
+                  </button>
+                </div>
+              )}
+            </div>
             <span style={{ fontSize: "9px", color: coreColor, display: "flex", alignItems: "center", gap: "6px", fontWeight: "900", letterSpacing: "1px" }}>
               <span className="pulsing-dot" style={{ background: coreColor, boxShadow: `0 0 8px ${coreColor}` }} />
               {coreText} ({coreSubtitle})
@@ -1316,17 +1370,6 @@ export default function PathfinderScheduler({
             </span>
           </div>
 
-          <div className="telemetry-card" style={{ borderLeft: `3.5px solid ${goalMatchBorder}`, borderTop: "none", borderRight: "none", borderBottom: "none" }}>
-            <span style={{ fontSize: "10px", fontWeight: "850", color: "var(--text-muted)", letterSpacing: "1px", textTransform: "uppercase" }}>
-              🎯 Goal Match
-            </span>
-            <span style={{ fontSize: "20px", fontWeight: "900", color: goalMatchText }}>
-              {syncPercent}% Sync
-            </span>
-            <span style={{ fontSize: "10.5px", color: "var(--text-muted)", lineHeight: "1.3" }}>
-              {goalMatchSubtext}
-            </span>
-          </div>
 
           <div className="telemetry-card" style={{ borderLeft: "3.5px solid #a78bfa", borderTop: "none", borderRight: "none", borderBottom: "none" }}>
             <span style={{ fontSize: "10px", fontWeight: "850", color: "var(--text-muted)", letterSpacing: "1px", textTransform: "uppercase" }}>
@@ -1340,16 +1383,6 @@ export default function PathfinderScheduler({
             </span>
           </div>
 
-          {/* Premium Bottom Sync XP Progress Bar */}
-          <div style={{ marginTop: "8px", borderTop: isDarkMode ? "1px solid rgba(255,255,255,0.03)" : "1px solid rgba(0,0,0,0.03)", paddingTop: "12px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", fontWeight: "900", color: "var(--text-muted)", marginBottom: "6px" }}>
-              <span>SYNC LEVEL</span>
-              <span style={{ color: syncLevelColor }}>{syncLevelText}</span>
-            </div>
-            <div style={{ width: "100%", height: "4px", background: isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.05)", borderRadius: "2px", overflow: "hidden", position: "relative" }}>
-              <div style={{ height: "100%", width: `${syncPercent}%`, background: velocityStatus === "BEHIND" ? "linear-gradient(90deg, #ef4444 0%, #f87171 100%)" : "linear-gradient(90deg, #ff6a00 0%, #a78bfa 100%)", boxShadow: velocityStatus === "BEHIND" ? "0 0 8px rgba(239,68,68,0.45)" : "0 0 8px rgba(255,106,0,0.45)", transition: "width 0.4s ease" }} />
-            </div>
-          </div>
         </div>
 
       </div>

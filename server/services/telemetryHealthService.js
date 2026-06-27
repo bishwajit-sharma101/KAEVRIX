@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import logger from "../config/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +12,6 @@ export function logInfrastructureError(eventType, errorDetails) {
   try {
     fs.appendFileSync(logPath, logEntry);
   } catch (e) {
-    console.error("Failed to write to infra error log", e);
+    logger.error("Failed to write to infra error log", { error: e.message, stack: e.stack });
   }
 }

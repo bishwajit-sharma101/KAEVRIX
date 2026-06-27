@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { fetchWithJobPolling } from "../../utils/asyncJob";
 import * as sound from "../../utils/audio";
 import { CHARACTER_CLASSES } from "../../utils/characterClasses";
 import LandingPage from "./LandingPage";
@@ -425,7 +426,7 @@ export default function WelcomeScreen({
         answer: onboardingAnswers[i]
       }));
 
-      const res = await fetch(`${BACKEND_URL}/api/pathfinder/generate`, {
+      const res = await fetchWithJobPolling(`${BACKEND_URL}/api/pathfinder/generate`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
