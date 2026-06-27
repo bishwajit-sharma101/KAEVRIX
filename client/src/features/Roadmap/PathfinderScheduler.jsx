@@ -16,6 +16,8 @@ export default function PathfinderScheduler({
 
   // 1. Core States & Refs
   const chartScrollRef = useRef(null);
+  const touchStartXRef = useRef(null);
+  const touchScrollLeftRef = useRef(0);
   
   const [schedule, setSchedule] = useState(() => {
     const saved = localStorage.getItem(scheduleKey);
@@ -850,6 +852,22 @@ export default function PathfinderScheduler({
   const currentWeekIdx = Math.floor(elapsedDays / 7);
   const activeWeek = selectedWeek !== null ? selectedWeek : Math.min(Math.max(0, currentWeekIdx), maxWeeks - 1);
 
+  const handleTouchStart = (e) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    touchScrollLeftRef.current = chartScrollRef.current ? chartScrollRef.current.scrollLeft : 0;
+  };
+
+  const handleTouchMove = (e) => {
+    if (touchStartXRef.current === null || !chartScrollRef.current) return;
+    const currentX = e.touches[0].clientX;
+    const diffX = touchStartXRef.current - currentX;
+    chartScrollRef.current.scrollLeft = touchScrollLeftRef.current + diffX;
+  };
+
+  const handleTouchEnd = () => {
+    touchStartXRef.current = null;
+  };
+
   return (
     <div style={{
       background: "transparent",
@@ -1197,7 +1215,14 @@ export default function PathfinderScheduler({
           </div>
 
           {/* Adaptive Vertical Bar Chart (Enlarged Premium Grid) + X-Axis Labels wrapped in a SINGLE scroll wrapper */}
-          <div ref={chartScrollRef} className="chronos-chart-scroll-wrap" style={{ overflowX: "auto", overflowY: "hidden", width: "100%", WebkitOverflowScrolling: "touch", overscrollBehaviorX: "contain", scrollBehavior: "smooth", touchAction: "pan-x", paddingBottom: "12px" }}>
+          <div 
+            ref={chartScrollRef} 
+            className="chronos-chart-scroll-wrap" 
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{ overflowX: "auto", overflowY: "hidden", width: "100%", WebkitOverflowScrolling: "touch", overscrollBehaviorX: "contain", scrollBehavior: "smooth", touchAction: "pan-y", paddingBottom: "12px" }}
+          >
             <div style={{ 
               minWidth: chartView === "weekly" ? "680px" : chartView === "monthly" ? "380px" : "600px",
               display: "flex",

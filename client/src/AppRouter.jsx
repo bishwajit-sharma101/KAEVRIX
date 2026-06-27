@@ -339,7 +339,7 @@ export default function AppRouter(props) {
                 </svg>
               </button>
             )}
-            <div className="logo-container" onClick={resetToDashboard} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", marginTop: "-3px" }}>
+            <div className="logo-container" onClick={resetToDashboard} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", transform: "translateY(-5px)" }}>
               <img src="/logo.png" alt="Kaevrix Logo" style={{ width: "40px", height: "40px", objectFit: "contain", display: "block" }} />
               <span className="logo-text" style={{ fontSize: "24px" }}>Kaevrix</span>
             </div>

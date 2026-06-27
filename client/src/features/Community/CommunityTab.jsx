@@ -405,6 +405,23 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
         border-bottom: 1px solid var(--glass-border);
         padding-bottom: 0;
       }
+      @media (max-width: 600px) {
+        .cv4-tab-bar {
+          overflow-x: auto;
+          flex-wrap: nowrap !important;
+          -webkit-overflow-scrolling: touch;
+          gap: 0;
+          padding-bottom: 2px;
+          margin-bottom: 24px;
+        }
+        .cv4-tab-bar::-webkit-scrollbar {
+          display: none;
+        }
+        .cv4-tab {
+          padding: 10px 16px !important;
+          flex-shrink: 0;
+        }
+      }
       .cv4-tab {
         padding: 10px 24px;
         border: none;
