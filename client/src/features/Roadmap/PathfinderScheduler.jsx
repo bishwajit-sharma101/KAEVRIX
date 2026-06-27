@@ -7,7 +7,9 @@ export default function PathfinderScheduler({
   isDarkMode, 
   onSelectMilestone,
   onTriggerSearch,
-  onStartSoloStudy
+  onStartSoloStudy,
+  showSettings,
+  setShowSettings
 }) {
   const scheduleKey = `kaevrix_roadmap_schedule_${username}`;
   const todayProgressKey = `kaevrix_today_progress_${username}`;
@@ -26,7 +28,6 @@ export default function PathfinderScheduler({
   const [completedThisMonth, setCompletedThisMonth] = useState(0);
   
   const [chartView, setChartView] = useState("daily"); // "daily" | "weekly" | "monthly"
-  const [showSettings, setShowSettings] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(null);
 
   // YYYY-MM-DD helper
@@ -759,24 +760,24 @@ export default function PathfinderScheduler({
     if (completedToday < dailyTarget) {
       coreColor = "#10b981";
       coreBg = "radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(16,185,129,0.02) 70%)";
-      coreText = "SYNCHRONIZING";
+      coreText = "IN PROGRESS";
       coreSubtitle = `${completedToday} / ${dailyTarget} met`;
     } else if (completedToday === dailyTarget) {
       coreColor = "#059669";
       coreBg = "radial-gradient(circle, rgba(5,150,105,0.2) 0%, rgba(5,150,105,0.02) 70%)";
-      coreText = "SYNCHRONIZED";
+      coreText = "ON TRACK";
       coreSubtitle = "Target Cleared";
     } else {
       coreColor = "#8b5cf6";
       coreBg = "radial-gradient(circle, rgba(139,92,246,0.2) 0%, rgba(139,92,246,0.02) 70%)";
-      coreText = "LIMIT BREAK";
+      coreText = "AHEAD OF SCHEDULE";
       coreSubtitle = `+${completedToday - dailyTarget} Overdrive`;
     }
   } else if (velocityStatus === "BEHIND") {
     coreColor = "#ef4444";
     coreBg = "radial-gradient(circle, rgba(239,68,68,0.15) 0%, rgba(239,68,68,0.02) 70%)";
-    coreText = "DE-SYNCHRONIZED";
-    coreSubtitle = "Behind Schedule";
+    coreText = "BEHIND SCHEDULE";
+    coreSubtitle = "Lagging Timeline";
   }
 
   // Readout card display variables
@@ -840,10 +841,10 @@ export default function PathfinderScheduler({
     }}>
       
       {/* 1. Header Toolbar: Toggle Buttons + Streak */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px", flexWrap: "wrap", gap: "12px" }}>
+      <div className="chronos-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px", flexWrap: "wrap", gap: "12px" }}>
         
         {/* Toggle between Daily / Weekly / Monthly charts */}
-        <div style={{ display: "flex", gap: "6px", background: isDarkMode ? "rgba(255,255,255,0.02)" : "#f1f5f9", padding: "4px", borderRadius: "10px" }}>
+        <div className="chronos-tab-selector" style={{ background: isDarkMode ? "rgba(255,255,255,0.02)" : "#f1f5f9" }}>
           {[
             { id: "daily", label: "Daily (7 Days)" },
             { id: "weekly", label: "Weekly (4 Weeks)" },
@@ -851,21 +852,14 @@ export default function PathfinderScheduler({
           ].map(tab => (
             <button
               key={tab.id}
+              className="chronos-tab-btn"
               onClick={() => { sound.playClockTick(); setChartView(tab.id); }}
               style={{
-                padding: "6px 14px",
-                borderRadius: "8px",
-                border: "none",
                 background: chartView === tab.id 
                   ? (isDarkMode ? "rgba(255,255,255,0.08)" : "#ffffff") 
                   : "transparent",
                 color: chartView === tab.id ? "var(--text-light)" : "var(--text-muted)",
-                fontSize: "12px",
-                fontWeight: "700",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
                 boxShadow: chartView === tab.id && !isDarkMode ? "0 2px 6px rgba(0,0,0,0.05)" : "none",
-                fontFamily: "var(--font-gamer)"
               }}
             >
               {tab.label}
@@ -883,17 +877,6 @@ export default function PathfinderScheduler({
               🔥 {schedule.streak}D STREAK
             </div>
           )}
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            style={{
-              background: "transparent", border: "1px solid var(--glass-border)",
-              borderRadius: "10px", padding: "6px 12px", color: "var(--text-muted)",
-              fontSize: "11.5px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s",
-              fontFamily: "var(--font-gamer)"
-            }}
-          >
-            {showSettings ? "✕ Close" : "⚙️ Settings"}
-          </button>
         </div>
 
       </div>
@@ -1018,17 +1001,60 @@ export default function PathfinderScheduler({
         .hud-cell-block:hover::after {
           left: 150%;
         }
+        .chronos-tab-selector {
+          display: flex;
+          gap: 6px;
+          padding: 6px;
+          border-radius: 12px;
+          overflow-x: auto;
+          flex-wrap: nowrap;
+          -webkit-overflow-scrolling: touch;
+          scroll-snap-type: x mandatory;
+          width: 100%;
+          max-width: 100%;
+        }
+        .chronos-tab-selector::-webkit-scrollbar { display: none; }
+        .chronos-tab-btn {
+          flex-shrink: 0;
+          scroll-snap-align: start;
+          padding: 8px 18px;
+          border-radius: 8px;
+          border: none;
+          font-size: 12.5px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.25s ease;
+          font-family: var(--font-gamer);
+        }
         .telemetry-card {
-          background: transparent;
-          padding: 12px 18px;
+          background: ${isDarkMode ? "rgba(255, 255, 255, 0.015)" : "rgba(0, 0, 0, 0.015)"};
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid ${isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"};
+          border-radius: 16px;
+          padding: 18px 22px;
           display: flex;
           flex-direction: column;
-          gap: 6px;
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          gap: 8px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+          box-shadow: inset 0 1px 0 ${isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.4)"}, 0 4px 12px rgba(0,0,0,0.02);
         }
         .telemetry-card:hover {
-          background: ${isDarkMode ? "rgba(255, 255, 255, 0.02)" : "rgba(0, 0, 0, 0.02)"};
-          transform: translateX(4px);
+          background: ${isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.03)"};
+          transform: translateY(-2px);
+          box-shadow: inset 0 1px 0 ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.5)"}, 0 8px 24px rgba(0,0,0,0.05);
+        }
+        .telemetry-card::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 4px;
+          background: var(--card-accent, transparent);
+          border-radius: 16px 0 0 16px;
         }
         .hud-directive-row {
           display: flex;
@@ -1054,6 +1080,8 @@ export default function PathfinderScheduler({
           border: 1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.03)"};
           border-radius: 12px;
           transition: border-color 0.3s ease;
+          min-width: 0;
+          overflow: hidden;
         }
         .hud-panel-wrapper:hover {
           border-color: ${isDarkMode ? "rgba(255, 106, 0, 0.15)" : "rgba(255, 106, 0, 0.15)"};
@@ -1107,207 +1135,193 @@ export default function PathfinderScheduler({
           <div className="hud-corner-bracket hud-bracket-br" />
 
           {/* High-tech Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.05)", paddingBottom: "10px", marginBottom: "8px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-              <span style={{ fontSize: "10px", fontWeight: "900", color: "#ff6a00", letterSpacing: "1.5px", textTransform: "uppercase" }}>
-                📊 TIMELINE CHRONOS SYNC MATRIX
+          <div className="chronos-chart-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.05)", paddingBottom: "12px", marginBottom: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{ fontSize: "13px", fontWeight: "900", color: "#ff6a00", letterSpacing: "1px", textTransform: "uppercase" }}>
+                📊 Progress
               </span>
               {chartView === "daily" && maxWeeks > 1 && (
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "4px", background: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)", padding: "2px 6px", borderRadius: "8px" }}>
                   <button
                     disabled={activeWeek === 0}
-                    onClick={() => {
-                      sound.playClockTick();
-                      setSelectedWeek(activeWeek - 1);
-                    }}
-                    style={{
-                      background: isDarkMode ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
-                      border: isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.12)",
-                      borderRadius: "6px",
-                      padding: "2px 8px",
-                      color: activeWeek === 0 ? "var(--text-muted)" : "#ff6a00",
-                      cursor: activeWeek === 0 ? "default" : "pointer",
-                      fontSize: "11px",
-                      fontWeight: "bold",
-                      opacity: activeWeek === 0 ? 0.4 : 1,
-                      fontFamily: "var(--font-gamer)"
-                    }}
-                  >
-                    ◀ Prev
-                  </button>
-                  <span style={{ fontSize: "11px", fontWeight: "bold", color: "var(--text-light)" }}>
-                    Week {activeWeek + 1} of {maxWeeks}
-                  </span>
+                    onClick={() => { sound.playClockTick(); setSelectedWeek(activeWeek - 1); }}
+                    style={{ background: "transparent", border: "none", color: activeWeek === 0 ? "var(--text-muted)" : "#ff6a00", cursor: activeWeek === 0 ? "default" : "pointer", fontSize: "11px", padding: "0 2px" }}
+                  >◀</button>
+                  <span style={{ fontSize: "10px", fontWeight: "bold", color: "var(--text-light)" }}>W{activeWeek + 1}/{maxWeeks}</span>
                   <button
                     disabled={activeWeek >= maxWeeks - 1}
-                    onClick={() => {
-                      sound.playClockTick();
-                      setSelectedWeek(activeWeek + 1);
-                    }}
-                    style={{
-                      background: isDarkMode ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
-                      border: isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.12)",
-                      borderRadius: "6px",
-                      padding: "2px 8px",
-                      color: activeWeek >= maxWeeks - 1 ? "var(--text-muted)" : "#ff6a00",
-                      cursor: activeWeek >= maxWeeks - 1 ? "default" : "pointer",
-                      fontSize: "11px",
-                      fontWeight: "bold",
-                      opacity: activeWeek >= maxWeeks - 1 ? 0.4 : 1,
-                      fontFamily: "var(--font-gamer)"
-                    }}
-                  >
-                    Next ▶
-                  </button>
+                    onClick={() => { sound.playClockTick(); setSelectedWeek(activeWeek + 1); }}
+                    style={{ background: "transparent", border: "none", color: activeWeek >= maxWeeks - 1 ? "var(--text-muted)" : "#ff6a00", cursor: activeWeek >= maxWeeks - 1 ? "default" : "pointer", fontSize: "11px", padding: "0 2px" }}
+                  >▶</button>
                 </div>
               )}
             </div>
-            <span style={{ fontSize: "9px", color: coreColor, display: "flex", alignItems: "center", gap: "6px", fontWeight: "900", letterSpacing: "1px" }}>
-              <span className="pulsing-dot" style={{ background: coreColor, boxShadow: `0 0 8px ${coreColor}` }} />
-              {coreText} ({coreSubtitle})
+            <span style={{ 
+              fontSize: "9px", 
+              color: "#ffffff", 
+              background: coreColor,
+              padding: "2px 8px",
+              borderRadius: "8px",
+              fontWeight: "900", 
+              letterSpacing: "0.5px", 
+              textTransform: "uppercase",
+              boxShadow: `0 0 10px ${coreColor}30`,
+              display: "flex",
+              alignItems: "center",
+              gap: "4px"
+            }}>
+              <span className="pulsing-dot" style={{ background: "#ffffff", boxShadow: "0 0 4px #ffffff", width: "4px", height: "4px" }} />
+              {coreText}
             </span>
           </div>
 
-          {/* Adaptive Vertical Bar Chart (Enlarged Premium Grid) */}
-          <div style={{ 
-            display: "flex", 
-            alignItems: "flex-end", // Align columns directly to the bottom of the container
-            justifyContent: "space-between", 
-            minHeight: "320px", // Increased to push baseline down to align with the 4th telemetry card
-            padding: "16px 10px 0px 10px", // No bottom padding so bars touch the line!
-            background: isDarkMode 
-              ? "repeating-linear-gradient(0deg, transparent, transparent 33px, rgba(255,255,255,0.025) 33px, rgba(255,255,255,0.025) 34px)" 
-              : "repeating-linear-gradient(0deg, transparent, transparent 33px, rgba(0,0,0,0.025) 33px, rgba(0,0,0,0.025) 34px)",
-            borderBottom: isDarkMode ? "1.5px solid rgba(255,255,255,0.12)" : "1.5px solid rgba(0,0,0,0.12)",
-          }}>
-            {chartData.map((item, idx) => {
-              const target = item.target;
-              const completed = item.completed;
+          {/* Adaptive Vertical Bar Chart (Enlarged Premium Grid) + X-Axis Labels wrapped in a SINGLE scroll wrapper */}
+          <div className="chronos-chart-scroll-wrap" style={{ overflowX: "scroll", overflowY: "hidden", width: "100%", WebkitOverflowScrolling: "touch", touchAction: "pan-x", paddingBottom: "12px" }}>
+            <div style={{ 
+              minWidth: chartView === "weekly" ? "680px" : chartView === "monthly" ? "380px" : "600px",
+              display: "flex",
+              flexDirection: "column"
+            }}>
+              {/* Pillars Container */}
+              <div style={{ 
+                display: "flex", 
+                alignItems: "flex-end", // Align columns directly to the bottom of the container
+                justifyContent: "space-between", 
+                minHeight: "320px", 
+                padding: "16px 16px 0px 16px",
+                background: isDarkMode 
+                  ? "repeating-linear-gradient(0deg, transparent, transparent 33px, rgba(255,255,255,0.025) 33px, rgba(255,255,255,0.025) 34px)" 
+                  : "repeating-linear-gradient(0deg, transparent, transparent 33px, rgba(0,0,0,0.025) 33px, rgba(0,0,0,0.025) 34px)",
+                borderBottom: isDarkMode ? "1.5px solid rgba(255,255,255,0.12)" : "1.5px solid rgba(0,0,0,0.12)",
+              }}>
+                {chartData.map((item, idx) => {
+                  const target = item.target;
+                  const completed = item.completed;
 
-              // Compute segmented cell elements
-              const cells = [];
-              const cellCount = Math.max(target, completed);
-              for (let i = 0; i < cellCount; i++) {
-                const isWithinTarget = i < target;
-                const isCompleted = i < completed;
-                const isOverdrive = i >= target;
-                cells.push({ isWithinTarget, isCompleted, isOverdrive });
-              }
+                  // Compute segmented cell elements
+                  const cells = [];
+                  const cellCount = Math.max(target, completed);
+                  for (let i = 0; i < cellCount; i++) {
+                    const isWithinTarget = i < target;
+                    const isCompleted = i < completed;
+                    const isOverdrive = i >= target;
+                    cells.push({ isWithinTarget, isCompleted, isOverdrive });
+                  }
 
-              return (
-                <div 
-                  key={idx} 
-                  style={{ 
-                    display: "flex", 
-                    flexDirection: "column", 
-                    alignItems: "center", 
-                    flex: 1
-                  }}
-                >
-                  {/* The Bar Area — each cell is a fixed 30px, bar height = cellCount * 30 + gaps */}
-                  <div style={{
-                    width: "48px",
-                    display: "flex",
-                    flexDirection: "column-reverse",
-                    gap: "4px",
-                    transition: "all 0.3s ease"
-                  }}>
-                    {cells.map((cell, cIdx) => {
-                      let cellStyle = {
-                        width: "100%",
-                        height: "30px",
-                        borderRadius: "6px",
-                        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                        boxSizing: "border-box",
-                        flexShrink: 0
-                      };
-
-                      if (cell.isOverdrive) {
-                        const overdriveIdx = cIdx - target;
-                        if (overdriveIdx >= 2) {
-                          // Glowing Red (Nuclear Overdrive)
-                          cellStyle = {
-                            ...cellStyle,
-                            background: "linear-gradient(135deg, #f87171 0%, #ef4444 100%)",
-                            boxShadow: "0 0 16px rgba(239,68,68,0.75), inset 0 1px 1px rgba(255,255,255,0.3)",
-                            border: "none",
-                            animation: "redGlowPulse 1.5s infinite ease-in-out"
+                  return (
+                    <div 
+                      key={idx} 
+                      style={{ 
+                        display: "flex", 
+                        flexDirection: "column", 
+                        alignItems: "center", 
+                        flex: 1
+                      }}
+                    >
+                      {/* The Bar Area — each cell is a fixed 30px */}
+                      <div style={{
+                        width: "48px",
+                        display: "flex",
+                        flexDirection: "column-reverse",
+                        gap: "4px",
+                        transition: "all 0.3s ease"
+                      }}>
+                        {cells.map((cell, cIdx) => {
+                          let cellStyle = {
+                            width: "100%",
+                            height: "30px",
+                            borderRadius: "6px",
+                            transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                            boxSizing: "border-box",
+                            flexShrink: 0
                           };
-                        } else {
-                          // Violet
-                          cellStyle = {
-                            ...cellStyle,
-                            background: "linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)",
-                            boxShadow: "0 0 14px rgba(124,58,237,0.65), inset 0 1px 1px rgba(255,255,255,0.2)",
-                            border: "none",
-                            animation: "gracePulse 2s infinite ease-in-out"
-                          };
-                        }
-                      } else if (cell.isCompleted) {
-                        cellStyle = {
-                          ...cellStyle,
-                          background: "linear-gradient(135deg, #34d399 0%, #059669 100%)",
-                          boxShadow: "0 0 10px rgba(5,150,105,0.45), inset 0 1px 1px rgba(255,255,255,0.2)",
-                          border: "none"
-                        };
-                      } else {
-                        cellStyle = {
-                          ...cellStyle,
-                          background: isDarkMode ? "rgba(255,255,255,0.01)" : "rgba(0,0,0,0.01)",
-                          border: item.isCurrent 
-                            ? "2px dashed #ff6a00" 
-                            : (isDarkMode ? "1.2px dashed rgba(255,255,255,0.12)" : "1.2px dashed #cbd5e1"),
-                        };
-                      }
 
-                      return (
-                        <div 
-                          key={cIdx} 
-                          className="hud-cell-block"
-                          style={cellStyle}
-                          title={
-                            cell.isOverdrive 
-                              ? "Limit Break! Overdrive Quest Completed" 
-                              : cell.isCompleted 
-                              ? "Completed Directive" 
-                              : "Pending Daily Quota Directive"
+                          if (cell.isOverdrive) {
+                            const overdriveIdx = cIdx - target;
+                            if (overdriveIdx >= 2) {
+                              cellStyle = {
+                                ...cellStyle,
+                                background: "linear-gradient(135deg, #f87171 0%, #ef4444 100%)",
+                                boxShadow: "0 0 16px rgba(239,68,68,0.75), inset 0 1px 1px rgba(255,255,255,0.3)",
+                                border: "none",
+                                animation: "redGlowPulse 1.5s infinite ease-in-out"
+                              };
+                            } else {
+                              cellStyle = {
+                                ...cellStyle,
+                                background: "linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)",
+                                boxShadow: "0 0 14px rgba(124,58,237,0.65), inset 0 1px 1px rgba(255,255,255,0.2)",
+                                border: "none",
+                                animation: "gracePulse 2s infinite ease-in-out"
+                              };
+                            }
+                          } else if (cell.isCompleted) {
+                            cellStyle = {
+                              ...cellStyle,
+                              background: "linear-gradient(135deg, #34d399 0%, #059669 100%)",
+                              boxShadow: "0 0 10px rgba(5,150,105,0.45), inset 0 1px 1px rgba(255,255,255,0.2)",
+                              border: "none"
+                            };
+                          } else {
+                            cellStyle = {
+                              ...cellStyle,
+                              background: isDarkMode ? "rgba(255,255,255,0.01)" : "rgba(0,0,0,0.01)",
+                              border: item.isCurrent 
+                                ? "2px dashed #ff6a00" 
+                                : (isDarkMode ? "1.2px dashed rgba(255,255,255,0.12)" : "1.2px dashed #cbd5e1"),
+                            };
                           }
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
 
-          {/* X-Axis Labels & Score ratios under the bottom border axis */}
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            padding: "8px 10px 0 10px"
-          }}>
-            {chartData.map((item, idx) => (
-              <div 
-                key={idx} 
-                style={{ 
-                  display: "flex", 
-                  flexDirection: "column", 
-                  alignItems: "center", 
-                  flex: 1 
-                }}
-              >
-                {/* Score Ratio details */}
-                <div style={{ fontSize: "11px", fontWeight: "800", color: item.isCurrent ? "#ff6a00" : "var(--text-light)" }}>
-                  {item.completed} <span style={{ color: "var(--text-muted)", fontWeight: "500" }}>/</span> {item.target}
-                </div>
-
-                {/* Bar Labels */}
-                <div style={{ fontSize: "10.5px", color: "var(--text-muted)", marginTop: "4px", fontWeight: "600" }}>
-                  {item.label}
-                </div>
+                          return (
+                            <div 
+                              key={cIdx} 
+                              className="hud-cell-block"
+                              style={cellStyle}
+                              title={
+                                cell.isOverdrive 
+                                  ? "Limit Break! Overdrive Quest Completed" 
+                                  : cell.isCompleted 
+                                  ? "Completed Directive" 
+                                  : "Pending Daily Quota Directive"
+                              }
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
+
+              {/* X-Axis Labels Row */}
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "10px 16px 0 16px",
+              }}>
+                {chartData.map((item, idx) => (
+                  <div 
+                    key={idx} 
+                    style={{ 
+                      display: "flex", 
+                      flexDirection: "column", 
+                      alignItems: "center", 
+                      flex: 1 
+                    }}
+                  >
+                    {/* Score Ratio details */}
+                    <div style={{ fontSize: "11px", fontWeight: "800", color: item.isCurrent ? "#ff6a00" : "var(--text-light)" }}>
+                      {item.completed} <span style={{ color: "var(--text-muted)", fontWeight: "500" }}>/</span> {item.target}
+                    </div>
+
+                    {/* Bar Labels */}
+                    <div style={{ fontSize: "10.5px", color: "var(--text-muted)", marginTop: "4px", fontWeight: "600" }}>
+                      {item.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Extra High-tech coordinate label to fill the bottom layout space */}
@@ -1318,11 +1332,11 @@ export default function PathfinderScheduler({
           </div>
         </div>
 
-        {/* Right Sidebar: Telemetry Cards Stacked Vertically inside HUD panel */}
-        <div className="hud-panel-wrapper" style={{ 
+        {/* Right Sidebar: Telemetry Cards redesigned as a compact 2x2 stats block (2 lines) */}
+        <div className="hud-panel-wrapper telemetry-cards-container" style={{ 
           display: "flex", 
           flexDirection: "column", 
-          gap: "16px",
+          gap: "12px",
         }}>
           <div className="hud-corner-bracket hud-bracket-tl" />
           <div className="hud-corner-bracket hud-bracket-tr" />
@@ -1330,59 +1344,60 @@ export default function PathfinderScheduler({
           <div className="hud-corner-bracket hud-bracket-br" />
 
           {/* High-tech Sidebar Header */}
-          <div style={{ fontSize: "10px", fontWeight: "900", color: "#ff6a00", letterSpacing: "1.5px", borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.05)", paddingBottom: "10px", marginBottom: "8px", textTransform: "uppercase" }}>
+          <div style={{ fontSize: "10px", fontWeight: "900", color: "#ff6a00", letterSpacing: "1.5px", borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.05)", paddingBottom: "6px", marginBottom: "4px", textTransform: "uppercase" }}>
             📈 SYNC READOUTS
           </div>
 
-          <div className="telemetry-card" style={{ borderLeft: `3.5px solid ${speedBorderColor}`, borderTop: "none", borderRight: "none", borderBottom: "none" }}>
-            <span style={{ fontSize: "10px", fontWeight: "850", color: "var(--text-muted)", letterSpacing: "1px", textTransform: "uppercase" }}>
-              ⏱️ Study Speed
-            </span>
-            <span style={{ fontSize: "20px", fontWeight: "900", color: velocityStatus === "BEHIND" ? "#ef4444" : (velocityRatio > 1 ? "var(--neon-green)" : "#ff6a00") }}>
-              {velocityRatio > 0 ? `${velocityRatio.toFixed(1)}x speed` : "0.0x idle"}
-            </span>
-            <span style={{ fontSize: "10.5px", color: "var(--text-muted)", lineHeight: "1.3" }}>
-              Completions compared to schedule target baseline.
-            </span>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, 1fr)",
+            gap: "12px",
+            padding: "4px 0"
+          }}>
+            {/* Speed */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "18px" }}>⏱️</span>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <span style={{ fontSize: "9px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "0.5px", textTransform: "uppercase" }}>Study Speed</span>
+                <span style={{ fontSize: "13px", fontWeight: "900", color: velocityStatus === "BEHIND" ? "#ef4444" : (velocityRatio > 1 ? "var(--neon-green)" : "#ff6a00") }}>
+                  {velocityRatio > 0 ? `${velocityRatio.toFixed(1)}x` : "0.0x"}
+                </span>
+              </div>
+            </div>
+
+            {/* Subtopics */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "18px" }}>⚡</span>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <span style={{ fontSize: "9px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "0.5px", textTransform: "uppercase" }}>Subtopics</span>
+                <span style={{ fontSize: "13px", fontWeight: "900", color: "#a78bfa" }}>
+                  {completedSubtopics}/{totalSubtopics}
+                </span>
+              </div>
+            </div>
+
+            {/* Days left */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "18px" }}>📅</span>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <span style={{ fontSize: "9px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "0.5px", textTransform: "uppercase" }}>Days Left</span>
+                <span style={{ fontSize: "13px", fontWeight: "900", color: daysToFinishColor }}>
+                  {daysToFinishText.split(" ")[0]}D
+                </span>
+              </div>
+            </div>
+
+            {/* Streak */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "18px" }}>🔥</span>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <span style={{ fontSize: "9px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "0.5px", textTransform: "uppercase" }}>Streak Boost</span>
+                <span style={{ fontSize: "13px", fontWeight: "900", color: schedule.streak > 0 ? "#ff6a00" : "var(--text-muted)" }}>
+                  {xpBoost}
+                </span>
+              </div>
+            </div>
           </div>
-
-          <div className="telemetry-card" style={{ borderLeft: "3.5px solid #a78bfa", borderTop: "none", borderRight: "none", borderBottom: "none" }}>
-            <span style={{ fontSize: "10px", fontWeight: "850", color: "var(--text-muted)", letterSpacing: "1px", textTransform: "uppercase" }}>
-              ⚡ Path Subtopics
-            </span>
-            <span style={{ fontSize: "20px", fontWeight: "900", color: "#a78bfa" }}>
-              {completedSubtopics} / {totalSubtopics}
-            </span>
-            <span style={{ fontSize: "10.5px", color: "var(--text-muted)", lineHeight: "1.3" }}>
-              {totalSubtopics - completedSubtopics} subtopics remaining to complete entire path.
-            </span>
-          </div>
-
-          <div className="telemetry-card" style={{ borderLeft: `3.5px solid ${daysToFinishBorder}`, borderTop: "none", borderRight: "none", borderBottom: "none" }}>
-            <span style={{ fontSize: "10px", fontWeight: "850", color: "var(--text-muted)", letterSpacing: "1px", textTransform: "uppercase" }}>
-              📅 Days to Finish
-            </span>
-            <span style={{ fontSize: "20px", fontWeight: "900", color: daysToFinishColor }}>
-              {daysToFinishText}
-            </span>
-            <span style={{ fontSize: "10.5px", color: "var(--text-muted)", lineHeight: "1.3" }}>
-              {daysToFinishSubtext}
-            </span>
-          </div>
-
-
-          <div className="telemetry-card" style={{ borderLeft: "3.5px solid #a78bfa", borderTop: "none", borderRight: "none", borderBottom: "none" }}>
-            <span style={{ fontSize: "10px", fontWeight: "850", color: "var(--text-muted)", letterSpacing: "1px", textTransform: "uppercase" }}>
-              🔥 Streak Bonus
-            </span>
-            <span style={{ fontSize: "20px", fontWeight: "900", color: schedule.streak > 0 ? "#ff6a00" : "var(--text-muted)" }}>
-              {xpBoost} XP
-            </span>
-            <span style={{ fontSize: "10.5px", color: "var(--text-muted)", lineHeight: "1.3" }}>
-              {schedule.streak > 0 ? `Active: ${schedule.streak}D streak reward active!` : "Gain streak by meeting daily targets"}
-            </span>
-          </div>
-
         </div>
 
       </div>
@@ -1442,8 +1457,9 @@ export default function PathfinderScheduler({
                 <div 
                   key={`${t.milestone.id}_${t.subtopicIndex}`} 
                   className="hud-directive-row"
+                  style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "12px", padding: "16px 20px" }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: 1, minWidth: "200px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px", width: "100%" }}>
                     <div style={{
                       width: "22px",
                       height: "22px",
@@ -1459,41 +1475,59 @@ export default function PathfinderScheduler({
                       <span style={{ fontSize: "10.5px", fontWeight: "900" }}>{taskNum}</span>
                     </div>
 
-                    <div>
-                      <div style={{
-                        fontSize: "13.5px",
-                        fontWeight: "700",
-                        color: "var(--text-light)",
-                        lineHeight: "1.4"
-                      }}>
-                        {t.text}
-                      </div>
-                      <div style={{ fontSize: "10.5px", color: "var(--text-muted)", marginTop: "2px", fontWeight: "600" }}>
-                        📍 NODE: {t.milestone.title}
-                      </div>
+                    <div style={{
+                      fontSize: "13px",
+                      fontWeight: "600",
+                      color: "var(--text-light)",
+                      lineHeight: "1.3"
+                    }}>
+                      {t.text}
                     </div>
                   </div>
 
                   {/* Actions */}
                   {!t.isEncrypted && (
-                    <div style={{ display: "flex", gap: "8px" }}>
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", width: "100%" }}>
                       <button
-                        className="hud-quest-btn"
                         onClick={() => {
                           if (onTriggerSearch) {
                             sound.playClockTick();
                             onTriggerSearch(t.milestone.searchQuery || t.milestone.title);
                           }
                         }}
+                        style={{
+                          padding: "6px 14px",
+                          borderRadius: "16px",
+                          background: "rgba(255, 106, 0, 0.05)",
+                          border: "1px solid rgba(255, 106, 0, 0.15)",
+                          color: "#ff6a00",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          cursor: "pointer",
+                          fontSize: "11px",
+                          fontWeight: "800",
+                          fontFamily: "var(--font-gamer)",
+                          transition: "all 0.2s"
+                        }}
                       >
-                        🎮 Find Duel
+                        ⚔️ Duel
                       </button>
                       <button
-                        className="hud-quest-btn"
                         style={{
+                          padding: "6px 14px",
+                          borderRadius: "16px",
                           background: "rgba(139, 92, 246, 0.05)",
-                          border: "1px solid rgba(139, 92, 246, 0.2)",
-                          color: "#8b5cf6"
+                          border: "1px solid rgba(139, 92, 246, 0.15)",
+                          color: "#8b5cf6",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          cursor: "pointer",
+                          fontSize: "11px",
+                          fontWeight: "800",
+                          fontFamily: "var(--font-gamer)",
+                          transition: "all 0.2s"
                         }}
                         onClick={() => {
                           if (onStartSoloStudy) {
@@ -1501,39 +1535,32 @@ export default function PathfinderScheduler({
                             onStartSoloStudy(t.milestone);
                           }
                         }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.background = "#8b5cf6";
-                          e.currentTarget.style.color = "#fff";
-                          e.currentTarget.style.boxShadow = "0 0 10px rgba(139,92,246,0.4)";
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.background = "rgba(139, 92, 246, 0.05)";
-                          e.currentTarget.style.color = "#8b5cf6";
-                          e.currentTarget.style.boxShadow = "none";
-                        }}
                       >
-                        📖 Solo Study
+                        📖 Study
                       </button>
                       <button
-                        className="hud-quest-btn"
                         style={{
-                          background: "rgba(255,255,255,0.03)",
+                          padding: "6px 14px",
+                          borderRadius: "16px",
+                          background: "rgba(255,255,255,0.02)",
                           border: "1px solid var(--glass-border)",
-                          color: "var(--text-light)"
+                          color: "var(--text-light)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          cursor: "pointer",
+                          fontSize: "11px",
+                          fontWeight: "800",
+                          fontFamily: "var(--font-gamer)",
+                          transition: "all 0.2s"
                         }}
                         onClick={() => {
                           if (onSelectMilestone) {
                             onSelectMilestone(t.milestone);
                           }
                         }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.background = "rgba(255,255,255,0.08)";
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-                        }}
                       >
-                        👁️ Roadmap
+                        🗺️ Roadmap
                       </button>
                     </div>
                   )}

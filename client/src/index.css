@@ -4054,6 +4054,15 @@ body {
   .mobile-bottom-nav {
     display: none !important;
   }
+  .floating-todo-fab {
+    display: none !important;
+  }
+  .floating-todo-popup {
+    display: none !important;
+  }
+  .desktop-profile-only {
+    display: flex !important;
+  }
 }
 
 @media (max-width: 768px) {
@@ -4066,6 +4075,10 @@ body {
   }
   .mobile-search-active-bar {
     display: flex !important;
+  }
+  
+  .desktop-profile-only {
+    display: none !important;
   }
 
   /* Bottom Nav Layout space buffer */
@@ -4198,6 +4211,343 @@ body {
   /* Add padding to the metadata under thumbnail */
   .hud-card > div:not(.hud-thumbnail-wrap) {
     padding: 0 16px !important;
+  }
+}
+
+/* ═══════════════ PATHFINDER RESPONSIVE STYLING ═══════════════ */
+
+/* Quest Board Stats Layout */
+.pathfinder-stats-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 16px !important;
+  margin-top: 24px !important;
+  margin-bottom: 18px !important;
+}
+
+.pathfinder-stat-card {
+  border-radius: 18px !important;
+  padding: 16px 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+}
+
+.pathfinder-stat-icon-wrap {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 12px !important;
+  font-size: 22px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.pathfinder-stat-info {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.pathfinder-stat-label {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  color: var(--text-muted) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  margin-bottom: 4px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.pathfinder-stat-value {
+  font-size: 18px !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+
+.pathfinder-stat-sub {
+  font-size: 11px !important;
+  color: var(--text-muted) !important;
+  margin-top: 2px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.pathfinder-stat-progress-bar {
+  margin-top: 8px !important;
+  height: 4px !important;
+  background: rgba(100, 100, 100, 0.15) !important;
+  border-radius: 2px !important;
+  overflow: hidden !important;
+}
+
+/* Constellation Map Padding and Grid */
+.pathfinder-constellation-container {
+  padding: 40px !important;
+}
+
+/* Mobile responsive compact stacked list / 2x2 grid */
+@media (max-width: 768px) {
+  .pathfinder-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin-top: 16px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .pathfinder-stat-card {
+    padding: 10px 12px !important;
+    border-radius: 12px !important;
+    gap: 8px !important;
+  }
+
+  .pathfinder-stat-icon-wrap {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 8px !important;
+    font-size: 16px !important;
+  }
+
+  .pathfinder-stat-label {
+    font-size: 8px !important;
+    letter-spacing: 0.5px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .pathfinder-stat-value {
+    font-size: 13px !important;
+  }
+
+  .pathfinder-stat-sub {
+    display: none !important; /* Hide long subtitle details on mobile! */
+  }
+
+  .pathfinder-stat-progress-bar {
+    display: none !important; /* Hide progress bar on mobile! */
+  }
+
+  /* Compact level header padding on mobile */
+  .pathfinder-level-header {
+    padding: 14px 16px !important;
+    gap: 12px !important;
+  }
+
+  /* Compact Constellation Padding for node maps */
+  .pathfinder-constellation-container {
+    padding: 16px 12px 24px 12px !important;
+  }
+
+  /* Squish diamond milestone nodes on mobile to prevent overlapping */
+  .node-medallion-container div[style*="width: 56px"] {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 8px !important;
+  }
+  .node-medallion-container div[style*="width: 44px"] {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 6px !important;
+  }
+  .node-medallion-container span[style*="font-size: 22px"] {
+    font-size: 15px !important;
+  }
+}
+
+/* Pathfinder Unified Stats Bar Styling */
+.pathfinder-unified-stats {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-around !important;
+  background: var(--bg-dark-surface) !important;
+  border-radius: 18px !important;
+  padding: 16px 24px !important;
+  border: 1.5px solid var(--glass-border) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  margin-top: 24px !important;
+  margin-bottom: 18px !important;
+  box-sizing: border-box !important;
+  gap: 16px !important;
+  width: 100% !important;
+}
+
+.pathfinder-unified-stat-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+}
+
+.pathfinder-unified-stat-info {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.pathfinder-unified-stat-label {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  color: var(--text-muted) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.pathfinder-unified-stat-value {
+  font-size: 16px !important;
+  font-weight: 900 !important;
+  color: var(--text-light) !important;
+  line-height: 1.2 !important;
+}
+
+.pathfinder-unified-divider {
+  width: 1px !important;
+  height: 36px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  flex-shrink: 0 !important;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .pathfinder-unified-stats {
+    padding: 12px 14px !important;
+    gap: 8px !important;
+  }
+  
+  .pathfinder-unified-stat-item {
+    gap: 8px !important;
+  }
+
+  .pathfinder-unified-stat-label {
+    font-size: 8px !important;
+  }
+
+  .pathfinder-unified-stat-value {
+    font-size: 13px !important;
+  }
+}
+
+/* ═══════════════ CHRONOS RESPONSIVE STYLING ═══════════════ */
+
+/* Chronos scroll bar cleanup */
+.chronos-chart-scroll-wrap::-webkit-scrollbar {
+  height: 4px !important;
+}
+.chronos-chart-scroll-wrap::-webkit-scrollbar-thumb {
+  background: rgba(255, 106, 0, 0.25) !important;
+  border-radius: 4px !important;
+}
+
+/* Telemetry Cards & Scroll Elements */
+.chronos-chart-scroll-wrap {
+  width: 100% !important;
+  overflow-x: scroll !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-x !important;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  /* Toolbar: stretch and layout vertically */
+  .chronos-header-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    margin-bottom: 20px !important;
+  }
+  .chronos-header-row > div:nth-child(2) {
+    justify-content: space-between !important;
+    width: 100% !important;
+  }
+  .chronos-tab-selector {
+    width: 100% !important;
+    display: flex !important;
+  }
+  .chronos-tab-selector button {
+    flex: 1 !important;
+    font-size: 11px !important;
+    padding: 8px 4px !important;
+    white-space: nowrap !important;
+  }
+
+  /* Matrix chart title header elements stacking */
+  .chronos-chart-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+  .chronos-chart-header > div {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+  .chronos-chart-header > span {
+    margin-top: 4px !important;
+  }
+
+  /* Telemetry Cards - convert from columns to horizontal list of clean rows */
+  .telemetry-cards-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  .telemetry-card {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 12px 16px !important;
+    border-left: none !important;
+    border-radius: 12px !important;
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid var(--glass-border) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    gap: 12px !important;
+  }
+  .telemetry-card span:nth-child(1) {
+    font-size: 12px !important;
+    color: var(--text-light) !important;
+    font-weight: 800 !important;
+    text-transform: capitalize !important;
+  }
+  .telemetry-card span:nth-child(2) {
+    font-size: 15px !important;
+    font-weight: 900 !important;
+    text-align: right !important;
+  }
+  .telemetry-card span:nth-child(3) {
+    display: none !important; /* Hide long telemetry descriptions on mobile */
+  }
+
+  /* Compact Study Quests Action Rows on mobile */
+  .hud-directive-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 14px 16px !important;
+    gap: 12px !important;
+  }
+  
+  .hud-directive-row > div:nth-child(2) {
+    display: flex !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+  
+  .hud-directive-row .hud-quest-btn {
+    flex: 1 !important;
+    padding: 8px 4px !important;
+    font-size: 10.5px !important;
+    text-align: center !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
   }
 }
 

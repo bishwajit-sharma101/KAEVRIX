@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import * as sound from "../../utils/audio";
+import CommunityTab from "../Community/CommunityTab";
 
 const TIER_COLORS = {
   "Novice": "#64748b",
@@ -2296,14 +2297,13 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits,
       {/* --- BACKGROUND PROFILE EFFECTS --- */}
       {backgroundEffectsElement}
 
-      {/* 1. CUSTOMIZABLE BANNER SECTION */}
       <div style={{ 
         width: "100%", height: "240px", 
         background: bannerBackground,
         position: "relative",
         borderBottom: "1px solid rgba(255,255,255,0.1)"
       }}>
-        <div style={{ position: "absolute", top: "20px", right: "30px", display: "flex", gap: "12px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <div style={{ position: "absolute", top: "20px", right: "min(30px, 4vw)", left: "min(30px, 4vw)", display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
           <button onClick={handleCycleCosmetics} style={{ 
             background: "rgba(59,130,246,0.5)", border: "1px solid rgba(59,130,246,0.8)", 
             color: "#fff", padding: "8px 16px", borderRadius: "20px", fontSize: "12px", 
@@ -2334,14 +2334,14 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits,
       </div>
 
       {/* 2. PROFILE BODY (No Boxes, Pure Layout) */}
-      <div style={{ padding: "0 60px", position: "relative" }}>
+      <div style={{ padding: "0 min(60px, 4vw)", position: "relative" }}>
         
         {/* Identity Row: Overlapping Avatar & Name */}
-        <div style={{ display: "flex", alignItems: "flex-end", gap: "30px", marginTop: "-70px", marginBottom: "40px" }}>
+        <div style={{ display: "flex", flexFlow: "row wrap", alignItems: "flex-end", gap: "20px", marginTop: "-70px", marginBottom: "40px" }}>
           
           {/* Avatar Container with Intense Decorations */}
           <div style={{ 
-            width: "160px", height: "160px", borderRadius: "50%", 
+            width: "min(160px, 35vw)", height: "min(160px, 35vw)", borderRadius: "50%", 
             background: "var(--bg-dark-base)", 
             padding: "8px", position: "relative", zIndex: 10
           }}>
@@ -3181,8 +3181,8 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits,
           </div>
 
           {/* Name & Title */}
-          <div style={{ flex: 1, paddingBottom: "10px" }}>
-            <h1 style={{ margin: "0 0 8px 0", fontSize: "48px", fontWeight: "900", color: "var(--text-light)", fontFamily: "var(--font-outfit)", letterSpacing: "2px" }}>
+          <div style={{ flex: "1 1 280px", paddingBottom: "10px", minWidth: "250px" }}>
+            <h1 style={{ margin: "0 0 8px 0", fontSize: "calc(24px + 1.8vw)", fontWeight: "900", color: "var(--text-light)", fontFamily: "var(--font-outfit)", letterSpacing: "2px" }}>
               {username}
             </h1>
             <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
@@ -3218,7 +3218,7 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits,
         </div>
 
         {/* Level Progress (No Box) */}
-        <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "60px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "32px" }}>
           <div style={{ flex: 1, height: "2px", background: "rgba(128,128,128,0.2)", position: "relative" }}>
             <div style={{ position: "absolute", top: 0, left: 0, height: "100%", width: `${xpProgress}%`, background: "var(--neon-orange)", boxShadow: "0 0 10px var(--neon-orange)" }} />
           </div>
@@ -3228,7 +3228,7 @@ export default function ProfilePanel({ username, selectedClass, onSurpassLimits,
         </div>
 
         {/* 3. TWO COLUMN STATS & SKILLS (NO BOXES) */}
-        <div style={{ display: "flex", gap: "80px", alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "min(80px, 5vw)", alignItems: "flex-start", flexWrap: "wrap" }}>
           
           {/* Left Column: Stats */}
           <div style={{ flex: "1 1 300px", display: "flex", flexDirection: "column", gap: "40px" }}>

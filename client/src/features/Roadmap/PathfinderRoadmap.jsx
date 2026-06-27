@@ -38,26 +38,19 @@ const LEVEL_META = {
 
 const getConstellationLayout = (n) => {
   if (n === 1) return [{x: 50, y: 50}];
-  if (n === 2) return [{x: 20, y: 50}, {x: 80, y: 50}];
-  if (n === 3) return [{x: 20, y: 80}, {x: 50, y: 20}, {x: 80, y: 80}]; // Triangle
+  if (n === 2) return [{x: 35, y: 25}, {x: 65, y: 75}];
+  if (n === 3) return [{x: 35, y: 15}, {x: 65, y: 50}, {x: 35, y: 85}];
   
-  // Organic Constellation Path (Sine Wave)
   const coords = [];
-  const startX = 10;
-  const endX = 90;
-  const stepX = (endX - startX) / (n - 1 || 1);
+  const startY = 8;
+  const endY = 92;
+  const stepY = (endY - startY) / (n - 1 || 1);
   
-  for(let i=0; i<n; i++) {
-    // 2 periods of sine wave over the path
-    const progress = i / (n - 1 || 1);
-    const angle = progress * Math.PI * 4; 
-    let y = 50 + Math.sin(angle) * 35; // Oscillation between 15% and 85%
-    
-    // Add vertical organic jitter
-    if (i % 2 === 0) y -= 5; else y += 5;
-    y = Math.max(10, Math.min(90, y)); // Clamp safely
-    
-    let x = startX + (stepX * i);
+  for(let i = 0; i < n; i++) {
+    const y = startY + (stepY * i);
+    // Smooth winding snake path left and right around 50% center
+    const angle = (i / (n - 1 || 1)) * Math.PI * 3;
+    const x = 50 + Math.sin(angle) * 22; // alternate left and right by 22%
     coords.push({x, y});
   }
   return coords;
@@ -3276,61 +3269,94 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
           </div>
         </div>
 
-        {/* Quest Board Stats (Glass panel glowing border) */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "16px",
-          marginTop: "24px",
-          marginBottom: "18px"
-        }}>
-          {[
-            { label: "Campaign Progress", value: `${completedCount} / ${totalCount}`, sub: "Milestones Cleared", color: "#ff6a00", icon: "🗺️", progress: true },
-            { label: "Bounty Reward", value: `+${totalXpEarned} XP`, sub: "Earned from milestones", color: "#eab308", icon: "🏆" },
-            { label: "Intel Required", value: `${roadmap.totalVideosEstimated || (totalCount * 2)} Videos`, sub: "Training files to watch", color: "#3b82f6", icon: "🎬" },
-            { label: "Campaign Duration", value: `${roadmap.totalEstimatedHours || Math.round((totalCount * 45) / 60)} Hours`, sub: "Total estimated study time", color: "#8b5cf6", icon: "⏱️" },
-          ].map((s, i) => (
-            <div key={i} style={{
-              background: isDarkMode ? "var(--bg-dark-surface)" : "#ffffff", 
-              borderRadius: "18px",
-              padding: "20px", 
+        {/* Quest Board Stats (Unified Horizontal Stats Bar) */}
+        {(() => {
+          const percent = Math.round((completedCount / totalCount) * 100) || 0;
+          const durationVal = `${roadmap.totalEstimatedHours || Math.round((totalCount * 45) / 60)}H`;
+          
+          return (
+            <div className="pathfinder-unified-stats" style={{
+              background: isDarkMode ? "var(--bg-dark-surface)" : "#ffffff",
               border: isDarkMode ? "1.5px solid var(--glass-border)" : "1.5px solid #e2e8f0",
-              boxShadow: isDarkMode ? "none" : "0 2px 8px rgba(0,0,0,0.04)",
-              display: "flex", gap: "16px", alignItems: "center",
-              transition: "all 0.2s"
-            }}
-            onMouseOver={e => { 
-              e.currentTarget.style.transform = "translateY(-2px)"; 
-              e.currentTarget.style.borderColor = s.color; 
-              e.currentTarget.style.boxShadow = isDarkMode ? `0 0 20px ${s.color}22` : `0 8px 16px rgba(0,0,0,0.08)`; 
-            }}
-            onMouseOut={e => { 
-              e.currentTarget.style.transform = "none"; 
-              e.currentTarget.style.borderColor = isDarkMode ? "var(--glass-border)" : "#e2e8f0"; 
-              e.currentTarget.style.boxShadow = isDarkMode ? "none" : "0 2px 8px rgba(0,0,0,0.04)"; 
-            }}
-            >
-              <div style={{
-                width: "48px", height: "48px", borderRadius: "12px",
-                background: `${s.color}15`, display: "flex", alignItems: "center",
-                justifyContent: "center", fontSize: "22px", color: s.color, flexShrink: 0,
-                border: `1px solid ${s.color}33`, boxShadow: `0 0 10px ${s.color}11`
-              }}>
-                {s.icon}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>{s.label}</div>
-                <div style={{ fontSize: "18px", fontWeight: "900", color: s.color, lineHeight: "1.2" }}>{s.value}</div>
-                <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px", fontWeight: "600" }}>{s.sub}</div>
-                {s.progress && (
-                  <div style={{ marginTop: "8px", height: "4px", background: "rgba(100, 100, 100, 0.15)", borderRadius: "2px", overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${(completedCount / totalCount) * 100}%`, background: `linear-gradient(90deg, ${s.color}, #ffb300)`, borderRadius: "2px", transition: "width 0.5s" }} />
+              boxShadow: isDarkMode ? "none" : "0 4px 12px rgba(0,0,0,0.03)"
+            }}>
+              {/* Progress Section */}
+              <div className="pathfinder-unified-stat-item">
+                <div style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "50%",
+                  background: `conic-gradient(var(--neon-orange) ${percent}%, ${isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"} ${percent}% 100%)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  position: "relative",
+                  flexShrink: 0
+                }}>
+                  <div style={{
+                    width: "34px",
+                    height: "34px",
+                    borderRadius: "50%",
+                    background: isDarkMode ? "#0b0f19" : "#ffffff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "10px",
+                    fontWeight: "900",
+                    color: isDarkMode ? "#f8fafc" : "#0f172a"
+                  }}>
+                    {percent}%
                   </div>
-                )}
+                </div>
+                <div className="pathfinder-unified-stat-info">
+                  <div className="pathfinder-unified-stat-label">Progress</div>
+                  <div className="pathfinder-unified-stat-value" style={{ color: "var(--neon-orange)" }}>{completedCount} / {totalCount}</div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="pathfinder-unified-divider" style={{ background: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)" }} />
+
+              {/* Reward Section */}
+              <div className="pathfinder-unified-stat-item">
+                <div style={{ fontSize: "28px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  🏆
+                </div>
+                <div className="pathfinder-unified-stat-info">
+                  <div className="pathfinder-unified-stat-label">Reward</div>
+                  <div className="pathfinder-unified-stat-value" style={{ color: "#eab308" }}>+{totalXpEarned} XP</div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="pathfinder-unified-divider" style={{ background: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)" }} />
+
+              {/* Duration Section */}
+              <div className="pathfinder-unified-stat-item">
+                <div style={{
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "50%",
+                  border: isDarkMode ? "2px solid rgba(255,255,255,0.2)" : "2px solid rgba(0,0,0,0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: isDarkMode ? "#cbd5e1" : "#475569",
+                  flexShrink: 0
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                </div>
+                <div className="pathfinder-unified-stat-info">
+                  <div className="pathfinder-unified-stat-label">Duration</div>
+                  <div className="pathfinder-unified-stat-value" style={{ color: "#8b5cf6" }}>{durationVal}</div>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })()}
 
 
         {/* Legend */}
@@ -3369,8 +3395,8 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
               {/* Level header — clickable to expand */}
               <div
                 onClick={() => { sound.playClockTick(); setExpandedLevel(isOpen ? 0 : num); }}
+                className="pathfinder-level-header"
                 style={{
-                  padding: "20px 28px",
                   background: data.isLevelUnlocked
                     ? (isDarkMode 
                         ? `linear-gradient(135deg, ${color}15 0%, transparent 100%)` 
@@ -3442,7 +3468,7 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
                 const layout = getConstellationLayout(data.milestones.length);
                 const isLevelComplete = data.completedInLevel === data.milestones.length;
                 return (
-                <div style={{ 
+                <div className="pathfinder-constellation-container" style={{ 
                   padding: "40px", 
                   background: "#09090b", // ALWAYS dark for gaming vibe
                   position: "relative",
@@ -3460,7 +3486,7 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
                   <div style={{
                     position: "relative",
                     width: "100%",
-                    height: "350px", // Organic snake needs less vertical height than tree
+                    height: `${Math.max(380, data.milestones.length * 80)}px`,
                     margin: "20px 0",
                   }}>
                     {/* SVG Connecting Lines */}

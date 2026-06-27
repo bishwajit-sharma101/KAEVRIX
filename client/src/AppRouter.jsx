@@ -22,7 +22,9 @@ export default function AppRouter(props) {
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("duels");
   const [isMobileSearchActive, setIsMobileSearchActive] = React.useState(false);
+  const [showSchedulerSettings, setShowSchedulerSettings] = React.useState(false);
   const [searchHistory, setSearchHistory] = React.useState([]);
+  const [showMoreMenu, setShowMoreMenu] = React.useState(false);
 
   React.useEffect(() => {
     try {
@@ -311,24 +313,7 @@ export default function AppRouter(props) {
         <>
           <div className="header-left" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             {/* Hamburger Menu — only show on mobile/tablet */}
-            <button
-              className="header-hamburger-btn"
-              onClick={() => { sound.playClockTick(); setIsDrawerOpen(true); }}
-              title="Open Navigation Drawer"
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "var(--neon-orange)",
-                fontSize: "24px",
-                cursor: "pointer",
-                padding: "6px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}
-            >
-              ☰
-            </button>
+
             {/* Back Arrow — only show when not on dashboard */}
             {status !== "idle" && (
               <button
@@ -362,7 +347,8 @@ export default function AppRouter(props) {
           </div>
 
           {/* Desktop Search Bar (shown only on large viewports) */}
-          <div className="header-search-container desktop-search-only">
+          {(activeTab !== "chronos") && (
+            <div className="header-search-container desktop-search-only">
             <form 
               onSubmit={handleLocalSearchSubmit} 
               className="header-search-form" 
@@ -430,32 +416,99 @@ export default function AppRouter(props) {
                 )}
               </button>
             </form>
-          </div>
+            </div>
+          )}
 
-          <div className="header-right">
-            {/* YouTube style search trigger button on mobile */}
-            <button 
-              className="mobile-search-trigger"
-              onClick={() => { sound.playClockTick(); setIsMobileSearchActive(true); }}
-              style={{ 
-                background: "transparent", 
-                border: "none", 
-                color: "var(--neon-orange)", 
-                width: "40px", 
-                height: "40px",
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "center",
-                cursor: "pointer",
-                transition: "transform 0.2s"
-              }}
-              title="Search"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-            </button>
+          <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {/* YouTube style search trigger button on mobile / Settings button when in chronos */}
+            {(activeTab === "chronos") ? (
+              <button
+                onClick={() => {
+                  sound.playClockTick();
+                  setShowSchedulerSettings(prev => !prev);
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--neon-orange)",
+                  width: "40px",
+                  height: "40px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  fontSize: "22px",
+                  transition: "transform 0.2s"
+                }}
+                title="Settings"
+              >
+                ⚙️
+              </button>
+            ) : (
+              <button 
+                className="mobile-search-trigger"
+                onClick={() => { sound.playClockTick(); setIsMobileSearchActive(true); }}
+                style={{ 
+                  background: "transparent", 
+                  border: "none", 
+                  color: "var(--neon-orange)", 
+                  width: "40px", 
+                  height: "40px",
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "transform 0.2s"
+                }}
+                title="Search"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </button>
+            )}
+
+            {/* Desktop-only Profile and Logout */}
+            <div className="desktop-profile-only" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div className="header-profile" style={{ display: "flex", alignItems: "center", gap: "12px", background: isDarkMode ? "#1e293b" : "#ffffff", padding: "6px 16px 6px 6px", borderRadius: "30px", border: "1px solid var(--glass-border)", boxShadow: "0 4px 6px rgba(0,0,0,0.02)" }}>
+                <div className="profile-avatar" style={{ width: "36px", height: "36px", borderRadius: "50%", background: isDarkMode ? "#0f172a" : "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", border: "1px solid var(--glass-border)", overflow: "hidden" }}>
+                  {avatar && avatar.includes('http') ? <img src={avatar} alt="avatar" style={{width: "100%", height: "100%", objectFit: "cover"}}/> : avatar}
+                </div>
+                <div className="profile-info" style={{ display: "flex", flexDirection: "column" }}>
+                  <div className="profile-name" style={{ fontSize: "14px", fontWeight: "600", color: "var(--text-light)" }}>{username}</div>
+                  <div className="profile-level-badge" style={{ fontSize: "11px", color: "var(--neon-orange)", fontWeight: "700" }}>
+                    LVL {level} <span style={{ color: "var(--text-muted)", fontWeight: "normal" }}>({xp % 200}/200)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Logout button */}
+              <button
+                onClick={handleLogout}
+                title="Sign Out"
+                style={{
+                  flexShrink: 0,
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "50%",
+                  background: "rgba(239, 68, 68, 0.08)",
+                  border: "1.5px solid rgba(239, 68, 68, 0.2)",
+                  color: "#ef4444",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "bold",
+                  transition: "all 0.2s",
+                }}
+                onMouseOver={e => { e.currentTarget.style.background = "#ef4444"; e.currentTarget.style.color = "#fff"; }}
+                onMouseOut={e => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)"; e.currentTarget.style.color = "#ef4444"; }}
+              >
+                🚪
+              </button>
+            </div>
           </div>
         </>
       )}
@@ -680,6 +733,8 @@ export default function AppRouter(props) {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           handleLogout={handleLogout}
+          showSchedulerSettings={showSchedulerSettings}
+          setShowSchedulerSettings={setShowSchedulerSettings}
         />
       )}
 
@@ -832,43 +887,131 @@ export default function AppRouter(props) {
           onClose={() => setShowDailyModal(false)} 
         />
       )}
+      {/* Floating Popover Menu above the bottom navigation */}
+      {showMoreMenu && (
+        <div style={{
+          position: "fixed",
+          bottom: "75px",
+          right: "24px",
+          background: "var(--bg-dark-surface)",
+          border: "1px solid var(--glass-border)",
+          borderRadius: "12px",
+          padding: "8px 4px",
+          width: "160px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "4px",
+          zIndex: 9999,
+          boxShadow: "0 10px 30px rgba(0,0,0,0.6)",
+          backdropFilter: "blur(20px)",
+        }}>
+          <button 
+            onClick={() => { sound.playClockTick(); setActiveTab("history"); setShowMoreMenu(false); }} 
+            style={{
+              background: activeTab === "history" ? "rgba(255, 106, 0, 0.1)" : "transparent",
+              border: "none",
+              color: activeTab === "history" ? "#ff6a00" : "var(--text-light)",
+              padding: "10px 14px",
+              borderRadius: "8px",
+              textAlign: "left",
+              fontSize: "13px",
+              fontWeight: "700",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              fontFamily: "var(--font-outfit)"
+            }}
+          >
+            <span>📖</span> History
+          </button>
+          <button 
+            onClick={() => { sound.playClockTick(); setActiveTab("rankings"); setShowMoreMenu(false); }} 
+            style={{
+              background: activeTab === "rankings" ? "rgba(255, 106, 0, 0.1)" : "transparent",
+              border: "none",
+              color: activeTab === "rankings" ? "#ff6a00" : "var(--text-light)",
+              padding: "10px 14px",
+              borderRadius: "8px",
+              textAlign: "left",
+              fontSize: "13px",
+              fontWeight: "700",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              fontFamily: "var(--font-outfit)"
+            }}
+          >
+            <span>🏆</span> Rankings
+          </button>
+          <button 
+            onClick={() => { sound.playClockTick(); setActiveTab("settings"); setShowMoreMenu(false); }} 
+            style={{
+              background: activeTab === "settings" ? "rgba(255, 106, 0, 0.1)" : "transparent",
+              border: "none",
+              color: activeTab === "settings" ? "#ff6a00" : "var(--text-light)",
+              padding: "10px 14px",
+              borderRadius: "8px",
+              textAlign: "left",
+              fontSize: "13px",
+              fontWeight: "700",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              fontFamily: "var(--font-outfit)"
+            }}
+          >
+            <span>⚙️</span> Settings
+          </button>
+        </div>
+      )}
+
       {/* Mobile Bottom Navigation Bar (YouTube style) */}
       {status === "idle" && !isCodingMode && (
         <div className="mobile-bottom-nav">
           <button 
             className={`bottom-nav-btn ${activeTab === "duels" ? "bottom-nav-btn-active" : ""}`}
-            onClick={() => { sound.playClockTick(); setActiveTab("duels"); }}
+            onClick={() => { sound.playClockTick(); setActiveTab("duels"); setShowMoreMenu(false); }}
           >
             <span className="bottom-nav-icon">🎮</span>
             <span className="bottom-nav-label">Arena</span>
           </button>
           <button 
             className={`bottom-nav-btn ${activeTab === "pathfinder" ? "bottom-nav-btn-active" : ""}`}
-            onClick={() => { sound.playClockTick(); setActiveTab("pathfinder"); }}
+            onClick={() => { sound.playClockTick(); setActiveTab("pathfinder"); setShowMoreMenu(false); }}
           >
             <span className="bottom-nav-icon">🧠</span>
             <span className="bottom-nav-label">Pathfinder</span>
           </button>
           <button 
             className={`bottom-nav-btn ${activeTab === "chronos" ? "bottom-nav-btn-active" : ""}`}
-            onClick={() => { sound.playClockTick(); setActiveTab("chronos"); }}
+            onClick={() => { sound.playClockTick(); setActiveTab("chronos"); setShowMoreMenu(false); }}
           >
             <span className="bottom-nav-icon">⏱️</span>
             <span className="bottom-nav-label">Chronos</span>
           </button>
           <button 
-            className={`bottom-nav-btn ${activeTab === "history" ? "bottom-nav-btn-active" : ""}`}
-            onClick={() => { sound.playClockTick(); setActiveTab("history"); }}
+            className={`bottom-nav-btn ${activeTab === "community" ? "bottom-nav-btn-active" : ""}`}
+            onClick={() => { sound.playClockTick(); setActiveTab("community"); setShowMoreMenu(false); }}
           >
-            <span className="bottom-nav-icon">📖</span>
-            <span className="bottom-nav-label">History</span>
+            <span className="bottom-nav-icon">💬</span>
+            <span className="bottom-nav-label">Community</span>
           </button>
           <button 
             className={`bottom-nav-btn ${activeTab === "profile" ? "bottom-nav-btn-active" : ""}`}
-            onClick={() => { sound.playClockTick(); setActiveTab("profile"); }}
+            onClick={() => { sound.playClockTick(); setActiveTab("profile"); setShowMoreMenu(false); }}
           >
             <span className="bottom-nav-icon">👤</span>
             <span className="bottom-nav-label">You</span>
+          </button>
+          <button 
+            className={`bottom-nav-btn ${showMoreMenu ? "bottom-nav-btn-active" : ""}`}
+            onClick={() => { sound.playClockTick(); setShowMoreMenu(prev => !prev); }}
+          >
+            <span className="bottom-nav-icon">⋮</span>
+            <span className="bottom-nav-label">More</span>
           </button>
         </div>
       )}

@@ -68,7 +68,9 @@ export default function Dashboard({
   setMusicProfile,
   activeTab,
   setActiveTab,
-  handleLogout
+  handleLogout,
+  showSchedulerSettings,
+  setShowSchedulerSettings
 }) {
   const [isRobotHovered, setIsRobotHovered] = useState(false);
   const [personalizedFeed, setPersonalizedFeed] = useState([]);
@@ -600,7 +602,23 @@ export default function Dashboard({
       {/* Content Area */}
       <div className="dashboard-content">
         {activeTab === "profile" && (
-          <ProfilePanel username={username} selectedClass={selectedClass} onSurpassLimits={onSurpassLimits} onTestJourneyDay={onTestJourneyDay} handleLogout={handleLogout} />
+          <ProfilePanel 
+            username={username} 
+            selectedClass={selectedClass} 
+            onSurpassLimits={onSurpassLimits} 
+            onTestJourneyDay={onTestJourneyDay} 
+            handleLogout={handleLogout} 
+            leaderboard={leaderboard}
+            backendUrl={backendUrl}
+            getRankTitle={getRankTitle}
+            isDarkMode={isDarkMode}
+            setIsDarkMode={setIsDarkMode}
+            isMusicMuted={isMusicMuted}
+            setIsMusicMuted={setIsMusicMuted}
+            musicProfile={musicProfile}
+            setMusicProfile={setMusicProfile}
+            socket={socket}
+          />
         )}
 
         {activeTab === "duels" && (
@@ -928,6 +946,8 @@ export default function Dashboard({
               sound.playClockTick();
               setActiveTab("pathfinder");
             }}
+            showSettings={showSchedulerSettings}
+            setShowSettings={setShowSchedulerSettings}
           />
         )}
 
@@ -1086,6 +1106,103 @@ export default function Dashboard({
             </div>
           </div>
         )}
+
+        {activeTab === "settings" && (
+          <div style={{ padding: "0 4px", marginTop: "20px" }}>
+            <div className="hud-panel" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "20px", maxWidth: "600px", margin: "0 auto", border: "1px solid var(--glass-border)", position: "relative" }}>
+              <div className="hud-corner-bracket hud-bracket-tl" />
+              <div className="hud-corner-bracket hud-bracket-tr" />
+              <div className="hud-corner-bracket hud-bracket-bl" />
+              <div className="hud-corner-bracket hud-bracket-br" />
+
+              <h3 style={{ margin: 0, fontSize: "12px", color: "var(--neon-orange)", fontWeight: "900", letterSpacing: "1.5px", textTransform: "uppercase", borderBottom: "1px solid var(--glass-border)", paddingBottom: "12px", fontFamily: "var(--font-gamer)" }}>
+                ⚙️ SYSTEM SETTINGS
+              </h3>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {/* Dark Theme */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-light)" }}>Dark Theme Mode</span>
+                  <button 
+                    onClick={() => { sound.playClockTick(); setIsDarkMode(!isDarkMode); }}
+                    style={{
+                      background: isDarkMode ? "var(--neon-orange)" : "rgba(255, 106, 0, 0.1)",
+                      border: "1px solid #ff6a00",
+                      color: "#fff",
+                      padding: "6px 16px",
+                      borderRadius: "20px",
+                      fontSize: "12px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-gamer)"
+                    }}
+                  >
+                    {isDarkMode ? "🌙 ON" : "☀️ OFF"}
+                  </button>
+                </div>
+
+                {/* Ambient Music */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-light)" }}>Ambient Music</span>
+                  <button 
+                    onClick={() => { 
+                      sound.playClockTick(); 
+                      const nextMuted = !isMusicMuted;
+                      setIsMusicMuted(nextMuted); 
+                      localStorage.setItem("kaevrix_music_muted", String(nextMuted));
+                    }}
+                    style={{
+                      background: !isMusicMuted ? "var(--neon-orange)" : "rgba(255, 106, 0, 0.1)",
+                      border: "1px solid #ff6a00",
+                      color: "#fff",
+                      padding: "6px 16px",
+                      borderRadius: "20px",
+                      fontSize: "12px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-gamer)"
+                    }}
+                  >
+                    {!isMusicMuted ? "🔊 ON" : "🔇 OFF"}
+                  </button>
+                </div>
+
+                {/* Station selection */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", borderTop: "1px solid var(--glass-border)", paddingTop: "12px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase" }}>Music Profile Station:</span>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    {sound.MUSIC_PROFILES.map((p, idx) => {
+                      const isActive = musicProfile === idx;
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            sound.playClockTick();
+                            setMusicProfile(idx);
+                            localStorage.setItem("kaevrix_music_profile", String(idx));
+                          }}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: "12px",
+                            border: isActive ? "1.5px solid #ff6a00" : "1px solid var(--glass-border)",
+                            background: isActive ? "rgba(255, 106, 0, 0.08)" : "transparent",
+                            color: isActive ? "#ff6a00" : "var(--text-muted)",
+                            fontSize: "11px",
+                            fontWeight: "700",
+                            cursor: "pointer",
+                            fontFamily: "var(--font-gamer)"
+                          }}
+                        >
+                          {p.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Right Sidebar: Pathfinder To-Do List */}
@@ -1230,112 +1347,7 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* 6. Mobile/Tablet Side Drawer */}
-      {isDrawerOpen && (
-        <div 
-          className="drawer-overlay"
-          onClick={() => setIsDrawerOpen(false)}
-        >
-          <div 
-            className="drawer-content"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="drawer-header">
-              <span className="drawer-title">KAEVRIX COMMANDS</span>
-              <button 
-                className="drawer-close-btn"
-                onClick={() => setIsDrawerOpen(false)}
-              >
-                ✕
-              </button>
-            </div>
 
-            <div className="drawer-nav-list">
-              {navItems.map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    handleTabChange(item.id);
-                    setIsDrawerOpen(false);
-                  }}
-                  className={`drawer-nav-btn ${activeTab === item.id ? "drawer-nav-btn-active" : ""}`}
-                >
-                  <span style={{ fontSize: "16px" }}>{item.icon}</span>
-                  <span style={{ fontFamily: "var(--font-outfit)" }}>{item.label}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="drawer-divider" />
-
-            {/* Gear Icon settings */}
-            <div className="drawer-settings-section">
-              <button 
-                className="drawer-settings-toggle"
-                onClick={() => {
-                  sound.playClockTick();
-                  setShowDrawerSettings(!showDrawerSettings);
-                }}
-              >
-                <span>⚙️ System Settings</span>
-                <span>{showDrawerSettings ? "▼" : "▶"}</span>
-              </button>
-
-              {showDrawerSettings && (
-                <div className="drawer-settings-panel">
-                  {/* Dark Mode toggle */}
-                  <div className="drawer-setting-row">
-                    <span>Dark Theme</span>
-                    <button 
-                      onClick={() => { sound.playClockTick(); setIsDarkMode(!isDarkMode); }}
-                      className="drawer-toggle-switch"
-                    >
-                      {isDarkMode ? "🌙 ON" : "☀️ OFF"}
-                    </button>
-                  </div>
-
-                  {/* Ambient Music toggle */}
-                  <div className="drawer-setting-row">
-                    <span>Ambient Music</span>
-                    <button 
-                      onClick={() => { 
-                        sound.playClockTick(); 
-                        const nextMuted = !isMusicMuted;
-                        setIsMusicMuted(nextMuted); 
-                        localStorage.setItem("kaevrix_music_muted", String(nextMuted));
-                      }}
-                      className="drawer-toggle-switch"
-                    >
-                      {!isMusicMuted ? "🔊 ON" : "🔇 OFF"}
-                    </button>
-                  </div>
-
-                  {/* Station selection */}
-                  <div className="drawer-music-list">
-                    <span className="drawer-setting-label">Music Profile:</span>
-                    {sound.MUSIC_PROFILES.map((p, idx) => {
-                      const isActive = musicProfile === idx;
-                      return (
-                        <button
-                          key={p.id}
-                          onClick={() => {
-                            sound.playClockTick();
-                            setMusicProfile(idx);
-                            localStorage.setItem("kaevrix_music_profile", String(idx));
-                          }}
-                          className={`drawer-music-btn ${isActive ? "drawer-music-btn-active" : ""}`}
-                        >
-                          {p.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 7. Floating ToDo Action Button & Popup */}
       {schedule && savedRoadmap && (
