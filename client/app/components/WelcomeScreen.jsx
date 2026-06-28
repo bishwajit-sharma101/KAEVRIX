@@ -3,7 +3,7 @@ import { fetchWithJobPolling } from "../utils/asyncJob";
 import * as sound from "../utils/audio";
 import { CHARACTER_CLASSES } from "../utils/characterClasses";
 
-const BACKEND_URL = window.location.hostname === "localhost" ? "http://localhost:5000" : "";
+const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
 const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}&backgroundColor=transparent`;
 
 const CLASS_COLORS = [

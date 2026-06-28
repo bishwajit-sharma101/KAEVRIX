@@ -55,7 +55,7 @@ export const generateCorrelationId = (prefix = "flow") => {
  * Unified fetch wrapper for sending telemetry to the backend, automatically injecting context.
  */
 export const trackTelemetry = async (payload) => {
-  const BACKEND_URL = window.location.hostname === "localhost" ? "http://localhost:5000" : "";
+  const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
   const token = localStorage.getItem("kaevrix_token");
   
   const enrichedPayload = {

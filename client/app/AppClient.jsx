@@ -7,7 +7,7 @@ import AppRouter from "./AppRouter";
 import GlobalSplashScreen from "./features/Shared/GlobalSplashScreen";
 import { trackTelemetry } from "./utils/telemetry";
 
-const BACKEND_URL = window.location.hostname === "localhost" ? "http://localhost:5000" : "";
+const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
 const DEFAULT_AVATAR = "https://api.dicebear.com/7.x/bottts/svg?seed=Cypher&backgroundColor=transparent";
 
 const getRankTitle = (level) => {

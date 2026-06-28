@@ -47,9 +47,14 @@ const DOORS = [
 export default function ModeSelection({ isDarkMode, video, onStartSoloStudy, onStartMatchmaking, onBack }) {
   const [hoveredDoor, setHoveredDoor] = useState(null);
   const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   const handleSelect = (door) => {
@@ -70,13 +75,19 @@ export default function ModeSelection({ isDarkMode, video, onStartSoloStudy, onS
   
   return (
     <div style={{
-      position: "fixed", inset: 0, zIndex: 1000,
+      position: "fixed", 
+      inset: 0, 
+      zIndex: 1000,
       background: bgBase,
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      display: "flex", 
+      flexDirection: "column", 
+      alignItems: "center", 
+      justifyContent: isMobile ? "flex-start" : "center",
+      padding: isMobile ? "100px 20px 40px 20px" : "0px",
       fontFamily: "'Cinzel', 'Playfair Display', serif",
       opacity: mounted ? 1 : 0,
       transition: "opacity 1.5s ease-in-out",
-      overflow: "hidden"
+      overflowY: isMobile ? "auto" : "hidden"
     }}>
       
       <style>{`
@@ -230,6 +241,29 @@ export default function ModeSelection({ isDarkMode, video, onStartSoloStudy, onS
           left: 50%;
           transform: translate(-50%, -50%);
         }
+
+        @media (max-width: 768px) {
+          .ds-door-container {
+            width: 200px !important;
+            height: 380px !important;
+          }
+          .ds-door-frame {
+            border-radius: 100px 100px 0 0 !important;
+            border-width: 3px !important;
+          }
+          .ds-locked-overlay {
+            border-radius: 100px 100px 0 0 !important;
+          }
+          .ds-door-title {
+            font-size: 16px !important;
+            letter-spacing: 2px !important;
+          }
+          .ds-door-desc {
+            font-size: 10px !important;
+            line-height: 1.4 !important;
+            max-width: 90% !important;
+          }
+        }
       `}</style>
 
       {/* Dynamic Background Glow based on hover */}
@@ -239,9 +273,18 @@ export default function ModeSelection({ isDarkMode, video, onStartSoloStudy, onS
 
       {/* Top Header */}
       <div style={{
-        position: "absolute", top: "40px", left: "0", right: "0",
-        display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 60px",
-        zIndex: 20
+        position: isMobile ? "fixed" : "absolute", 
+        top: isMobile ? "0px" : "40px", 
+        left: "0", 
+        right: "0",
+        display: "flex", 
+        justifyContent: "space-between", 
+        alignItems: "center", 
+        padding: isMobile ? "20px 24px" : "0 60px",
+        background: isMobile ? "rgba(5, 5, 5, 0.85)" : "transparent",
+        backdropFilter: isMobile ? "blur(10px)" : "none",
+        borderBottom: isMobile ? "1px solid rgba(255,255,255,0.05)" : "none",
+        zIndex: 100
       }}>
         <button
           onClick={() => { sound.playClockTick(); onBack(); }}
@@ -266,14 +309,22 @@ export default function ModeSelection({ isDarkMode, video, onStartSoloStudy, onS
 
       {/* Cinematic Title */}
       <div style={{
-        textAlign: "center", marginBottom: "60px", zIndex: 20,
+        textAlign: "center", 
+        marginTop: isMobile ? "20px" : "0px",
+        marginBottom: isMobile ? "30px" : "60px", 
+        zIndex: 20,
         transform: mounted ? "translateY(0)" : "translateY(-20px)",
         transition: "all 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s"
       }}>
         <h1 style={{
-          fontFamily: "'Cinzel', serif", fontSize: "42px", fontWeight: "400", color: "#e2e8f0",
-          letterSpacing: "8px", textTransform: "uppercase",
-          textShadow: "0 4px 20px rgba(0,0,0,1)", margin: 0
+          fontFamily: "'Cinzel', serif", 
+          fontSize: isMobile ? "28px" : "42px", 
+          fontWeight: "400", 
+          color: "#e2e8f0",
+          letterSpacing: isMobile ? "4px" : "8px", 
+          textTransform: "uppercase",
+          textShadow: "0 4px 20px rgba(0,0,0,1)", 
+          margin: 0
         }}>
           Choose Your Path
         </h1>
@@ -281,8 +332,13 @@ export default function ModeSelection({ isDarkMode, video, onStartSoloStudy, onS
 
       {/* The Giant Doors Grid */}
       <div style={{
-        display: "flex", gap: "40px", zIndex: 20, flexWrap: "wrap", justifyContent: "center",
-        maxWidth: "1300px", margin: "0 auto",
+        display: "flex", 
+        gap: isMobile ? "24px" : "40px", 
+        zIndex: 20, 
+        flexWrap: "wrap", 
+        justifyContent: "center",
+        maxWidth: "1300px", 
+        margin: "0 auto",
         transform: mounted ? "translateY(0)" : "translateY(40px)",
         opacity: mounted ? 1 : 0,
         transition: "all 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.6s"

@@ -7,10 +7,24 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body>
-        <div id="root">{children}</div>
-      </body>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            // Remove simulator pre-loader elements before React hydrates to prevent crashes
+            const clean = () => {
+              const el = document.querySelector('.simulator-pre-loader');
+              if (el) {
+                el.remove();
+              }
+            };
+            clean();
+            document.addEventListener('DOMContentLoaded', clean);
+            window.addEventListener('load', clean);
+          })();
+        ` }} />
+      </head>
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }

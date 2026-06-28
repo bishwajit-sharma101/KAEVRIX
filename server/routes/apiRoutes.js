@@ -349,10 +349,35 @@ router.post("/pathfinder/generate-level", pathfinderDisabledMiddleware, requireA
 });
 
 router.post("/pathfinder/study-notes", pathfinderDisabledMiddleware, requireAuth, aiLimiter, aiKillSwitchMiddleware, async (req, res, next) => {
-  const { topic, milestone, answers, noteStyle } = req.body;
+  const { 
+    topic, 
+    milestone, 
+    answers, 
+    noteStyle,
+    videoId,
+    videoTitle,
+    videoDuration,
+    isDeveloper,
+    completedMilestones,
+    difficulty,
+    devGoal
+  } = req.body;
+
   if (!topic || !milestone) return res.status(400).json({ error: "topic and milestone required" });
   try {
-    const payload = { topic, milestone, answers, noteStyle };
+    const payload = { 
+      topic, 
+      milestone, 
+      answers, 
+      noteStyle,
+      videoId,
+      videoTitle,
+      videoDuration,
+      isDeveloper,
+      completedMilestones,
+      difficulty,
+      devGoal
+    };
     const { jobId, isDuplicate, lockKey } = await getOrAcquireAiJobLock(req.user.userId, "generate-notes", payload);
     if (isDuplicate) {
       return res.status(202).json({ jobId, status: "pending", deduplicated: true });
@@ -362,7 +387,7 @@ router.post("/pathfinder/study-notes", pathfinderDisabledMiddleware, requireAuth
       const job = await aiQueue.add("generate-notes", {
         type: "generate-notes",
         userId: req.user.userId,
-        data: { topic, milestone, answers, noteStyle }
+        data: payload
       }, { jobId });
       
       await TelemetryEvent.create({ userId: req.user.userId, eventType: "AI_REQUEST_EXECUTED", metadata: { endpoint: "/pathfinder/study-notes", jobId: job.id } });

@@ -660,6 +660,218 @@ Output ONLY the final Markdown formatted study guide. Use beautiful typography, 
 }
 
 /**
+ * Generates both highly structured study notes and conceptual multiple-choice quiz questions
+ * in a single LLM API prompt, returning a structured JSON response.
+ */
+export async function generateStudyNotesAndQuiz(topic, milestone, answers = [], noteStyle = 'smart', videoDetails = {}, userId = null) {
+  const { videoId, videoTitle, videoDuration, isDeveloper, completedMilestones, difficulty, devGoal } = videoDetails;
+
+  const userReason = answers.find(a => a.question.toLowerCase().includes("why"))?.answer || "learning";
+  const userGoal = answers.find(a => a.question.toLowerCase().includes("success"))?.answer || "mastery";
+
+  // 1. Fetch transcript if videoId is provided
+  let transcriptText = "";
+  let transcriptList = [];
+  if (videoId) {
+    try {
+      console.log(`[NotesAndQuiz] Fetching transcript for: "${videoTitle || milestone.title}" (${videoId})`);
+      transcriptList = await YoutubeTranscript.fetchTranscript(videoId);
+      transcriptText = transcriptList.map(t => t.text).join(" ");
+    } catch (err) {
+      console.warn(`[NotesAndQuiz] Failed to fetch transcript:`, err.message);
+    }
+  }
+
+  const parsedDuration = Number(videoDuration) || 300;
+  const numInVideoQuestions = Math.min(20, Math.max(1, Math.round(parsedDuration / 200)));
+  const segments = getTranscriptSegments(transcriptList, parsedDuration, numInVideoQuestions, videoTitle || milestone.title);
+  
+  const segmentsText = segments.map((seg, idx) => 
+    `Segment ${idx + 1} (target timestamp: ${seg.timestamp}s, context range ${seg.timestamp - 90}s to ${seg.timestamp}s):\n"${seg.text}"`
+  ).join("\n\n");
+
+  // 2. Prepare goal steering and difficulty steering
+  let goalSteering = "";
+  if (devGoal === "Job") {
+    goalSteering = `Prioritize interview readiness and real-world implementation.`;
+  } else if (devGoal === "School / College") {
+    goalSteering = `Prioritize academic understanding and definitions/theory.`;
+  } else {
+    goalSteering = `Prioritize practical understanding and real-world applications.`;
+  }
+
+  let completedList = "";
+  if (completedMilestones && completedMilestones.length > 0) {
+    completedList = `Here are the concepts the user has ALREADY studied in previous roadmap nodes:\n${completedMilestones.map(m => `- ${m}`).join("\n")}`;
+  }
+
+  // Notes prompt part based on noteStyle
+  let notesGuidelines = "";
+  if (noteStyle === 'basic') {
+    notesGuidelines = `
+Your study guide MUST follow this exact Markdown structure:
+# ${milestone.title}
+
+## 🎯 What You'll Learn & Why It Matters
+Explain the purpose of this milestone in depth. Relate it directly to the user's reason for learning: "${userReason}".
+
+## 🔍 Core Concepts Explained
+Provide an exhaustive breakdown of the sub-topics under this milestone. Explain the underlying rules, mechanics, and terminology.
+
+## 📋 Comparison Matrix
+Include a clear Markdown table comparing key aspects, options, or dimensions under this milestone.
+
+## 💻 Practical Demonstration & Examples
+Provide clear "Common Pitfall" vs "Best Practice" code blocks or misconceptions.
+
+## 💼 Core Interview Questions
+Identify 3-4 actual, high-quality questions related to this milestone, with Ideal Answer and Under-The-Hood Explanation.
+
+## ⚡ Interactive Practice & Exercises
+Provide 2 small exercises or mental puzzles with answers hidden below.
+`;
+  } else {
+    notesGuidelines = `
+Dynamically construct a "Smart Study Guide" based on these rules:
+- Conceptual: Explain deep ideas and underlying understanding.
+- Practical: Add real-world usage and implementation examples with code/actions.
+- Visual: Use flows and visual formatting (e.g., markdown mermaid flowcharts/diagrams if helpful).
+- Memorization: Add summaries and cheat-sheet style lists.
+- Logic/Sequences/Steps: Add step-by-step numbered breakdowns.
+- Comparisons: Always include a comparison matrix/table.
+- Real-world examples: Add industry-specific use-cases.
+- Interview relevant: Include deep interview questions and under-the-hood explanations.
+- Exercises: Include interactive practice problems.
+`;
+  }
+
+  const prompt = `You are a world-class technical educator, interviewer, and quiz generator for the Kaevrix educational platform.
+Your task is to generate BOTH:
+1. Exhaustive, high-fidelity study notes formatted in beautiful Markdown.
+2. A comprehensive conceptual multiple-choice quiz (postVideoQuestions and inVideoQuestions) based on the content of the video and the study topics.
+
+VIDEO DETAILS:
+Title: "${videoTitle || milestone.title}"
+${transcriptText ? `Transcript Summary:\n"""\n${transcriptText.substring(0, 5000)}\n"""` : "(No transcript available)"}
+
+IN-VIDEO TRANSCRIPT SEGMENTS:
+${segmentsText || "(No transcript segments available)"}
+
+MILESTONE DETAILS:
+Topic: ${topic}
+Milestone: ${milestone.title}
+Description: ${milestone.description || ""}
+Key Points: ${(milestone.keyPoints || []).join(", ")}
+User's Reason for learning: ${userReason}
+User's 3-month success target: ${userGoal}
+
+${goalSteering}
+${completedList}
+
+INSTRUCTIONS FOR STUDY NOTES:
+- Generate a detailed study guide following these rules:
+${notesGuidelines}
+- Format the notes in clean, beautiful Markdown.
+
+INSTRUCTIONS FOR QUIZ QUESTIONS:
+- All questions MUST be multiple-choice conceptual questions. Do NOT generate coding challenges or any question with type "coding" where the user has to write code.
+- Structure each question in postVideoQuestions as:
+  {
+    "type": "conceptual",
+    "title": "Short title",
+    "question": "Conceptual multiple-choice question text?",
+    "options": ["Option 0", "Option 1", "Option 2", "Option 3"],
+    "answerIndex": 0,
+    "explanation": "Detailed technical explanation.",
+    "points": 100
+  }
+- Structure each question in inVideoQuestions as:
+  {
+    "question": "Pop quiz question testing segment details?",
+    "options": ["Opt 0", "Opt 1", "Opt 2", "Opt 3"],
+    "answerIndex": 1,
+    "points": 50
+  }
+- Generate exactly 5 conceptual questions for postVideoQuestions.
+- Generate exactly ${numInVideoQuestions} inVideoQuestions matching the video segments.
+
+FORMAT SPECIFICATION:
+Respond ONLY with a valid JSON object matching the format below. Do not wrap the JSON in markdown blocks (like \`\`\`json).
+{
+  "notes": "The complete markdown formatted study guide text string goes here. Use newlines (\\n) and proper markdown escape sequences.",
+  "postVideoQuestions": [
+    // exactly 5 conceptual questions
+  ],
+  "inVideoQuestions": [
+    // exactly ${numInVideoQuestions} in-video questions
+  ]
+}`;
+
+  dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
+  const apiKey = process.env.GEMINI_API_KEY;
+  const useGemini = apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE";
+
+  try {
+    let resultText = "";
+    let geminiFailed = false;
+
+    if (useGemini) {
+      try {
+        console.log(`[NotesAndQuiz] Generating notes and quiz via Gemini API`);
+        resultText = await callGeminiAPI(prompt, "application/json", userId, "/pathfinder/study-notes-and-quiz");
+      } catch (gemErr) {
+        console.error(`[NotesAndQuiz] Gemini API failed (${gemErr.message}). Falling back to Ollama...`);
+        geminiFailed = true;
+      }
+    }
+    
+    if (!useGemini || geminiFailed) {
+      console.log(`[NotesAndQuiz] Generating notes and quiz via Ollama ${OLLAMA_MODEL}`);
+      resultText = await ollamaGenerate(prompt, "json", userId, "/pathfinder/study-notes-and-quiz");
+    }
+
+    // Try parsing the combined JSON response
+    let cleanedText = resultText.trim();
+    if (cleanedText.startsWith("```")) {
+      cleanedText = cleanedText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    }
+    const parsed = JSON.parse(cleanedText);
+    
+    // Ensure all postVideoQuestions are marked conceptual and have valid keys
+    if (parsed.postVideoQuestions && Array.isArray(parsed.postVideoQuestions)) {
+      parsed.postVideoQuestions = parsed.postVideoQuestions.map(q => ({
+        type: "conceptual",
+        title: q.title || "Conceptual Question",
+        question: q.question || "Conceptual multiple-choice question?",
+        options: Array.isArray(q.options) && q.options.length >= 2 ? q.options : ["Option A", "Option B", "Option C", "Option D"],
+        answerIndex: typeof q.answerIndex === "number" ? q.answerIndex : 0,
+        explanation: q.explanation || "Detailed technical explanation.",
+        points: typeof q.points === "number" ? q.points : 100
+      }));
+    }
+
+    // Ensure all inVideoQuestions have valid keys
+    if (parsed.inVideoQuestions && Array.isArray(parsed.inVideoQuestions)) {
+      parsed.inVideoQuestions = parsed.inVideoQuestions.map(q => ({
+        question: q.question || "Pop quiz question testing segment details?",
+        options: Array.isArray(q.options) && q.options.length >= 2 ? q.options : ["Opt A", "Opt B", "Opt C", "Opt D"],
+        answerIndex: typeof q.answerIndex === "number" ? q.answerIndex : 0,
+        points: typeof q.points === "number" ? q.points : 50
+      }));
+    }
+
+    return {
+      notes: parsed.notes || `## ${milestone.title}\n\nNotes generated successfully.`,
+      postVideoQuestions: parsed.postVideoQuestions || [],
+      inVideoQuestions: parsed.inVideoQuestions || []
+    };
+  } catch (err) {
+    console.error(`[NotesAndQuiz] AI combined generation failed: ${err.message}`);
+    throw err;
+  }
+}
+
+/**
  * Generates a mock quiz based on the video title as a fallback.
  */
 function generateFallbackQuiz(title, duration = 300) {
@@ -1141,21 +1353,8 @@ IN-VIDEO TRANSCRIPT SEGMENTS:
 ${segmentsText || "(No transcript segments available)"}
 
 Instructions for postVideoQuestions:
-- For "coding", "debugging", "feature building", "code review", or "modification" tasks where the user writes code, structure the JSON object as:
-  {
-    "type": "coding",
-    "title": "Short challenge title",
-    "difficulty": "Easy" | "Medium" | "Hard" | "Hell",
-    "question": "LeetCode-style markdown description with examples, constraints, and instructions.",
-    "starterCode": "JavaScript function template",
-    "testCases": [
-      { "input": "[1, 2, 3]", "expected": "6" }
-    ],
-    "solution": "JavaScript solution code for reference",
-    "points": 100
-  }
-  Note: testCases's 'input' and 'expected' MUST be JSON-serializable strings. The 'solve' function receives parsed input.
-- For "conceptual" or "interview" non-coding tasks, structure the JSON object as:
+- All questions MUST be multiple-choice conceptual questions. Do NOT generate coding challenges or any question with type "coding" where the user has to write code.
+- For all questions, structure the JSON object as:
   {
     "type": "conceptual",
     "title": "Short title",

@@ -2490,8 +2490,12 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
     setShowRuneLoader(false);
     setIsExploding(false);
     if (pendingQuizData) {
-      setQuizData(pendingQuizData);
-      setAnswers(Array(pendingQuizData.postVideoQuestions.length).fill(null));
+      const filteredQuiz = {
+        ...pendingQuizData,
+        postVideoQuestions: (pendingQuizData.postVideoQuestions || []).filter(q => q.type !== "coding")
+      };
+      setQuizData(filteredQuiz);
+      setAnswers(Array(filteredQuiz.postVideoQuestions.length).fill(null));
       setStep("quiz");
       sound.playMatchFound();
     }

@@ -8,10 +8,19 @@ import RechargeOverlay from "./RechargeOverlay";
 
 export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl, onBack, onAddSoloXp, onCodingModeChange }) {
   const [progress, setProgress] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const [activeTab, setActiveTab] = useState("notes"); // notes, quiz
   const [notes, setNotes] = useState(null);
+  const [notesError, setNotesError] = useState(false);
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [statusText, setStatusText] = useState("Analyzing video context...");
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
   const [isFocusPlaying, setIsFocusPlaying] = useState(false);
   const [isNotesExpanded, setIsNotesExpanded] = useState(false);
   const focusAudioRef = useRef(null);
@@ -375,9 +384,15 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
     }
   };
 
-  // Generate Notes
+  const fetchedVideoIdRef = useRef(null);
+
+  // Generate Notes & Quiz in a single consolidated LLM call
   const handleGenerateNotes = async () => {
     setLoadingNotes(true);
+    setIsQuizReady(false);
+    setQuizError(false);
+    setNotesError(false);
+    
     const statusMessages = [
       "Analyzing video context & topics...",
       "Aligning study guide with onboarding goals...",
@@ -409,41 +424,6 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
         keyPoints: ["Understand video concepts", "Practice exercises", "Review interview prep"]
       };
 
-      const res = await fetchWithJobPolling(`${backendUrl}/api/pathfinder/study-notes`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
-        },
-        body: JSON.stringify({ topic, milestone, answers, noteStyle })
-      });
-      
-      const data = await res.json();
-      if (!res.ok || !data.notes) {
-        throw new Error(data.error || "Server failed to return valid notes");
-      }
-      
-      clearInterval(logInterval);
-      setNotes(data.notes);
-      saveStudySession(data.notes); // Persistent save to study history
-      sound.playCorrect();
-    } catch (err) {
-      console.error("Notes generation failed:", err);
-      clearInterval(logInterval);
-      setNotes(`## ❌ Generation Failed\n\nOops! We couldn't generate the study notes. The AI engine might have timed out or encountered an error.\n\n**Error Details:** ${err.message}\n\nPlease click the **Study Notes** tab again or refresh the page to retry.`);
-    } finally {
-      setLoadingNotes(false);
-    }
-  };
-
-  const fetchedVideoIdRef = useRef(null);
-
-  // Generate quiz in background on mount
-  const generateQuizInBackground = useCallback(async (isMounted = true) => {
-    if (fetchedVideoIdRef.current === video.id) return;
-    fetchedVideoIdRef.current = video.id;
-    setQuizError(false);
-    try {
       const devKeywords = [
         "developer", "engineer", "programming", "coding", "software", "web dev",
         "frontend", "backend", "fullstack", "full stack", "javascript", "python",
@@ -467,44 +447,51 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
             .map(m => m.title)
         : [];
 
-      const res = await fetchWithJobPolling(`${backendUrl}/api/quiz/generate`, {
+      const res = await fetchWithJobPolling(`${backendUrl}/api/pathfinder/study-notes`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}`
         },
         body: JSON.stringify({
+          topic,
+          milestone,
+          answers,
+          noteStyle,
           videoId: video.id,
-          title: video.title,
-          duration: video.duration,
-          topic: topic,
-          why: whyAnswer,
+          videoTitle: video.title,
+          videoDuration: video.duration,
           isDeveloper: isDev,
-          completedMilestones: completedMilestones,
+          completedMilestones,
           difficulty: savedRoadmap?.difficulty || "Medium",
           devGoal: savedRoadmap?.devGoal || ""
         })
       });
-      if (res.ok) {
-        const quiz = await res.json();
-        if (isMounted) {
-          quizDataRef.current = quiz;
-          setIsQuizReady(true);
-        }
-      } else {
-        if (isMounted) setQuizError(true);
+      
+      const data = await res.json();
+      if (!res.ok || !data.notes) {
+        throw new Error(data.error || "Server failed to return valid notes");
       }
+      
+      clearInterval(logInterval);
+      setNotes(data.notes);
+      saveStudySession(data.notes); // Persistent save to study history
+      
+      // Store the unified enqueued quiz results directly
+      if (data.postVideoQuestions) {
+        quizDataRef.current = data;
+        setIsQuizReady(true);
+      }
+      sound.playCorrect();
     } catch (err) {
-      console.error("Background quiz generation failed:", err);
-      if (isMounted) setQuizError(true);
+      console.error("Combined Notes & Quiz generation failed:", err);
+      clearInterval(logInterval);
+      setNotesError(true);
+      setQuizError(true);
+    } finally {
+      setLoadingNotes(false);
     }
-  }, [backendUrl, video.id, video.title, video.duration, topic, answers, savedRoadmap]);
-
-  useEffect(() => {
-    let isMounted = true;
-    generateQuizInBackground(isMounted);
-    return () => { isMounted = false; };
-  }, [generateQuizInBackground]);
+  };
 
   // Start Quiz
   const handleStartQuiz = async () => {
@@ -984,44 +971,49 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
         borderBottom: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid rgba(255, 106, 0, 0.1)",
-        padding: "16px 40px",
+        padding: "12px 16px",
         display: "flex",
+        flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         flexShrink: 0,
         zIndex: 10,
         boxShadow: "0 4px 30px rgba(0,0,0,0.05)"
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <button 
-            onClick={() => { sound.playClockTick(); onBack(); }}
-            style={{
-              background: isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed",
-              border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.2)" : "1px solid #ffedd5",
-              color: isDarkMode ? "#ff8c3a" : "#ea580c",
-              padding: "8px 16px",
-              borderRadius: "10px",
-              fontWeight: "750",
-              fontSize: "13px",
-              cursor: "pointer",
-              transition: "all 0.2s"
-            }}
-            onMouseOver={e => { e.currentTarget.style.color = isDarkMode ? "#ffffff" : "#ea580c"; e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.16)" : "#ffedd5"; }}
-            onMouseOut={e => { e.currentTarget.style.color = isDarkMode ? "#ff8c3a" : "#ea580c"; e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed"; }}
-          >
-            ← Exit Training
-          </button>
-          <div>
-            <div style={{ color: "var(--text-muted)", fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px" }}>
-              ⚔️ Solo Training Theatre
-            </div>
-            <div style={{ fontSize: "16px", fontWeight: "900", color: isDarkMode ? "#ffffff" : "#0f172a", marginTop: "2px" }}>
-              {video.title}
-            </div>
-          </div>
-        </div>
+        {/* Left Side: Circular Back Button */}
+        <button 
+          onClick={() => { sound.playClockTick(); onBack(); }}
+          title="Exit Training"
+          style={{
+            background: isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed",
+            border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.2)" : "1px solid #ffedd5",
+            color: isDarkMode ? "#ff8c3a" : "#ea580c",
+            width: "36px",
+            height: "36px",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "16px",
+            fontWeight: "900",
+            cursor: "pointer",
+            transition: "all 0.2s",
+            flexShrink: 0
+          }}
+          onMouseOver={e => { e.currentTarget.style.color = isDarkMode ? "#ffffff" : "#ea580c"; e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.16)" : "#ffedd5"; }}
+          onMouseOut={e => { e.currentTarget.style.color = isDarkMode ? "#ff8c3a" : "#ea580c"; e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed"; }}
+        >
+          ←
+        </button>
         
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        {/* Right Side: Navigation Pills */}
+        <div style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          gap: "8px", 
+          flexWrap: "wrap", 
+          justifyContent: "flex-end" 
+        }}>
           {/* Dev Fast Forward Button (Hidden/Subtle) */}
           <button
             onClick={() => setStudyElapsedSec(prev => prev + 300)}
@@ -1105,27 +1097,35 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
             color: progress >= 90 ? "#10b981" : "#ff6a00",
             border: `1.5px solid ${progress >= 90 ? "#10b981" : "#ff6a00"}`
           }}>
-            {progress >= 90 ? "🔓 QUIZ AVAILABLE" : `${Math.round(progress)}% WATCHED`}
+            {progress >= 90 ? "🔓 QUIZ AVAILABLE" : `${Math.round(progress)}% SEEN`}
           </span>
         </div>
       </div>
  
       {/* Main Splitscreen Layout */}
-      <div style={{ display: "flex", flex: 1, overflow: "hidden", padding: "24px", gap: "24px" }}>
+      <div style={{ 
+        display: "flex", 
+        flexDirection: isMobile ? "column" : "row", 
+        flex: 1, 
+        overflowY: isMobile ? "auto" : "hidden", 
+        overflowX: "hidden",
+        padding: isMobile ? "12px" : "24px", 
+        gap: isMobile ? "16px" : "24px" 
+      }} className="custom-scrollbar">
         
         {/* Left Side: Large Immersive Player */}
         <div style={{
-          width: (isNotesExpanded || isCodingChallenge) ? "0%" : "55%",
+          width: isMobile ? "100%" : ((isNotesExpanded || isCodingChallenge) ? "0%" : "55%"),
           display: (isNotesExpanded || isCodingChallenge) ? "none" : "flex",
-          padding: "32px",
+          padding: isMobile ? "16px" : "32px",
           flexDirection: "column",
-          gap: "32px",
+          gap: isMobile ? "16px" : "32px",
           background: isDarkMode ? "rgba(13, 8, 5, 0.6)" : "rgba(255, 255, 255, 0.6)",
           backdropFilter: "blur(16px)",
-          borderRadius: "24px",
+          borderRadius: isMobile ? "16px" : "24px",
           border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid rgba(255, 106, 0, 0.1)",
           boxShadow: isDarkMode ? "0 20px 40px rgba(0,0,0,0.4)" : "0 20px 40px rgba(0,0,0,0.05)",
-          overflowY: "auto",
+          overflowY: isMobile ? "visible" : "auto",
           boxSizing: "border-box"
         }} className="custom-scrollbar">
           
@@ -1151,79 +1151,109 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
             </div>
           </div>
  
-          {/* Quiz Access Button - Positioned at bottom right of the video */}
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
-            {progress < 90 ? (
-              <button 
-                disabled 
-                style={{
-                  padding: "10px 20px",
-                  borderRadius: "10px",
-                  background: isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc",
-                  border: isDarkMode ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0",
-                  color: "var(--text-muted)",
-                  fontSize: "12.5px",
-                  fontWeight: "750",
-                  cursor: "not-allowed",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px"
-                }}
-              >
-                <span>🔒 Quiz Locked</span>
-                <span style={{ fontSize: "11px", opacity: 0.8 }}>({Math.round(progress)}% / 90%)</span>
-              </button>
-            ) : (
-              <button 
-                onClick={() => {
-                  sound.playClockTick();
-                  setActiveTab("quiz");
-                  if (quizState === "not_started") {
-                    handleStartQuiz();
-                  }
-                }}
-                style={{
-                  padding: "12px 24px",
-                  borderRadius: "12px",
-                  background: "linear-gradient(135deg, #10b981, #059669)",
-                  border: "none",
-                  color: "#ffffff",
-                  fontSize: "13px",
-                  fontWeight: "900",
-                  cursor: "pointer",
-                  boxShadow: "0 4px 15px rgba(16,185,129,0.3)",
-                  transition: "all 0.2s",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px"
-                }}
-                onMouseOver={e => {
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow = "0 6px 18px rgba(16,185,129,0.45)";
-                }}
-                onMouseOut={e => {
-                  e.currentTarget.style.transform = "none";
-                  e.currentTarget.style.boxShadow = "0 4px 15px rgba(16,185,129,0.3)";
-                }}
-              >
-                <span>⚔️ Start Level Up Quiz</span>
-              </button>
-            )}
+          {/* Video Title & Action Row */}
+          <div style={{ 
+            display: "flex", 
+            flexDirection: isMobile ? "column" : "row", 
+            justifyContent: "space-between", 
+            alignItems: isMobile ? "flex-start" : "center",
+            gap: "16px",
+            marginTop: "8px"
+          }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px", textAlign: "left", flex: 1 }}>
+              <div style={{ color: "var(--text-muted)", fontSize: "10px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px" }}>
+                ⚔️ Solo Training Theatre
+              </div>
+              <h1 style={{ 
+                fontSize: isMobile ? "16px" : "20px", 
+                fontWeight: "950", 
+                color: isDarkMode ? "#ffffff" : "#0f172a", 
+                margin: 0,
+                lineHeight: "1.4"
+              }}>
+                {video.title}
+              </h1>
+            </div>
+
+            {/* Quiz Access Button */}
+            <div style={{ flexShrink: 0, alignSelf: isMobile ? "stretch" : "auto" }}>
+              {progress < 90 ? (
+                <button 
+                  disabled 
+                  style={{
+                    padding: "10px 20px",
+                    borderRadius: "10px",
+                    background: isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc",
+                    border: isDarkMode ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0",
+                    color: "var(--text-muted)",
+                    fontSize: "12.5px",
+                    fontWeight: "750",
+                    cursor: "not-allowed",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    width: isMobile ? "100%" : "auto",
+                    justifyContent: "center"
+                  }}
+                >
+                  <span>🔒 Quiz Locked</span>
+                  <span style={{ fontSize: "11px", opacity: 0.8 }}>({Math.round(progress)}% / 90%)</span>
+                </button>
+              ) : (
+                <button 
+                  onClick={() => {
+                    sound.playClockTick();
+                    setActiveTab("quiz");
+                    if (quizState === "not_started") {
+                      handleStartQuiz();
+                    }
+                  }}
+                  style={{
+                    padding: "12px 24px",
+                    borderRadius: "12px",
+                    background: "linear-gradient(135deg, #10b981, #059669)",
+                    border: "none",
+                    color: "#ffffff",
+                    fontSize: "13px",
+                    fontWeight: "900",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 15px rgba(16,185,129,0.3)",
+                    transition: "all 0.2s",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    width: isMobile ? "100%" : "auto",
+                    justifyContent: "center"
+                  }}
+                  onMouseOver={e => {
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow = "0 6px 18px rgba(16,185,129,0.45)";
+                  }}
+                  onMouseOut={e => {
+                    e.currentTarget.style.transform = "none";
+                    e.currentTarget.style.boxShadow = "0 4px 15px rgba(16,185,129,0.3)";
+                  }}
+                >
+                  <span>⚔️ Start Level Up Quiz</span>
+                </button>
+              )}
+            </div>
           </div>
 
         </div>
  
         {/* Right Side: Interactive Notes & Quizzes */}
         <div style={{
-          width: (isNotesExpanded || isCodingChallenge) ? "100%" : "45%",
+          width: isMobile ? "100%" : ((isNotesExpanded || isCodingChallenge) ? "100%" : "45%"),
           display: "flex",
           flexDirection: "column",
+          height: isMobile ? "auto" : "100%",
           background: isDarkMode ? "rgba(13, 8, 5, 0.85)" : "rgba(255, 255, 255, 0.85)",
           backdropFilter: "blur(20px)",
-          borderRadius: "24px",
+          borderRadius: isMobile ? "16px" : "24px",
           border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.2)" : "1px solid rgba(255, 106, 0, 0.15)",
           boxShadow: isDarkMode ? "0 20px 40px rgba(0,0,0,0.4)" : "0 20px 40px rgba(0,0,0,0.05)",
-          overflow: "hidden",
+          overflow: isMobile ? "visible" : "hidden",
           transition: "width 0.3s ease"
         }}>
           
@@ -1233,7 +1263,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
             alignItems: "center",
             justifyContent: "space-between",
             borderBottom: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid #ffedd5",
-            padding: "16px 24px",
+            padding: isMobile ? "12px 16px" : "16px 24px",
             flexShrink: 0
           }}>
             <div style={{ 
@@ -1325,7 +1355,12 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
           </div>
 
           {/* Tab Content Display Pane */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "32px", boxSizing: "border-box" }}>
+          <div style={{ 
+            flex: isMobile ? "none" : 1, 
+            overflowY: isMobile ? "visible" : "auto", 
+            padding: isMobile ? "20px 16px" : "32px", 
+            boxSizing: "border-box" 
+          }}>
             
             {/* 1. STUDY NOTES TAB */}
             {activeTab === "notes" && (
@@ -1417,6 +1452,57 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                         ✍️ Crafting Study Deck
                       </p>
                     </div>
+                  </div>
+                ) : notesError ? (
+                  /* Render beautiful Notes Generation Error Screen with Retry Button */
+                  <div style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: "100%",
+                    minHeight: "380px",
+                    textAlign: "center",
+                    padding: "20px"
+                  }}>
+                    <div style={{
+                      width: "64px",
+                      height: "64px",
+                      background: "rgba(239, 68, 68, 0.1)",
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: "20px",
+                      border: "1.5px solid rgba(239, 68, 68, 0.25)"
+                    }}>
+                      <span style={{ fontSize: "28px" }}>❌</span>
+                    </div>
+                    <h3 style={{ fontSize: "18px", fontWeight: "900", color: isDarkMode ? "#ffffff" : "#0f172a", margin: "0 0 10px 0" }}>
+                      Generation Failed
+                    </h3>
+                    <p style={{ color: "var(--text-muted)", fontSize: "14px", maxWidth: "420px", margin: "0 0 24px 0", lineHeight: "1.6" }}>
+                      We encountered an issue while generating your study notes and quiz questions. The AI engine might have timed out or encountered an error.
+                    </p>
+                    <button
+                      onClick={handleGenerateNotes}
+                      style={{
+                        padding: "12px 28px",
+                        background: "linear-gradient(135deg, #ef4444, #dc2626)",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: "12px",
+                        fontWeight: "900",
+                        fontSize: "14px",
+                        cursor: "pointer",
+                        boxShadow: "0 4px 15px rgba(239, 68, 68, 0.3)",
+                        transition: "all 0.2s"
+                      }}
+                      onMouseOver={e => e.currentTarget.style.transform = "scale(1.02)"}
+                      onMouseOut={e => e.currentTarget.style.transform = "none"}
+                    >
+                      🔄 Retry AI Generation
+                    </button>
                   </div>
                 ) : notes ? (
                   /* Render Markdown guide */

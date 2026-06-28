@@ -3,7 +3,7 @@ import * as sound from "../../utils/audio";
 import PathfinderOnboarding from "./PathfinderOnboarding";
 import PathfinderRoadmap from "./PathfinderRoadmap";
 
-const BACKEND_URL = window.location.hostname === "localhost" ? "http://localhost:5000" : "";
+const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
 
 export default function CognitivePathfinder({ username, onTriggerSearch, onStartSoloStudy, isDarkMode }) {
   const roadmapKey = `kaevrix_roadmap_progress_${username}`;

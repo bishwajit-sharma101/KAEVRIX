@@ -150,7 +150,17 @@ export default function YoutubePlayer({ videoId, onProgress, onFinished, isFroze
       }
     };
 
-    // Since script is preloaded in index.html, we check if YT is ready
+    // Load YouTube API script if not present
+    if (typeof window !== "undefined" && !window.YT) {
+      const existingScript = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
+      if (!existingScript) {
+        const script = document.createElement("script");
+        script.src = "https://www.youtube.com/iframe_api";
+        document.body.appendChild(script);
+      }
+    }
+
+    // Since script is preloaded or dynamically injected, we check if YT is ready
     if (window.YT && window.YT.Player) {
       initPlayer();
     } else {

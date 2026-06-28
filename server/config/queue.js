@@ -7,7 +7,7 @@ import { metrics } from "./metrics.js";
 import { 
   generateRoadmapFromAnswers, 
   generateLevelMilestones, 
-  generateStudyNotes, 
+  generateStudyNotesAndQuiz, 
   generateQuizForVideo, 
   generateBossQuestions 
 } from "../geminiService.js";
@@ -54,7 +54,22 @@ export const aiWorker = new Worker("ai-jobs", async (job) => {
       result = await generateLevelMilestones(data.topic, data.level, data.previousContext, userId);
       break;
     case "generate-notes":
-      result = await generateStudyNotes(data.topic, data.milestone, data.answers, data.noteStyle, userId);
+      result = await generateStudyNotesAndQuiz(
+        data.topic,
+        data.milestone,
+        data.answers,
+        data.noteStyle,
+        {
+          videoId: data.videoId,
+          videoTitle: data.videoTitle,
+          videoDuration: data.videoDuration,
+          isDeveloper: data.isDeveloper,
+          completedMilestones: data.completedMilestones,
+          difficulty: data.difficulty,
+          devGoal: data.devGoal
+        },
+        userId
+      );
       break;
     case "generate-quiz":
       result = await generateQuizForVideo(
