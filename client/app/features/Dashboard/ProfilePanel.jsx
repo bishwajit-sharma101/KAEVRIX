@@ -1037,6 +1037,10 @@ export default function ProfilePanel({
   showSystemSettings,
   setShowSystemSettings
 }) {
+  const profileAccentColor = "#a855f7"; // premium neon purple/violet
+  const profileAccentBg = "rgba(168, 85, 247, 0.15)";
+  const profileAccentBorder = "1.5px solid #a855f7";
+
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cosmeticIndex, setCosmeticIndex] = useState(0);
@@ -2254,7 +2258,7 @@ export default function ProfilePanel({
   if (loading) {
     return (
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-        <div style={{ width: "2px", height: "40px", background: "var(--neon-orange)", animation: "pulse 1s infinite" }} />
+        <div style={{ width: "2px", height: "40px", background: profileAccentColor, animation: "pulse 1s infinite" }} />
       </div>
     );
   }
@@ -2283,7 +2287,7 @@ export default function ProfilePanel({
   // Helper for dynamic frame styling (fallback if no complex overlay)
   const getAvatarFrameStyle = (frame) => {
     if (frame === "neon-pulse") return { border: "3px solid var(--neon-blue)", boxShadow: "0 0 15px var(--neon-blue)", animation: "pulse 2s infinite" };
-    return { border: "2px solid var(--neon-orange)" }; // Default
+    return { border: `2px solid ${profileAccentColor}` }; // Default
   };
 
   const bannerUrl = profile?.cosmetics?.banner;
@@ -3170,11 +3174,21 @@ export default function ProfilePanel({
 
           {/* Name & Title */}
           <div style={{ flex: "1 1 280px", paddingBottom: "10px", minWidth: "250px" }}>
-            <h1 style={{ margin: "0 0 8px 0", fontSize: "calc(24px + 1.8vw)", fontWeight: "900", color: "var(--text-light)", fontFamily: "var(--font-outfit)", letterSpacing: "2px" }}>
+            <h1 style={{ 
+              margin: "0 0 8px 0", 
+              fontSize: "calc(24px + 1.8vw)", 
+              fontWeight: "950", 
+              background: "linear-gradient(135deg, #a855f7 0%, #06b6d4 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              fontFamily: "var(--font-outfit)", 
+              letterSpacing: "2px",
+              textShadow: "0 2px 12px rgba(168, 85, 247, 0.25)"
+            }}>
               {username}
             </h1>
             <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-              <span style={{ fontSize: "14px", fontWeight: "800", color: "var(--neon-orange)", letterSpacing: "1px", textTransform: "uppercase" }}>Combatant Class</span>
+              <span style={{ fontSize: "14px", fontWeight: "800", color: profileAccentColor, letterSpacing: "1px", textTransform: "uppercase" }}>Combatant Class</span>
               <span style={{ color: "var(--text-muted)", fontSize: "14px" }}>|</span>
               <span style={{ fontSize: "14px", fontWeight: "600", color: "var(--text-muted)" }}>Global Rank <strong style={{ color: "var(--text-light)" }}>{level}</strong></span>
               {(isHellMode || localStorage.getItem("hellMode") === "true") && (
@@ -3190,7 +3204,7 @@ export default function ProfilePanel({
           {username?.toLowerCase() !== localStorage.getItem("kaevrix_username")?.toLowerCase() && (
             <div style={{ paddingBottom: "20px", display: "flex", gap: "12px" }}>
               <button style={{ 
-                background: "var(--neon-orange)", color: "#fff", border: "none", 
+                background: profileAccentColor, color: "#fff", border: "none", 
                 padding: "12px 24px", borderRadius: "30px", fontSize: "13px", fontWeight: "800", letterSpacing: "1px",
                 cursor: "pointer", transition: "transform 0.2s"
               }} onMouseOver={e=>e.currentTarget.style.transform="scale(1.05)"} onMouseOut={e=>e.currentTarget.style.transform="scale(1)"}>
@@ -3210,7 +3224,7 @@ export default function ProfilePanel({
         {/* Level Progress (No Box) */}
         <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "32px" }}>
           <div style={{ flex: 1, height: "2px", background: "rgba(128,128,128,0.2)", position: "relative" }}>
-            <div style={{ position: "absolute", top: 0, left: 0, height: "100%", width: `${xpProgress}%`, background: "var(--neon-orange)", boxShadow: "0 0 10px var(--neon-orange)" }} />
+            <div style={{ position: "absolute", top: 0, left: 0, height: "100%", width: `${xpProgress}%`, background: profileAccentColor, boxShadow: `0 0 10px ${profileAccentColor}` }} />
           </div>
           <div style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: "600", letterSpacing: "1px", fontFamily: "var(--font-gamer)" }}>
             {xp % 200} / 200 XP TO NEXT RANK
@@ -3231,7 +3245,7 @@ export default function ProfilePanel({
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: "100px" }}>
                 <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Win Rate</div>
                 <div style={{ fontSize: "48px", fontWeight: "900", color: "var(--text-light)", fontFamily: "var(--font-outfit)", lineHeight: 1 }}>
-                  {winRate}<span style={{ fontSize: "20px", color: "var(--neon-orange)" }}>%</span>
+                  {winRate}<span style={{ fontSize: "20px", color: profileAccentColor }}>%</span>
                 </div>
               </div>
               
@@ -3247,7 +3261,7 @@ export default function ProfilePanel({
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: "100px" }}>
                 <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Watch Time</div>
                 <div style={{ fontSize: "40px", fontWeight: "900", color: "var(--text-light)", fontFamily: "var(--font-outfit)", lineHeight: 1 }}>
-                  {watchTime} <span style={{ fontSize: "16px", color: "var(--neon-blue)", textTransform: "uppercase" }}>Minutes</span>
+                  {watchTime} <span style={{ fontSize: "16px", color: profileAccentColor, textTransform: "uppercase" }}>Minutes</span>
                 </div>
               </div>
             </div>
@@ -3419,7 +3433,7 @@ export default function ProfilePanel({
               maxWidth: "400px",
               padding: "24px", 
               margin: "20px",
-              border: "1.5px solid var(--neon-orange)", 
+              border: profileAccentBorder, 
               position: "relative",
               background: "var(--bg-dark-surface)",
               boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
@@ -3433,7 +3447,7 @@ export default function ProfilePanel({
             <div className="hud-corner-bracket hud-bracket-br" />
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1.5px solid var(--glass-border)", paddingBottom: "12px", marginBottom: "20px" }}>
-              <h3 style={{ margin: 0, fontSize: "14px", color: "var(--neon-orange)", fontWeight: "900", letterSpacing: "1.5px", textTransform: "uppercase", fontFamily: "var(--font-gamer)" }}>
+              <h3 style={{ margin: 0, fontSize: "14px", color: profileAccentColor, fontWeight: "900", letterSpacing: "1.5px", textTransform: "uppercase", fontFamily: "var(--font-gamer)" }}>
                 ⚙️ System Settings
               </h3>
               <button 
@@ -3451,8 +3465,8 @@ export default function ProfilePanel({
                 <button 
                   onClick={() => { sound.playClockTick(); setIsDarkMode(!isDarkMode); }}
                   style={{
-                    background: "rgba(255, 106, 0, 0.15)",
-                    border: "1.5px solid var(--neon-orange)",
+                    background: profileAccentBg,
+                    border: profileAccentBorder,
                     color: "#fff",
                     width: "40px", height: "40px",
                     borderRadius: "50%",
@@ -3475,8 +3489,8 @@ export default function ProfilePanel({
                 <button 
                   onClick={handleCycleCosmetics}
                   style={{
-                    background: "rgba(255, 106, 0, 0.15)",
-                    border: "1.5px solid var(--neon-orange)",
+                    background: profileAccentBg,
+                    border: profileAccentBorder,
                     color: "#fff",
                     width: "40px", height: "40px",
                     borderRadius: "50%",
@@ -3504,8 +3518,8 @@ export default function ProfilePanel({
                     localStorage.setItem("kaevrix_music_muted", String(nextMuted));
                   }}
                   style={{
-                    background: !isMusicMuted ? "var(--neon-orange)" : "rgba(255, 106, 0, 0.1)",
-                    border: "1px solid #ff6a00",
+                    background: !isMusicMuted ? profileAccentColor : "rgba(168, 85, 247, 0.1)",
+                    border: `1px solid ${profileAccentColor}`,
                     color: "#fff",
                     padding: "6px 16px",
                     borderRadius: "20px",
@@ -3536,9 +3550,9 @@ export default function ProfilePanel({
                         style={{
                           padding: "6px 12px",
                           borderRadius: "12px",
-                          border: isActive ? "1.5px solid #ff6a00" : "1px solid var(--glass-border)",
-                          background: isActive ? "rgba(255, 106, 0, 0.08)" : "transparent",
-                          color: isActive ? "#ff6a00" : "var(--text-muted)",
+                          border: isActive ? `1.5px solid ${profileAccentColor}` : "1px solid var(--glass-border)",
+                          background: isActive ? `rgba(168, 85, 247, 0.08)` : "transparent",
+                          color: isActive ? profileAccentColor : "var(--text-muted)",
                           fontSize: "11px",
                           fontWeight: "700",
                           cursor: "pointer",
