@@ -3478,7 +3478,14 @@ body {
     grid-template-columns: auto 1fr !important;
     align-items: center !important;
     gap: 12px 8px !important;
-    padding: 22px 12px 12px 12px !important;
+    padding: 10px 16px !important;
+  }
+
+  .app-header.mobile-search-active {
+    display: flex !important;
+    align-items: center !important;
+    padding: 8px 12px !important;
+    height: 56px !important;
   }
 
   .header-left {

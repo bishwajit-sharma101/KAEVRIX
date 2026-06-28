@@ -114,10 +114,10 @@ export default function AppRouter(props) {
         className="mobile-search-helper-overlay"
         style={{
           position: "fixed",
-          top: "60px",
+          top: "56px",
           left: 0,
           width: "100%",
-          height: "calc(100% - 60px)",
+          height: "calc(100% - 56px)",
           background: isDarkMode ? "#090d16" : "#ffffff",
           zIndex: 9999,
           padding: "20px",
@@ -239,7 +239,16 @@ export default function AppRouter(props) {
 
   // Header display
   const headerComponent = (
-    <header className="app-header" style={{ height: "60px", padding: "8px clamp(16px, 4vw, 24px)", display: "flex", alignItems: "center", boxSizing: "border-box" }}>
+    <header 
+      className={`app-header ${isMobileSearchActive ? "mobile-search-active" : ""}`} 
+      style={{ 
+        height: isMobileSearchActive ? "56px" : "60px", 
+        padding: isMobileSearchActive ? "8px 12px" : "8px clamp(16px, 4vw, 24px)", 
+        display: "flex", 
+        alignItems: "center", 
+        boxSizing: "border-box" 
+      }}
+    >
       {(isMobileSearchActive || searchQuery) ? (
         <div className="mobile-search-active-bar" style={{ display: "flex", width: "100%", alignItems: "center", gap: "12px" }}>
           <button
@@ -266,13 +275,15 @@ export default function AppRouter(props) {
             style={{ 
               display: "flex", 
               flex: 1, 
-              background: isDarkMode ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)", 
+              background: isDarkMode ? "rgba(10, 6, 4, 0.65)" : "rgba(255, 255, 255, 0.9)", 
               borderRadius: "24px", 
               overflow: "hidden", 
-              border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid rgba(0, 0, 0, 0.1)", 
+              border: isDarkMode ? "1.5px solid rgba(255, 106, 0, 0.4)" : "1.5px solid #fed7aa", 
+              boxShadow: isDarkMode ? "0 4px 16px rgba(0,0,0,0.35)" : "0 4px 12px rgba(255, 106, 0, 0.05)",
               alignItems: "center",
               padding: "2px 8px 2px 16px",
-              height: "40px"
+              height: "40px",
+              transition: "all 0.3s ease"
             }}
           >
             <input
