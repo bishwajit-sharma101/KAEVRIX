@@ -4578,5 +4578,55 @@ body.dark-theme .todo-task-item {
   }
 }
 
+/* Global Rankings Responsive Adjustments */
+@media (max-width: 768px) {
+  .rankings-row {
+    flex-wrap: wrap !important;
+    gap: 16px 16px !important;
+    padding: 16px !important;
+  }
+  .rankings-row .rankings-avatar-container {
+    margin-left: 12px !important;
+    margin-right: 8px !important;
+  }
+  .rankings-row .rankings-stats-hud {
+    flex: 0 0 100% !important;
+    border-left: none !important;
+    padding-left: 0 !important;
+    border-top: 1px dashed var(--glass-border) !important;
+    padding-top: 16px !important;
+    justify-content: space-between !important;
+    margin-left: 0 !important;
+  }
+  .rankings-row .rankings-user-info {
+    margin-left: 0 !important;
+  }
+}
+
+/* Study History Responsive Styles */
+@media (max-width: 768px) {
+  .study-history-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  .history-detail-panel {
+    padding: 16px !important;
+    border-radius: 12px !important;
+  }
+  .history-notes-document {
+    padding: 0 !important;
+  }
+  .history-notes-document table {
+    display: block !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    border-collapse: collapse;
+  }
+  .history-notes-document th, .history-notes-document td {
+    white-space: nowrap;
+  }
+}
+
 
 

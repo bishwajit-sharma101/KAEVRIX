@@ -962,7 +962,7 @@ export default function Dashboard({
         )}
 
         {activeTab === "history" && (
-          <div style={{ padding: "0 clamp(16px, 4vw, 24px)", boxSizing: "border-box" }}>
+          <div className="history-tab-container" style={{ padding: "0 clamp(16px, 4vw, 24px)", boxSizing: "border-box" }}>
             <StudyHistory
               username={username}
               isDarkMode={isDarkMode}
@@ -997,7 +997,7 @@ export default function Dashboard({
                 const isMe = player.username?.toLowerCase() === username?.toLowerCase();
 
                 return (
-                  <div key={player.username} style={{ 
+                  <div key={player.username} className="rankings-row" style={{ 
                     position: "relative",
                     display: "flex", alignItems: "center", gap: "24px", padding: "16px 24px", 
                     borderRadius: "4px", cursor: "pointer", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -1033,7 +1033,7 @@ export default function Dashboard({
                     </div>
                     
                     {/* Avatar */}
-                    <div style={{ 
+                    <div className="rankings-avatar-container" style={{ 
                       width: "56px", height: "56px", borderRadius: "12px", 
                       position: "relative", flexShrink: 0, overflow: "hidden", 
                       border: `2px solid ${isTop3 ? rankColor : "var(--glass-border)"}`, 
@@ -1052,7 +1052,7 @@ export default function Dashboard({
                     </div>
                     
                     {/* User Info */}
-                    <div style={{ flex: 1, marginLeft: "12px" }}>
+                    <div className="rankings-user-info" style={{ flex: 1, marginLeft: "12px" }}>
                       <div style={{ 
                         fontWeight: "800", color: isMe ? "var(--neon-orange)" : "var(--text-light)", 
                         fontSize: "18px", fontFamily: "var(--font-outfit)", letterSpacing: "1px", 
@@ -1066,7 +1066,7 @@ export default function Dashboard({
                     </div>
 
                     {/* Stats HUD Block */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "32px", borderLeft: "1px solid var(--glass-border)", paddingLeft: "32px" }}>
+                    <div className="rankings-stats-hud" style={{ display: "flex", alignItems: "center", gap: "32px", borderLeft: "1px solid var(--glass-border)", paddingLeft: "32px" }}>
                       {/* Level Hexagon */}
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "60px" }}>
                         <div style={{ 

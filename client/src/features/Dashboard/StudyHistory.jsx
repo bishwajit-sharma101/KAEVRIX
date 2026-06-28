@@ -344,19 +344,19 @@ export default function StudyHistory({ username, isDarkMode, onStartSoloStudy })
 
         {/* Telemetry Stats widgets */}
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <div className="history-hud-panel" style={{ padding: "8px 16px", minWidth: "100px", borderRadius: "10px", borderStyle: "dashed" }}>
+          <div className="history-hud-panel" style={{ position: "relative", padding: "8px 16px", minWidth: "100px", borderRadius: "10px", borderStyle: "dashed" }}>
             <div className="history-corner-bracket hist-bracket-tl" />
             <div className="history-corner-bracket hist-bracket-tr" />
             <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>TOPICS</div>
             <div style={{ fontSize: "18px", fontWeight: "900", color: "#ff6a00", marginTop: "2px" }}>{stats.totalTopics}</div>
           </div>
-          <div className="history-hud-panel" style={{ padding: "8px 16px", minWidth: "100px", borderRadius: "10px", borderStyle: "dashed" }}>
+          <div className="history-hud-panel" style={{ position: "relative", padding: "8px 16px", minWidth: "100px", borderRadius: "10px", borderStyle: "dashed" }}>
             <div className="history-corner-bracket hist-bracket-tl" />
             <div className="history-corner-bracket hist-bracket-tr" />
             <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>DECKS SAVED</div>
             <div style={{ fontSize: "18px", fontWeight: "900", color: "#ff6a00", marginTop: "2px" }}>{stats.totalVideos}</div>
           </div>
-          <div className="history-hud-panel" style={{ padding: "8px 16px", minWidth: "130px", borderRadius: "10px", borderStyle: "dashed" }}>
+          <div className="history-hud-panel" style={{ position: "relative", padding: "8px 16px", minWidth: "130px", borderRadius: "10px", borderStyle: "dashed" }}>
             <div className="history-corner-bracket hist-bracket-tl" />
             <div className="history-corner-bracket hist-bracket-tr" />
             <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>LAST ACTIVE</div>
@@ -452,14 +452,14 @@ export default function StudyHistory({ username, isDarkMode, onStartSoloStudy })
           </div>
 
           {/* RIGHT VIEWPORT: Content Detail View */}
-          <div className="history-hud-panel" style={{
+          <div style={{
             display: "flex",
             flexDirection: "column",
             flex: 1,
             maxHeight: "650px",
             overflowY: "auto",
             boxSizing: "border-box"
-          }} className="custom-scrollbar history-hud-panel">
+          }} className="history-detail-panel custom-scrollbar history-hud-panel">
             <div className="history-corner-bracket hist-bracket-tl" />
             <div className="history-corner-bracket hist-bracket-tr" />
             <div className="history-corner-bracket hist-bracket-bl" />

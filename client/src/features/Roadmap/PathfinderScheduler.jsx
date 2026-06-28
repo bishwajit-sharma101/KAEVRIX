@@ -1161,6 +1161,44 @@ export default function PathfinderScheduler({
           0%, 100% { opacity: 0.85; filter: brightness(1); box-shadow: 0 0 10px rgba(239, 68, 68, 0.65), inset 0 1px 1px rgba(255,255,255,0.2); }
           50% { opacity: 1; filter: brightness(1.25); box-shadow: 0 0 20px rgba(239, 68, 68, 0.95), inset 0 1px 1px rgba(255,255,255,0.35); }
         }
+        .chronos-desktop-telemetry {
+          display: flex !important;
+        }
+        .chronos-mobile-telemetry {
+          display: none !important;
+        }
+        @media (max-width: 1024px) {
+          .chronos-desktop-telemetry {
+            display: none !important;
+          }
+          .chronos-mobile-telemetry {
+            display: flex !important;
+          }
+        }
+        .hud-directive-title {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          flex: 1;
+        }
+        .hud-directive-actions {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        @media (max-width: 768px) {
+          .hud-directive-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+          .hud-directive-title {
+            width: 100% !important;
+          }
+          .hud-directive-actions {
+            width: 100% !important;
+          }
+        }
       `}</style>
 
       {/* 3. Main Dashboard: Bar Chart (Focus) + Telemetry Stack (Sidebar) */}
@@ -1379,9 +1417,81 @@ export default function PathfinderScheduler({
           </div>
         </div>
 
-        {/* Right Sidebar: Telemetry Cards redesigned as a compact 2x2 stats block (2 lines) */}
-        <div className="hud-panel-wrapper telemetry-cards-container" style={{ 
+        {/* Right Sidebar: Telemetry Cards (Desktop Version: Detailed Cards Stack) */}
+        <div className="chronos-desktop-telemetry" style={{ 
           display: "flex", 
+          flexDirection: "column", 
+          gap: "16px",
+          width: "280px",
+          flexShrink: 0
+        }}>
+          <div style={{ fontSize: "10px", fontWeight: "900", color: "#ff6a00", letterSpacing: "1.5px", borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.05)", paddingBottom: "6px", marginBottom: "4px", textTransform: "uppercase" }}>
+            📈 SYNC READOUTS
+          </div>
+
+          <div className="telemetry-card" style={{ borderLeft: `3.5px solid ${speedBorderColor}`, borderTop: "none", borderRight: "none", borderBottom: "none" }}>
+            <span style={{ fontSize: "10px", fontWeight: "850", color: "var(--text-muted)", letterSpacing: "1px", textTransform: "uppercase" }}>
+              ⏱️ Study Speed
+            </span>
+            <span style={{ fontSize: "20px", fontWeight: "900", color: velocityStatus === "BEHIND" ? "#ef4444" : (velocityRatio > 1 ? "var(--neon-green)" : "#ff6a00") }}>
+              {velocityRatio > 0 ? `${velocityRatio.toFixed(1)}x speed` : "0.0x idle"}
+            </span>
+            <span style={{ fontSize: "10.5px", color: "var(--text-muted)", lineHeight: "1.3" }}>
+              {velocityStatus === "BEHIND" ? "Currently lagging your target velocity." : "Pacing on schedule with timeline targets."}
+            </span>
+          </div>
+
+          <div className="telemetry-card" style={{ borderLeft: "3.5px solid #a78bfa", borderTop: "none", borderRight: "none", borderBottom: "none" }}>
+            <span style={{ fontSize: "10px", fontWeight: "850", color: "var(--text-muted)", letterSpacing: "1px", textTransform: "uppercase" }}>
+              ⚡ Path Subtopics
+            </span>
+            <span style={{ fontSize: "20px", fontWeight: "900", color: "#a78bfa" }}>
+              {completedSubtopics} / {totalSubtopics}
+            </span>
+            <span style={{ fontSize: "10.5px", color: "var(--text-muted)", lineHeight: "1.3" }}>
+              {totalSubtopics - completedSubtopics} subtopics remaining to complete entire path.
+            </span>
+          </div>
+
+          <div className="telemetry-card" style={{ borderLeft: `3.5px solid ${daysToFinishBorder}`, borderTop: "none", borderRight: "none", borderBottom: "none" }}>
+            <span style={{ fontSize: "10px", fontWeight: "850", color: "var(--text-muted)", letterSpacing: "1px", textTransform: "uppercase" }}>
+              📅 Days to Finish
+            </span>
+            <span style={{ fontSize: "20px", fontWeight: "900", color: daysToFinishColor }}>
+              {daysToFinishText}
+            </span>
+            <span style={{ fontSize: "10.5px", color: "var(--text-muted)", lineHeight: "1.3" }}>
+              {daysToFinishSubtext}
+            </span>
+          </div>
+
+          <div className="telemetry-card" style={{ borderLeft: `3.5px solid ${goalMatchBorder}`, borderTop: "none", borderRight: "none", borderBottom: "none" }}>
+            <span style={{ fontSize: "10px", fontWeight: "850", color: "var(--text-muted)", letterSpacing: "1px", textTransform: "uppercase" }}>
+              🎯 Goal Match
+            </span>
+            <span style={{ fontSize: "20px", fontWeight: "900", color: goalMatchText }}>
+              {syncPercent}% Sync
+            </span>
+            <span style={{ fontSize: "10.5px", color: "var(--text-muted)", lineHeight: "1.3" }}>
+              {goalMatchSubtext}
+            </span>
+          </div>
+
+          {/* Sync Level Progress Bar */}
+          <div style={{ marginTop: "8px", borderTop: isDarkMode ? "1px solid rgba(255,255,255,0.03)" : "1px solid rgba(0,0,0,0.03)", paddingTop: "12px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", fontWeight: "900", color: "var(--text-muted)", marginBottom: "6px" }}>
+              <span>SYNC LEVEL</span>
+              <span style={{ color: syncLevelColor }}>{syncLevelText}</span>
+            </div>
+            <div style={{ width: "100%", height: "4px", background: isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.05)", borderRadius: "2px", overflow: "hidden", position: "relative" }}>
+              <div style={{ height: "100%", width: `${syncPercent}%`, background: velocityStatus === "BEHIND" ? "linear-gradient(90deg, #ef4444 0%, #f87171 100%)" : "linear-gradient(90deg, #ff6a00 0%, #a78bfa 100%)", boxShadow: velocityStatus === "BEHIND" ? "0 0 8px rgba(239,68,68,0.45)" : "0 0 8px rgba(255,106,0,0.45)", transition: "width 0.4s ease" }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Right Sidebar: Telemetry Cards (Mobile Version: Compact 2x2 stats block card) */}
+        <div className="chronos-mobile-telemetry hud-panel-wrapper telemetry-cards-container" style={{ 
+          display: "none",
           flexDirection: "column", 
           gap: "12px",
         }}>
@@ -1504,9 +1614,9 @@ export default function PathfinderScheduler({
                 <div 
                   key={`${t.milestone.id}_${t.subtopicIndex}`} 
                   className="hud-directive-row"
-                  style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "12px", padding: "16px 20px" }}
+                  style={{ padding: "16px 20px" }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "14px", width: "100%" }}>
+                  <div className="hud-directive-title">
                     <div style={{
                       width: "22px",
                       height: "22px",
@@ -1534,7 +1644,7 @@ export default function PathfinderScheduler({
 
                   {/* Actions */}
                   {!t.isEncrypted && (
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", width: "100%" }}>
+                    <div className="hud-directive-actions">
                       <button
                         onClick={() => {
                           if (onTriggerSearch) {

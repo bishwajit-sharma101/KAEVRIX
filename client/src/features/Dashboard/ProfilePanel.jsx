@@ -3187,22 +3187,24 @@ export default function ProfilePanel({
           </div>
 
           {/* Actions */}
-          <div style={{ paddingBottom: "20px", display: "flex", gap: "12px" }}>
-            <button style={{ 
-              background: "var(--neon-orange)", color: "#fff", border: "none", 
-              padding: "12px 24px", borderRadius: "30px", fontSize: "13px", fontWeight: "800", letterSpacing: "1px",
-              cursor: "pointer", transition: "transform 0.2s"
-            }} onMouseOver={e=>e.currentTarget.style.transform="scale(1.05)"} onMouseOut={e=>e.currentTarget.style.transform="scale(1)"}>
-              ADD FRIEND
-            </button>
-            <button style={{ 
-              background: "transparent", color: "var(--text-light)", border: "1px solid var(--text-muted)", 
-              padding: "12px 24px", borderRadius: "30px", fontSize: "13px", fontWeight: "800", letterSpacing: "1px",
-              cursor: "pointer", transition: "border-color 0.2s"
-            }} onMouseOver={e=>e.currentTarget.style.borderColor="var(--text-light)"} onMouseOut={e=>e.currentTarget.style.borderColor="var(--text-muted)"}>
-              MESSAGE
-            </button>
-          </div>
+          {username?.toLowerCase() !== localStorage.getItem("kaevrix_username")?.toLowerCase() && (
+            <div style={{ paddingBottom: "20px", display: "flex", gap: "12px" }}>
+              <button style={{ 
+                background: "var(--neon-orange)", color: "#fff", border: "none", 
+                padding: "12px 24px", borderRadius: "30px", fontSize: "13px", fontWeight: "800", letterSpacing: "1px",
+                cursor: "pointer", transition: "transform 0.2s"
+              }} onMouseOver={e=>e.currentTarget.style.transform="scale(1.05)"} onMouseOut={e=>e.currentTarget.style.transform="scale(1)"}>
+                ADD FRIEND
+              </button>
+              <button style={{ 
+                background: "transparent", color: "var(--text-light)", border: "1px solid var(--text-muted)", 
+                padding: "12px 24px", borderRadius: "30px", fontSize: "13px", fontWeight: "800", letterSpacing: "1px",
+                cursor: "pointer", transition: "border-color 0.2s"
+              }} onMouseOver={e=>e.currentTarget.style.borderColor="var(--text-light)"} onMouseOut={e=>e.currentTarget.style.borderColor="var(--text-muted)"}>
+                MESSAGE
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Level Progress (No Box) */}
