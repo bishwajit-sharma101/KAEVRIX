@@ -1025,6 +1025,42 @@ function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, on
   const [videos, setVideos] = useState([]);
   const [loadingVideos, setLoadingVideos] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [revisedSubtopicIdx, setRevisedSubtopicIdx] = useState(null);
+
+  const handleRevise = (subtopicName) => {
+    try {
+      const historyKey = `kaevrix_study_history_${username}`;
+      const savedHistory = localStorage.getItem(historyKey);
+      if (savedHistory) {
+        const parsed = JSON.parse(savedHistory);
+        if (Array.isArray(parsed)) {
+          const match = parsed.find(item => 
+            item.subTopic?.toLowerCase() === subtopicName.toLowerCase() || 
+            item.video?.title?.toLowerCase() === subtopicName.toLowerCase() ||
+            item.topic?.toLowerCase() === subtopicName.toLowerCase()
+          );
+          
+          if (match && match.video) {
+            sound.playMatchFound();
+            if (onSelectVideo) {
+              onSelectVideo({
+                id: match.video.id || match.video.videoId,
+                videoId: match.video.videoId || match.video.id,
+                title: match.video.title,
+                channel: match.video.channel,
+                url: match.video.url
+              });
+            }
+            onClose();
+            return;
+          }
+        }
+      }
+      alert("No study history found for this subtopic. Play lesson to study.");
+    } catch (e) {
+      console.error("Failed to revise subtopic:", e);
+    }
+  };
 
   const keyPoints = milestone.keyPoints || [];
   const activeSubtopicIndex = milestone.subtopicIndex || 0;
@@ -2096,17 +2132,6 @@ function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, on
                 )}
               </div>
             </div>
-
-            {/* Knowledge Study Guide Trigger Button */}
-            {milestone.status !== "locked" && (
-              <button
-                onClick={() => { sound.playClockTick(); onOpenNotes(); }}
-                className="er-btn"
-                style={{ width: "100%", borderColor: panelTheme === "medieval" ? (isLight ? "rgba(138, 115, 67, 0.4)" : "rgba(212, 175, 55, 0.45)") : (isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.1)"), color: panelTheme === "medieval" ? (isLight ? "#5c4d37" : "#dfd5be") : (isLight ? "#475569" : "#ffffff") }}
-              >
-                {panelTheme === "medieval" ? "📖 OPEN STUDY GUIDE" : "📖 Open Study Notes"}
-              </button>
-            )}
           </div>
 
           {/* Right Panel: Mission Progression Steps */}
@@ -2133,7 +2158,18 @@ function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, on
                       </div>
 
                       {/* Subtopic Card */}
-                      <div className={`er-step-card ${isUnlocked ? "active" : ""}`}>
+                      <div 
+                        className={`er-step-card ${isUnlocked ? "active" : ""}`}
+                        onClick={() => {
+                          if (isFinished) {
+                            sound.playClockTick();
+                            handleRevise(pt);
+                          }
+                        }}
+                        style={{
+                          cursor: isFinished ? "pointer" : "default"
+                        }}
+                      >
                         <div className={`er-step-title ${isFinished ? "completed" : isUnlocked ? "active" : ""}`}>
                           {pt}
                         </div>
@@ -2141,113 +2177,50 @@ function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, on
                         {/* Active Trial Control Center */}
                         {isUnlocked && (
                           <div style={{ paddingLeft: "4px" }}>
-                            
-                            {/* Search video trigger button */}
-                            {!hasSearched && !loadingVideos && (
-                              <button
-                                onClick={handleSearchVideos}
-                                className="er-btn"
-                                style={{ marginTop: "12px", width: "100%", borderStyle: "dashed" }}
-                              >
-                                {panelTheme === "medieval" ? "⚔️ SEEK GUIDANCE" : "🔍 Search Video Tutorial"}
-                              </button>
-                            )}
-
-                            {/* Loading state */}
-                            {loadingVideos && (
-                              <div className="er-conjure-loader">
-                                <span className="er-conjure-text">
-                                  {panelTheme === "medieval" ? "Conjuring stream pathways..." : "Searching video tutorials..."}
-                                </span>
-                                <div className="er-aura-pulse" />
-                              </div>
-                            )}
-
-                            {/* Search Results */}
-                            {hasSearched && !loadingVideos && videos.length > 0 && (
-                              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                                {videos.map((vid) => (
-                                  <div key={vid.id} className="er-stream-card">
-                                    <div className="er-stream-thumb">
-                                      <img src={vid.thumbnail} alt="thumbnail" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                      <span style={{ 
-                                        position: "absolute", bottom: "2px", right: "4px", 
-                                        background: "rgba(10, 10, 12, 0.85)", border: panelTheme === "medieval" ? "1px solid rgba(212, 175, 55, 0.3)" : "1px solid rgba(255,255,255,0.15)",
-                                        fontSize: "8px", color: panelTheme === "medieval" ? "#dfd5be" : "#fff", padding: "1px 3px", borderRadius: "2px",
-                                        fontWeight: "800", fontFamily: "monospace"
-                                      }}>
-                                        {Math.floor(vid.duration / 60)}:{String(vid.duration % 60).padStart(2, '0')}
-                                      </span>
-                                    </div>
-                                    
-                                    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
-                                      <div style={{ 
-                                        color: panelTheme === "medieval" ? (isLight ? "#2c2518" : "#dfd5be") : (isLight ? "#0f172a" : "#ffffff"), 
-                                        fontSize: "13px", 
-                                        fontWeight: "600", 
-                                        fontFamily: panelTheme === "medieval" ? "'Cormorant Garamond', serif" : "'Inter', sans-serif",
-                                        overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", 
-                                        WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: "1.3"
-                                      }}>
-                                        {vid.title}
-                                      </div>
-                                      <div style={{ 
-                                        color: panelTheme === "medieval" ? (isLight ? "#7c6a4e" : "#a59b84") : (isLight ? "#64748b" : "#94a3b8"), 
-                                        fontSize: "11px", 
-                                        fontFamily: panelTheme === "medieval" ? "'Cormorant Garamond', serif" : "'Inter', sans-serif" 
-                                      }}>
-                                        🎬 {vid.channel}
-                                      </div>
-                                    </div>
-
-                                    <button
-                                      onClick={() => onSelectVideo && onSelectVideo(vid)}
-                                      className="er-btn primary"
-                                      style={{ padding: "8px 14px", fontSize: "11px", letterSpacing: "1.5px" }}
-                                    >
-                                      {panelTheme === "medieval" ? "⚔️ PLAY" : "▶ Play Lesson"}
-                                    </button>
-                                  </div>
-                                ))}
-
-                                <button
-                                  onClick={handleFinishSubtopic}
-                                  className="er-btn success"
-                                  style={{ alignSelf: "flex-start", marginTop: "4px" }}
-                                >
-                                  {panelTheme === "medieval" ? "✓ SEAL STEP" : "✓ Mark Step Complete"}
-                                </button>
-                              </div>
-                            )}
-
-                            {/* Search Empty Bypass override */}
-                            {hasSearched && !loadingVideos && videos.length === 0 && (
-                              <div style={{ 
+                            <button
+                              onClick={handleFinishSubtopic}
+                              style={{ 
                                 marginTop: "12px", 
-                                padding: "12px", 
-                                border: panelTheme === "medieval" ? (isLight ? "1px solid rgba(138,115,67,0.2)" : "1px solid rgba(212, 175, 55, 0.15)") : (isLight ? "1px solid rgba(0,0,0,0.08)" : "1px solid rgba(255,255,255,0.08)"), 
-                                background: panelTheme === "medieval" ? (isLight ? "#f4ece1" : "rgba(10,10,12,0.45)") : (isLight ? "#f1f5f9" : "rgba(10,10,12,0.45)"), 
-                                borderRadius: "4px" 
-                              }}>
-                                <p style={{ 
-                                  fontFamily: panelTheme === "medieval" ? "'Cormorant Garamond', serif" : "'Inter', sans-serif", 
-                                  fontSize: "13px", 
-                                  color: panelTheme === "medieval" ? (isLight ? "#7c6a4e" : "#a59b84") : (isLight ? "#475569" : "#a59b84"), 
-                                  margin: "0 0 10px", 
-                                  fontStyle: "italic" 
-                                }}>
-                                  {panelTheme === "medieval" ? "No stream registered in the archives. Override and complete:" : "No lessons found in search. Skip step:"}
-                                </p>
-                                <button
-                                  onClick={handleFinishSubtopic}
-                                  className="er-btn"
-                                  style={{ width: "100%", padding: "8px 12px", fontSize: "11px", letterSpacing: "1px" }}
-                                >
-                                  {panelTheme === "medieval" ? "✓ BYPASS STEP" : "✓ Skip Step"}
-                                </button>
-                              </div>
-                            )}
-
+                                width: "100%",
+                                background: panelTheme === "medieval" 
+                                  ? "linear-gradient(135deg, #8a7343 0%, #5d4b2d 100%)" 
+                                  : "linear-gradient(135deg, #ff6a00 0%, #c44f00 100%)",
+                                borderColor: panelTheme === "medieval" 
+                                  ? "rgba(212, 175, 55, 0.45)" 
+                                  : "rgba(255, 106, 0, 0.4)",
+                                color: "#ffffff",
+                                boxShadow: panelTheme === "medieval" 
+                                  ? "0 4px 12px rgba(138, 115, 67, 0.25)" 
+                                  : "0 4px 12px rgba(255, 106, 0, 0.25)",
+                                cursor: "pointer",
+                                transition: "all 0.2s ease"
+                              }}
+                              className="er-btn"
+                              onMouseOver={e => {
+                                e.currentTarget.style.background = panelTheme === "medieval"
+                                  ? "linear-gradient(135deg, #a58e5c 0%, #6f5c3a 100%)"
+                                  : "linear-gradient(135deg, #ff8432 0%, #d85700 100%)";
+                                e.currentTarget.style.borderColor = panelTheme === "medieval"
+                                  ? "#d4af37"
+                                  : "#ff6a00";
+                                e.currentTarget.style.boxShadow = panelTheme === "medieval"
+                                  ? "0 6px 18px rgba(138, 115, 67, 0.4)"
+                                  : "0 6px 18px rgba(255, 106, 0, 0.4)";
+                              }}
+                              onMouseOut={e => {
+                                e.currentTarget.style.background = panelTheme === "medieval"
+                                  ? "linear-gradient(135deg, #8a7343 0%, #5d4b2d 100%)"
+                                  : "linear-gradient(135deg, #ff6a00 0%, #c44f00 100%)";
+                                e.currentTarget.style.borderColor = panelTheme === "medieval"
+                                  ? "rgba(212, 175, 55, 0.45)"
+                                  : "rgba(255, 106, 0, 0.4)";
+                                e.currentTarget.style.boxShadow = panelTheme === "medieval"
+                                  ? "0 4px 12px rgba(138, 115, 67, 0.25)"
+                                  : "0 4px 12px rgba(255, 106, 0, 0.25)";
+                              }}
+                            >
+                              {panelTheme === "medieval" ? "✓ SEAL STEP" : "✓ Mark Step Complete"}
+                            </button>
                           </div>
                         )}
                       </div>
@@ -2274,23 +2247,26 @@ function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, on
           flexDirection: "row",
           justifyContent: "flex-end"
         }}>
-          {milestone.status !== "locked" && (
-            <button
-              onClick={() => { sound.playClockTick(); onSearchDuel(milestone); onClose(); }}
-              className="er-btn"
-              style={{ flex: 1, borderColor: panelTheme === "medieval" ? (isLight ? "rgba(138, 115, 67, 0.25)" : "rgba(128, 90, 213, 0.4)") : (isLight ? "rgba(255, 106, 0, 0.25)" : "rgba(255, 106, 0, 0.3)"), color: panelTheme === "medieval" ? (isLight ? "#8a7343" : "#d6bcfa") : "#ff6a00" }}
-            >
-              {panelTheme === "medieval" ? "⚔️ DUEL TOPIC" : "Practice Quiz"}
-            </button>
-          )}
-
           {milestone.status === "unlocked" && onChallengeBoss && (
             <button
-              onClick={() => { sound.playClockTick(); onChallengeBoss(milestone); onClose(); }}
+              disabled={!isAllSubtopicsFinished}
+              onClick={() => {
+                if (!isAllSubtopicsFinished) return;
+                sound.playClockTick();
+                onChallengeBoss(milestone);
+                onClose();
+              }}
               className="er-btn primary"
-              style={{ flex: 1 }}
+              style={{
+                flex: 1,
+                opacity: isAllSubtopicsFinished ? 1 : 0.5,
+                cursor: isAllSubtopicsFinished ? "pointer" : "not-allowed"
+              }}
             >
-              {panelTheme === "medieval" ? "⚔️ CHALLENGE BOSS" : "Challenge Boss"}
+              {isAllSubtopicsFinished
+                ? (panelTheme === "medieval" ? "⚔️ CHALLENGE BOSS" : "Challenge Boss")
+                : (panelTheme === "medieval" ? "🔒 BOSS LOCKED (FINISH ALL STEPS)" : "🔒 Boss Locked (Finish All Steps)")
+              }
             </button>
           )}
 

@@ -358,11 +358,11 @@ export default function AppRouter(props) {
             <div className="logo-container" onClick={resetToDashboard} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}>
               <img src="/logo.png" alt="Kaevrix Logo" style={{ width: "40px", height: "40px", objectFit: "contain", display: "block" }} />
               <span 
-                className="logo-text"
+                className={`logo-text ${activeTab === "profile" ? "profile-active" : ""}`}
                 style={{ 
-                  color: activeTab === "profile" ? "#ff6a00" : (isDarkMode ? "#ffffff" : "#0f172a"),
-                  WebkitTextFillColor: activeTab === "profile" ? "#ff6a00" : (isDarkMode ? "#ffffff" : "#0f172a"),
-                  textShadow: activeTab === 'profile' ? '0 0 12px rgba(255, 106, 0, 0.4)' : 'none'
+                  color: activeTab === "profile" ? "#ffffff" : (isDarkMode ? "#ffffff" : "#0f172a"),
+                  WebkitTextFillColor: activeTab === "profile" ? "#ffffff" : (isDarkMode ? "#ffffff" : "#0f172a"),
+                  textShadow: activeTab === 'profile' ? '0 0 12px rgba(255, 106, 0, 0.5)' : 'none'
                 }}
               >
                 KAEVRIX

@@ -119,6 +119,12 @@ body {
   -webkit-background-clip: unset !important;
 }
 
+.logo-text.profile-active {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: 0 0 15px rgba(255, 106, 0, 0.65) !important;
+}
+
 .dashboard-sidebar.dark-theme .hud-nav-btn-active {
   color: #ff9d5c !important;
   background: linear-gradient(90deg, rgba(255, 106, 0, 0.15), transparent) !important;

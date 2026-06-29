@@ -3457,7 +3457,7 @@ export default function ProfilePanel({
               </button>
             </div>
             
-            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px", flex: 1 }}>
               {/* Dark Theme */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-light)" }}>Theme Mode</span>
@@ -3551,20 +3551,44 @@ export default function ProfilePanel({
 
               {/* Logout Button */}
               {handleLogout && (
-                <div style={{ borderTop: "1px solid var(--glass-border)", paddingTop: "20px", marginTop: "12px", display: "flex" }}>
+                <div style={{ borderTop: "1px solid var(--glass-border)", paddingTop: "20px", marginTop: "auto", display: "flex" }}>
                   <button 
                     onClick={() => { sound.playClockTick(); handleLogout(); }}
                     style={{ 
                       width: "100%",
-                      background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.6)", 
-                      color: "#ef4444", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", 
-                      fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-                      fontFamily: "var(--font-gamer)", transition: "all 0.2s"
+                      background: "rgba(239, 68, 68, 0.04)", 
+                      border: "1.5px solid rgba(239, 68, 68, 0.35)", 
+                      color: "#ff7b7b", 
+                      padding: "14px 20px", 
+                      borderRadius: "6px", 
+                      fontSize: "11px", 
+                      fontWeight: "900", 
+                      letterSpacing: "3px",
+                      cursor: "pointer", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "center", 
+                      gap: "10px",
+                      fontFamily: "var(--font-gamer)", 
+                      textTransform: "uppercase",
+                      transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
                     }}
-                    onMouseOver={e => e.currentTarget.style.background = "rgba(239, 68, 68, 0.25)"}
-                    onMouseOut={e => e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)"}
+                    onMouseOver={e => {
+                      e.currentTarget.style.background = "rgba(239, 68, 68, 0.18)";
+                      e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.85)";
+                      e.currentTarget.style.color = "#ffffff";
+                      e.currentTarget.style.boxShadow = "0 0 25px rgba(239, 68, 68, 0.25)";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                    }}
+                    onMouseOut={e => {
+                      e.currentTarget.style.background = "rgba(239, 68, 68, 0.04)";
+                      e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.35)";
+                      e.currentTarget.style.color = "#ff7b7b";
+                      e.currentTarget.style.boxShadow = "none";
+                      e.currentTarget.style.transform = "translateY(0)";
+                    }}
                   >
-                    🚪 SIGN OUT
+                    <span>🚪</span> Sign Out
                   </button>
                 </div>
               )}
