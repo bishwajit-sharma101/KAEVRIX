@@ -119,10 +119,15 @@ body {
   -webkit-background-clip: unset !important;
 }
 
-.logo-text.profile-logo-active {
-  color: #c084fc !important;
-  -webkit-text-fill-color: #c084fc !important;
-  text-shadow: 0 0 12px rgba(168, 85, 247, 0.6) !important;
+.dashboard-sidebar.dark-theme .hud-nav-btn-active {
+  color: #ff9d5c !important;
+  background: linear-gradient(90deg, rgba(255, 106, 0, 0.15), transparent) !important;
+  border-left-color: #ff6a00 !important;
+  box-shadow: inset 1px 0 0 rgba(255, 106, 0, 0.1) !important;
+}
+
+.dashboard-sidebar.dark-theme .hud-nav-btn:hover {
+  background: rgba(255, 106, 0, 0.08) !important;
 }
 
 .logo-dot {

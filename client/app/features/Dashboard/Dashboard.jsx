@@ -72,7 +72,9 @@ export default function Dashboard({
   showSchedulerSettings,
   setShowSchedulerSettings,
   showSystemSettings,
-  setShowSystemSettings
+  setShowSystemSettings,
+  profileAccentColor,
+  setProfileAccentColor
 }) {
   const [isRobotHovered, setIsRobotHovered] = useState(false);
   const [personalizedFeed, setPersonalizedFeed] = useState([]);
@@ -546,11 +548,14 @@ export default function Dashboard({
     { id: "rankings", icon: "🏆", label: "Global Rankings" },
   ];
 
+  const isProfile = activeTab === "profile";
+  const sidebarAccentColor = isProfile ? profileAccentColor : "#ea580c";
+
   return (
     <div className="dashboard-wrapper">
 
       {/* Sidebar Navigation */}
-      <div className="dashboard-sidebar">
+      <div className={`dashboard-sidebar ${isProfile ? "dark-theme" : ""}`}>
         <div style={{ marginBottom: "8px", padding: "0 12px" }} className="dashboard-sidebar-title">
           <span style={{ fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "2px", fontFamily: "var(--font-gamer)" }}>NAVIGATION SYSTEM</span>
         </div>
@@ -570,14 +575,14 @@ export default function Dashboard({
 
         {/* Quick Stats Widget */}
         <div className="hud-stats-box dashboard-stats-widget" style={{ marginTop: "24px" }}>
-          <div style={{ fontSize: "10px", fontWeight: "800", color: "#ea580c", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "12px", fontFamily: "var(--font-gamer)", display: "flex", alignItems: "center", gap: "5px" }}>
-            <span className="hud-pulse-dot" style={{ color: "#ea580c" }} />
+          <div style={{ fontSize: "10px", fontWeight: "800", color: sidebarAccentColor, textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "12px", fontFamily: "var(--font-gamer)", display: "flex", alignItems: "center", gap: "5px" }}>
+            <span className="hud-pulse-dot" style={{ color: sidebarAccentColor }} />
             LIVE ACTIVITY
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12.5px" }}>
               <span style={{ color: "var(--text-muted)", fontWeight: "500" }}>Battles now</span>
-              <span style={{ fontWeight: "800", color: "#ea580c", fontFamily: "monospace" }}>1,247</span>
+              <span style={{ fontWeight: "800", color: sidebarAccentColor, fontFamily: "monospace" }}>1,247</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12.5px" }}>
               <span style={{ color: "var(--text-muted)", fontWeight: "500" }}>Players online</span>
@@ -591,12 +596,12 @@ export default function Dashboard({
           
           {/* Waveform graphic inside the widget for gaming aesthetic */}
           <div style={{ height: "20px", marginTop: "14px", opacity: 0.25, display: "flex", alignItems: "flex-end", gap: "2px" }}>
-            <div style={{ flex: 1, height: "40%", background: "#ea580c", borderRadius: "1px", animation: "pulse 1.2s infinite alternate" }} />
-            <div style={{ flex: 1, height: "70%", background: "#ea580c", borderRadius: "1px", animation: "pulse 0.8s infinite alternate-reverse" }} />
-            <div style={{ flex: 1, height: "25%", background: "#ea580c", borderRadius: "1px", animation: "pulse 1.5s infinite alternate" }} />
-            <div style={{ flex: 1, height: "90%", background: "#ea580c", borderRadius: "1px", animation: "pulse 0.6s infinite alternate-reverse" }} />
-            <div style={{ flex: 1, height: "50%", background: "#ea580c", borderRadius: "1px", animation: "pulse 1.1s infinite alternate" }} />
-            <div style={{ flex: 1, height: "75%", background: "#ea580c", borderRadius: "1px", animation: "pulse 0.9s infinite alternate-reverse" }} />
+            <div style={{ flex: 1, height: "40%", background: sidebarAccentColor, borderRadius: "1px", animation: "pulse 1.2s infinite alternate" }} />
+            <div style={{ flex: 1, height: "70%", background: sidebarAccentColor, borderRadius: "1px", animation: "pulse 0.8s infinite alternate-reverse" }} />
+            <div style={{ flex: 1, height: "25%", background: sidebarAccentColor, borderRadius: "1px", animation: "pulse 1.5s infinite alternate" }} />
+            <div style={{ flex: 1, height: "90%", background: sidebarAccentColor, borderRadius: "1px", animation: "pulse 0.6s infinite alternate-reverse" }} />
+            <div style={{ flex: 1, height: "50%", background: sidebarAccentColor, borderRadius: "1px", animation: "pulse 1.1s infinite alternate" }} />
+            <div style={{ flex: 1, height: "75%", background: sidebarAccentColor, borderRadius: "1px", animation: "pulse 0.9s infinite alternate-reverse" }} />
           </div>
         </div>
       </div>
@@ -622,6 +627,7 @@ export default function Dashboard({
             socket={socket}
             showSystemSettings={showSystemSettings}
             setShowSystemSettings={setShowSystemSettings}
+            setProfileAccentColor={setProfileAccentColor}
           />
         )}
 

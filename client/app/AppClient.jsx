@@ -10,6 +10,9 @@ import { trackTelemetry } from "./utils/telemetry";
 const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
 const DEFAULT_AVATAR = "https://api.dicebear.com/7.x/bottts/svg?seed=Cypher&backgroundColor=transparent";
 
+// Global lock for silent refresh to prevent concurrent requests during StrictMode double-mounts
+let silentRefreshPromise = null;
+
 const getRankTitle = (level) => {
   if (level <= 2) return "Binge Cadet";
   if (level <= 4) return "Observant Watcher";
@@ -141,23 +144,34 @@ export default function App() {
       .catch(async (err) => {
         console.warn("[Auth] Access token invalid, attempting silent refresh...", err.message);
         try {
-          const refreshRes = await fetch(`${BACKEND_URL || ""}/api/auth/refresh`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include"
-          });
-          if (!refreshRes.ok) throw new Error("Session expired");
-          const refreshData = await refreshRes.json();
-          localStorage.setItem("kaevrix_token", refreshData.token);
+          if (!silentRefreshPromise) {
+            silentRefreshPromise = (async () => {
+              const refreshRes = await fetch(`${BACKEND_URL || ""}/api/auth/refresh`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include"
+              });
+              if (!refreshRes.ok) throw new Error("Session expired");
+              const refreshData = await refreshRes.json();
+              localStorage.setItem("kaevrix_token", refreshData.token);
+              return refreshData.token;
+            })();
+          }
           
-          const verifyData = await restoreSession(refreshData.token);
-          handleAuthRestore(verifyData.user, refreshData.token);
+          const newToken = await silentRefreshPromise;
+          const verifyData = await restoreSession(newToken);
+          handleAuthRestore(verifyData.user, newToken);
           console.log("[Auth] Session restored successfully via refresh token.");
         } catch (refreshErr) {
           console.warn("[Auth] Session restore failed:", refreshErr.message);
           localStorage.removeItem("kaevrix_token");
           setToken("");
           setIsRegistered(false);
+        } finally {
+          // Reset the global promise lock after a short delay to allow subsequent operations
+          setTimeout(() => {
+            silentRefreshPromise = null;
+          }, 1000);
         }
       });
   }, []);

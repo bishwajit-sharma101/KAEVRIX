@@ -263,7 +263,16 @@ export async function refreshSession(oldRefreshToken, ipAddress, userAgent) {
   
   try {
     const decoded = jwt.verify(oldRefreshToken, REFRESH_SECRET);
-    const session = await Session.findOne({ refreshToken: oldRefreshToken, userId: decoded.userId });
+    
+    // Find session matching either the active refreshToken OR previousRefreshToken (grace check)
+    let session = await Session.findOne({
+      $or: [
+        { refreshToken: oldRefreshToken },
+        { previousRefreshToken: oldRefreshToken }
+      ],
+      userId: decoded.userId
+    });
+    
     if (!session) throwError("Session revoked or invalid", 401);
 
     // Load from Redis cache or fallback to DB
@@ -279,24 +288,72 @@ export async function refreshSession(oldRefreshToken, ipAddress, userAgent) {
       await redisClient.set(profileKey, JSON.stringify(user), "EX", 300);
     }
 
+    // Check if client is sending the previously rotated token
+    if (session.previousRefreshToken === oldRefreshToken) {
+      const gracePeriodMs = 15000; // 15 seconds grace period
+      const lastRotated = session.lastRotatedAt ? new Date(session.lastRotatedAt).getTime() : 0;
+      const now = Date.now();
+      
+      if (now - lastRotated < gracePeriodMs) {
+        // Safe reuse during the concurrent request window: return current active token and new access token
+        const accessToken = generateAccessToken(user);
+        return { accessToken, refreshToken: session.refreshToken };
+      } else {
+        // Replay detected after grace period expires: destroy session entirely
+        await Session.deleteOne({ _id: session._id });
+        throwError("Session already rotated (replay detected)", 401);
+      }
+    }
+
     const accessToken = generateAccessToken(user);
     const newRefreshToken = generateRefreshToken(user);
 
-    // Atomic update: replace old token with new one in a single DB operation
-    // This guarantees the old token is invalidated even under race conditions
+    // Atomic update: swap old token for new, set previous token, and update rotation timestamp
     const updated = await Session.findOneAndUpdate(
       { _id: session._id, refreshToken: oldRefreshToken },
-      { $set: { refreshToken: newRefreshToken } },
+      { 
+        $set: { 
+          refreshToken: newRefreshToken,
+          previousRefreshToken: oldRefreshToken,
+          lastRotatedAt: new Date()
+        } 
+      },
       { returnDocument: 'after' }
     );
-    if (!updated) throwError("Session already rotated (replay detected)", 401);
+    
+    if (!updated) {
+      // Re-fetch in case another thread/request updated the session within the grace period
+      session = await Session.findById(session._id);
+      if (session && session.previousRefreshToken === oldRefreshToken) {
+        const lastRotated = session.lastRotatedAt ? new Date(session.lastRotatedAt).getTime() : 0;
+        if (Date.now() - lastRotated < 15000) {
+          const accessToken = generateAccessToken(user);
+          return { accessToken, refreshToken: session.refreshToken };
+        }
+      }
+      throwError("Session already rotated (replay detected)", 401);
+    }
 
     return { accessToken, refreshToken: newRefreshToken };
   } catch (err) {
-    const invalidSession = await Session.findOne({ refreshToken: oldRefreshToken });
+    const invalidSession = await Session.findOne({
+      $or: [
+        { refreshToken: oldRefreshToken },
+        { previousRefreshToken: oldRefreshToken }
+      ]
+    });
     if (invalidSession) {
-      TelemetryEvent.create({ userId: invalidSession.userId, eventType: "SESSION_ENDED", sessionId: invalidSession._id.toString(), metadata: { reason: "refresh_failed" } }).catch(() => {});
-      Session.deleteOne({ _id: invalidSession._id }).catch(() => {});
+      TelemetryEvent.create({ 
+        userId: invalidSession.userId, 
+        eventType: "SESSION_ENDED", 
+        sessionId: invalidSession._id.toString(), 
+        metadata: { reason: "refresh_failed", error: err.message } 
+      }).catch(() => {});
+      
+      // Only delete session if it's a genuine replay failure, not a normal verification error
+      if (err.message.includes("replay") || !err.message.includes("rotated")) {
+        Session.deleteOne({ _id: invalidSession._id }).catch(() => {});
+      }
     }
     if (err.statusCode) throw err;
     throwError("Refresh token expired or invalid", 401);

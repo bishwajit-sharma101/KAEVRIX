@@ -28,6 +28,7 @@ export default function AppRouter(props) {
   const [searchHistory, setSearchHistory] = React.useState([]);
   const [showMoreMenu, setShowMoreMenu] = React.useState(false);
   const [showSystemSettings, setShowSystemSettings] = React.useState(false);
+  const [profileAccentColor, setProfileAccentColor] = React.useState("var(--neon-orange)");
 
   React.useEffect(() => {
     try {
@@ -237,6 +238,8 @@ export default function AppRouter(props) {
     );
   };
 
+  const isProfileTab = activeTab === "profile";
+
   // Header display
   const headerComponent = (
     <header 
@@ -354,7 +357,16 @@ export default function AppRouter(props) {
             )}
             <div className="logo-container" onClick={resetToDashboard} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}>
               <img src="/logo.png" alt="Kaevrix Logo" style={{ width: "40px", height: "40px", objectFit: "contain", display: "block" }} />
-              <span className={`logo-text ${activeTab === 'you' ? 'profile-logo-active' : ''}`}>Kaevrix</span>
+              <span 
+                className="logo-text"
+                style={{ 
+                  color: activeTab === "profile" ? "#ff6a00" : (isDarkMode ? "#ffffff" : "#0f172a"),
+                  WebkitTextFillColor: activeTab === "profile" ? "#ff6a00" : (isDarkMode ? "#ffffff" : "#0f172a"),
+                  textShadow: activeTab === 'profile' ? '0 0 12px rgba(255, 106, 0, 0.4)' : 'none'
+                }}
+              >
+                KAEVRIX
+              </span>
             </div>
           </div>
 
@@ -367,15 +379,15 @@ export default function AppRouter(props) {
               style={{ 
                 display: "flex", 
                 flex: 1, 
-                background: isDarkMode ? "rgba(10, 6, 4, 0.65)" : "rgba(255, 255, 255, 0.9)", 
+                background: (isDarkMode || isProfileTab) ? "rgba(10, 6, 4, 0.65)" : "rgba(255, 255, 255, 0.9)", 
                 borderRadius: "28px", 
                 overflow: "hidden", 
                 border: isSearchFocused
-                  ? (isDarkMode ? "1.5px solid #ff6a00" : "1.5px solid #ea580c")
-                  : (isDarkMode ? "1.5px solid rgba(255, 106, 0, 0.25)" : "1.5px solid #fed7aa"), 
+                  ? ((isDarkMode || isProfileTab) ? "1.5px solid #ff6a00" : "1.5px solid #ea580c")
+                  : ((isDarkMode || isProfileTab) ? "1.5px solid rgba(255, 106, 0, 0.25)" : "1.5px solid #fed7aa"), 
                 boxShadow: isSearchFocused
-                  ? (isDarkMode ? "0 0 25px rgba(255, 106, 0, 0.35), inset 0 2px 4px rgba(0,0,0,0.4)" : "0 4px 20px rgba(255, 106, 0, 0.15)")
-                  : (isDarkMode ? "0 4px 20px rgba(0, 0, 0, 0.3)" : "inset 0 1px 2px rgba(0,0,0,0.05)"),
+                  ? ((isDarkMode || isProfileTab) ? "0 0 25px rgba(255, 106, 0, 0.35), inset 0 2px 4px rgba(0,0,0,0.4)" : "0 4px 20px rgba(255, 106, 0, 0.15)")
+                  : ((isDarkMode || isProfileTab) ? "0 4px 20px rgba(0, 0, 0, 0.3)" : "inset 0 1px 2px rgba(0,0,0,0.05)"),
                 backdropFilter: "blur(12px)",
                 transition: "all 0.3s ease",
                 alignItems: "center"
@@ -384,7 +396,7 @@ export default function AppRouter(props) {
               <div style={{ display: "flex", alignItems: "center", paddingLeft: "18px" }}>
                 <span style={{
                   width: "8px", height: "8px", borderRadius: "50%",
-                  backgroundColor: isSearchFocused ? "#ff6a00" : (isDarkMode ? "rgba(255, 106, 0, 0.4)" : "rgba(234, 88, 12, 0.3)"),
+                  backgroundColor: isSearchFocused ? "#ff6a00" : ((isDarkMode || isProfileTab) ? "rgba(255, 106, 0, 0.4)" : "rgba(234, 88, 12, 0.3)"),
                   boxShadow: isSearchFocused ? "0 0 8px #ff6a00, 0 0 15px #ffb300" : "none",
                   transition: "all 0.3s ease"
                 }} />
@@ -399,7 +411,7 @@ export default function AppRouter(props) {
                 style={{ 
                   flex: 1, border: "none", background: "transparent", 
                   padding: "12px 14px", fontSize: "15px", outline: "none", 
-                  color: isDarkMode ? "#ffffff" : "#0f172a",
+                  color: (isDarkMode || isProfileTab) ? "#ffffff" : "#0f172a",
                   fontFamily: "'Outfit', var(--font-sans)"
                 }}
               />
@@ -407,7 +419,7 @@ export default function AppRouter(props) {
                 type="submit" 
                 style={{ 
                   alignSelf: "stretch", padding: "0 28px", 
-                  background: isDarkMode ? "linear-gradient(135deg, #ff6a00, #ffb300)" : "linear-gradient(135deg, #ea580c, #f97316)", 
+                  background: (isDarkMode || isProfileTab) ? "linear-gradient(135deg, #ff6a00, #ffb300)" : "linear-gradient(135deg, #ea580c, #f97316)", 
                   border: "none", clipPath: "polygon(12px 0, 100% 0, 100% 100%, 0 100%)",
                   cursor: isSearching ? "not-allowed" : "pointer", color: "#ffffff", 
                   fontSize: "16px", transition: "all 0.2s",
@@ -432,7 +444,7 @@ export default function AppRouter(props) {
           )}
 
           <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {/* YouTube style search trigger button on mobile / Settings button when in chronos */}
+            {/* YouTube style search trigger button on mobile / Settings button when in chronos or profile */}
             {(activeTab === "chronos" || activeTab === "profile") ? (
               <button
                 onClick={() => {
@@ -457,8 +469,13 @@ export default function AppRouter(props) {
                   transition: "transform 0.2s"
                 }}
                 title="Settings"
+                onMouseOver={e => e.currentTarget.style.transform = "rotate(30deg)"}
+                onMouseOut={e => e.currentTarget.style.transform = "none"}
               >
-                ⚙️
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
               </button>
             ) : (
               <button 
@@ -468,15 +485,18 @@ export default function AppRouter(props) {
                   background: "transparent", 
                   border: "none", 
                   color: "var(--neon-orange)", 
-                  width: "40px", 
+                  width: "40px",
                   height: "40px",
-                  display: "flex", 
-                  alignItems: "center", 
+                  display: "flex",
+                  alignItems: "center",
                   justifyContent: "center",
                   cursor: "pointer",
-                  transition: "transform 0.2s"
+                  fontSize: "18px",
+                  transition: "all 0.2s",
+                  flexShrink: 0,
                 }}
-                title="Search"
+                onMouseOver={e => e.currentTarget.style.transform = "scale(1.1)"}
+                onMouseOut={e => e.currentTarget.style.transform = "none"}
               >
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
                   <circle cx="11" cy="11" r="8"></circle>
@@ -487,14 +507,35 @@ export default function AppRouter(props) {
 
             {/* Desktop-only Profile and Logout */}
             <div className="desktop-profile-only" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div className="header-profile" style={{ display: "flex", alignItems: "center", gap: "12px", background: isDarkMode ? "#1e293b" : "#ffffff", padding: "6px 16px 6px 6px", borderRadius: "30px", border: "1px solid var(--glass-border)", boxShadow: "0 4px 6px rgba(0,0,0,0.02)" }}>
-                <div className="profile-avatar" style={{ width: "36px", height: "36px", borderRadius: "50%", background: isDarkMode ? "#0f172a" : "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", border: "1px solid var(--glass-border)", overflow: "hidden" }}>
+              <div className="header-profile" style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "12px", 
+                background: isProfileTab ? "rgba(255, 255, 255, 0.08)" : (isDarkMode ? "#1e293b" : "#ffffff"), 
+                padding: "6px 16px 6px 6px", 
+                borderRadius: "30px", 
+                border: isProfileTab ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid var(--glass-border)", 
+                boxShadow: isProfileTab ? "0 4px 20px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.02)",
+                backdropFilter: isProfileTab ? "blur(8px)" : "none"
+              }}>
+                <div className="profile-avatar" style={{ 
+                  width: "36px", 
+                  height: "36px", 
+                  borderRadius: "50%", 
+                  background: isProfileTab ? "rgba(255, 255, 255, 0.05)" : (isDarkMode ? "#0f172a" : "#f8fafc"), 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  fontSize: "18px", 
+                  border: isProfileTab ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid var(--glass-border)", 
+                  overflow: "hidden" 
+                }}>
                   {avatar && avatar.includes('http') ? <img src={avatar} alt="avatar" style={{width: "100%", height: "100%", objectFit: "cover"}}/> : avatar}
                 </div>
                 <div className="profile-info" style={{ display: "flex", flexDirection: "column" }}>
-                  <div className="profile-name" style={{ fontSize: "14px", fontWeight: "600", color: "var(--text-light)" }}>{username}</div>
-                  <div className="profile-level-badge" style={{ fontSize: "11px", color: "var(--neon-orange)", fontWeight: "700" }}>
-                    LVL {level} <span style={{ color: "var(--text-muted)", fontWeight: "normal" }}>({xp % 200}/200)</span>
+                  <div className="profile-name" style={{ fontSize: "14px", fontWeight: "600", color: isProfileTab ? "#ffffff" : "var(--text-light)" }}>{username}</div>
+                  <div className="profile-level-badge" style={{ fontSize: "11px", color: isProfileTab ? profileAccentColor : "var(--neon-orange)", fontWeight: "700" }}>
+                    LVL {level} <span style={{ color: isProfileTab ? "rgba(255, 255, 255, 0.5)" : "var(--text-muted)", fontWeight: "normal" }}>({xp % 200}/200)</span>
                   </div>
                 </div>
               </div>
@@ -704,6 +745,8 @@ export default function AppRouter(props) {
       {/* 2. DASHBOARD OR GAME STATES */}
       {status === "idle" && (
         <Dashboard
+          profileAccentColor={profileAccentColor}
+          setProfileAccentColor={setProfileAccentColor}
           isDarkMode={isDarkMode}
           curatedVideos={curatedVideos}
           selectedVideo={selectedVideo}

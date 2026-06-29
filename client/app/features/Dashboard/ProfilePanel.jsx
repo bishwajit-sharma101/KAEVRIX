@@ -3178,12 +3178,11 @@ export default function ProfilePanel({
               margin: "0 0 8px 0", 
               fontSize: "calc(24px + 1.8vw)", 
               fontWeight: "950", 
-              background: "linear-gradient(135deg, #a855f7 0%, #06b6d4 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
+              color: "#ffffff",
+              WebkitTextFillColor: "#ffffff",
               fontFamily: "var(--font-outfit)", 
               letterSpacing: "2px",
-              textShadow: "0 2px 12px rgba(168, 85, 247, 0.25)"
+              textShadow: "0 2px 10px rgba(255, 255, 255, 0.15)"
             }}>
               {username}
             </h1>
@@ -3245,7 +3244,7 @@ export default function ProfilePanel({
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: "100px" }}>
                 <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Win Rate</div>
                 <div style={{ fontSize: "48px", fontWeight: "900", color: "var(--text-light)", fontFamily: "var(--font-outfit)", lineHeight: 1 }}>
-                  {winRate}<span style={{ fontSize: "20px", color: profileAccentColor }}>%</span>
+                  {winRate}<span style={{ fontSize: "20px", color: "var(--text-light)" }}>%</span>
                 </div>
               </div>
               
@@ -3261,7 +3260,7 @@ export default function ProfilePanel({
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: "100px" }}>
                 <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Watch Time</div>
                 <div style={{ fontSize: "40px", fontWeight: "900", color: "var(--text-light)", fontFamily: "var(--font-outfit)", lineHeight: 1 }}>
-                  {watchTime} <span style={{ fontSize: "16px", color: profileAccentColor, textTransform: "uppercase" }}>Minutes</span>
+                  {watchTime} <span style={{ fontSize: "16px", color: "var(--text-light)", textTransform: "uppercase" }}>Minutes</span>
                 </div>
               </div>
             </div>
@@ -3410,19 +3409,17 @@ export default function ProfilePanel({
         </div>
       </div>
 
-      {/* 5. SYSTEM SETTINGS OVERLAY MODAL */}
+      {/* 5. SYSTEM SETTINGS DRAWER PANEL */}
       {showSystemSettings && (
         <div 
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0, 0, 0, 0.6)",
-            backdropFilter: "blur(8px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            background: "rgba(0, 0, 0, 0.15)",
             zIndex: 10000,
-            animation: "fadeIn 0.25s ease-out"
+            animation: "fadeIn 0.25s ease-out",
+            display: "flex",
+            justifyContent: "flex-end"
           }}
           onClick={() => setShowSystemSettings(false)}
         >
@@ -3430,56 +3427,53 @@ export default function ProfilePanel({
             className="hud-panel" 
             style={{ 
               width: "100%",
-              maxWidth: "400px",
-              padding: "24px", 
-              margin: "20px",
-              border: profileAccentBorder, 
+              maxWidth: "340px",
+              height: "100%",
+              padding: "30px 24px", 
+              borderLeft: profileAccentBorder, 
+              borderTop: "none", borderBottom: "none", borderRight: "none",
+              borderRadius: "0px",
               position: "relative",
-              background: "var(--bg-dark-surface)",
-              boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
-              animation: "scaleUpIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
+              background: "#0a0a0e",
+              boxShadow: "-10px 0 40px rgba(0,0,0,0.35)",
+              animation: "slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+              display: "flex",
+              flexDirection: "column"
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="hud-corner-bracket hud-bracket-tl" />
-            <div className="hud-corner-bracket hud-bracket-tr" />
-            <div className="hud-corner-bracket hud-bracket-bl" />
-            <div className="hud-corner-bracket hud-bracket-br" />
+            <div className="hud-corner-bracket hud-bracket-bl" style={{ left: "10px", bottom: "10px" }} />
+            <div className="hud-corner-bracket hud-bracket-tl" style={{ left: "10px", top: "10px" }} />
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1.5px solid var(--glass-border)", paddingBottom: "12px", marginBottom: "20px" }}>
-              <h3 style={{ margin: 0, fontSize: "14px", color: profileAccentColor, fontWeight: "900", letterSpacing: "1.5px", textTransform: "uppercase", fontFamily: "var(--font-gamer)" }}>
-                ⚙️ System Settings
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1.5px solid var(--glass-border)", paddingBottom: "16px", marginBottom: "24px" }}>
+              <h3 style={{ margin: 0, fontSize: "14px", color: "#ff6a00", fontWeight: "900", letterSpacing: "1.5px", textTransform: "uppercase", fontFamily: "var(--font-gamer)", display: "flex", alignItems: "center", gap: "8px" }}>
+                <span>⚙️</span> System Settings
               </h3>
               <button 
                 onClick={() => { sound.playClockTick(); setShowSystemSettings(false); }}
-                style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: "18px", cursor: "pointer", fontWeight: "bold" }}
+                style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: "18px", cursor: "pointer", fontWeight: "bold", padding: "4px" }}
               >
                 ✕
               </button>
             </div>
             
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               {/* Dark Theme */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-light)" }}>Theme Mode</span>
                 <button 
                   onClick={() => { sound.playClockTick(); setIsDarkMode(!isDarkMode); }}
-                  style={{
-                    background: profileAccentBg,
-                    border: profileAccentBorder,
-                    color: "#fff",
-                    width: "40px", height: "40px",
-                    borderRadius: "50%",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "18px",
-                    cursor: "pointer",
-                    transition: "transform 0.2s"
+                  style={{ 
+                    padding: "8px 16px", borderRadius: "20px", border: "1.5px solid var(--glass-border)",
+                    background: "rgba(255,255,255,0.03)", color: "var(--text-light)", fontSize: "12px", 
+                    fontWeight: "800", cursor: "pointer", display: "flex", gap: "8px", alignItems: "center",
+                    fontFamily: "var(--font-gamer)", transition: "all 0.2s"
                   }}
-                  onMouseOver={e=>e.currentTarget.style.transform="scale(1.1)"} 
-                  onMouseOut={e=>e.currentTarget.style.transform="scale(1)"}
-                  title="Toggle Theme"
+                  onMouseOver={e => e.currentTarget.style.borderColor = profileAccentColor}
+                  onMouseOut={e => e.currentTarget.style.borderColor = "var(--glass-border)"}
                 >
-                  {isDarkMode ? "🌙" : "☀️"}
+                  <span>{isDarkMode ? "🌙" : "☀️"}</span>
+                  <span>{isDarkMode ? "DARK" : "LIGHT"}</span>
                 </button>
               </div>
 
@@ -3487,60 +3481,48 @@ export default function ProfilePanel({
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-light)" }}>Profile Theme</span>
                 <button 
-                  onClick={handleCycleCosmetics}
-                  style={{
-                    background: profileAccentBg,
-                    border: profileAccentBorder,
-                    color: "#fff",
-                    width: "40px", height: "40px",
-                    borderRadius: "50%",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "16px",
-                    cursor: "pointer",
-                    transition: "transform 0.2s"
+                  onClick={() => { sound.playClockTick(); handleCycleCosmetics(); }}
+                  style={{ 
+                    padding: "8px 16px", borderRadius: "20px", border: "1.5px solid var(--glass-border)",
+                    background: "rgba(255,255,255,0.03)", color: "var(--text-light)", fontSize: "12px", 
+                    fontWeight: "800", cursor: "pointer", display: "flex", gap: "8px", alignItems: "center",
+                    fontFamily: "var(--font-gamer)", transition: "all 0.2s"
                   }}
-                  onMouseOver={e=>e.currentTarget.style.transform="scale(1.1)"} 
-                  onMouseOut={e=>e.currentTarget.style.transform="scale(1)"}
-                  title="Cycle Profile Aesthetics Theme"
+                  onMouseOver={e => e.currentTarget.style.borderColor = profileAccentColor}
+                  onMouseOut={e => e.currentTarget.style.borderColor = "var(--glass-border)"}
                 >
-                  🎨
+                  <span>🎨</span>
+                  <span>CYCLE</span>
                 </button>
               </div>
 
-              {/* Ambient Music */}
+              {/* Toggle ambient music */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-light)" }}>Ambient Music</span>
                 <button 
-                  onClick={() => { 
-                    sound.playClockTick(); 
-                    const nextMuted = !isMusicMuted;
-                    setIsMusicMuted(nextMuted); 
-                    localStorage.setItem("kaevrix_music_muted", String(nextMuted));
+                  onClick={() => { sound.playClockTick(); setIsMusicMuted(!isMusicMuted); }}
+                  style={{ 
+                    padding: "8px 16px", borderRadius: "20px", border: "1.5px solid var(--glass-border)",
+                    background: "rgba(255,255,255,0.03)", color: "var(--text-light)", fontSize: "12px", 
+                    fontWeight: "800", cursor: "pointer", display: "flex", gap: "8px", alignItems: "center",
+                    fontFamily: "var(--font-gamer)", transition: "all 0.2s"
                   }}
-                  style={{
-                    background: !isMusicMuted ? profileAccentColor : "rgba(168, 85, 247, 0.1)",
-                    border: `1px solid ${profileAccentColor}`,
-                    color: "#fff",
-                    padding: "6px 16px",
-                    borderRadius: "20px",
-                    fontSize: "12px",
-                    fontWeight: "800",
-                    cursor: "pointer",
-                    fontFamily: "var(--font-gamer)"
-                  }}
+                  onMouseOver={e => e.currentTarget.style.borderColor = profileAccentColor}
+                  onMouseOut={e => e.currentTarget.style.borderColor = "var(--glass-border)"}
                 >
-                  {!isMusicMuted ? "🔊 ON" : "🔇 OFF"}
+                  <span>{isMusicMuted ? "🔇" : "🔊"}</span>
+                  <span>{isMusicMuted ? "MUTED" : "ON"}</span>
                 </button>
               </div>
 
-              {/* Station selection */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px", borderTop: "1px solid var(--glass-border)", paddingTop: "12px" }}>
-                <span style={{ fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase" }}>Music Profile Station:</span>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              {/* Music Profile selection */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px" }}>
+                <div style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-light)" }}>Soundtrack Station</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                   {sound.MUSIC_PROFILES.map((p, idx) => {
                     const isActive = musicProfile === idx;
                     return (
-                      <button
+                      <button 
                         key={p.id}
                         onClick={() => {
                           sound.playClockTick();
@@ -3551,15 +3533,16 @@ export default function ProfilePanel({
                           padding: "6px 12px",
                           borderRadius: "12px",
                           border: isActive ? `1.5px solid ${profileAccentColor}` : "1px solid var(--glass-border)",
-                          background: isActive ? `rgba(168, 85, 247, 0.08)` : "transparent",
+                          background: isActive ? profileAccentBg : "transparent",
                           color: isActive ? profileAccentColor : "var(--text-muted)",
                           fontSize: "11px",
                           fontWeight: "700",
                           cursor: "pointer",
-                          fontFamily: "var(--font-gamer)"
+                          fontFamily: "var(--font-gamer)",
+                          transition: "all 0.2s"
                         }}
                       >
-                        {p.name}
+                        {p.name.toUpperCase()}
                       </button>
                     );
                   })}
@@ -3568,13 +3551,13 @@ export default function ProfilePanel({
 
               {/* Logout Button */}
               {handleLogout && (
-                <div style={{ borderTop: "1px solid var(--glass-border)", paddingTop: "16px", marginTop: "4px", display: "flex" }}>
+                <div style={{ borderTop: "1px solid var(--glass-border)", paddingTop: "20px", marginTop: "12px", display: "flex" }}>
                   <button 
                     onClick={() => { sound.playClockTick(); handleLogout(); }}
                     style={{ 
                       width: "100%",
                       background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.6)", 
-                      color: "#ef4444", padding: "10px 16px", borderRadius: "12px", fontSize: "13px", 
+                      color: "#ef4444", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", 
                       fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
                       fontFamily: "var(--font-gamer)", transition: "all 0.2s"
                     }}
