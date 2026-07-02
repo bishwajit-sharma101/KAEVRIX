@@ -74,7 +74,12 @@ export default function Dashboard({
   showSystemSettings,
   setShowSystemSettings,
   profileAccentColor,
-  setProfileAccentColor
+  setProfileAccentColor,
+  featureGates,
+  isTabLocked,
+  handleGatedTabChange,
+  lockedFeatureAlert,
+  setLockedFeatureAlert
 }) {
   const [isRobotHovered, setIsRobotHovered] = useState(false);
   const [personalizedFeed, setPersonalizedFeed] = useState([]);
@@ -479,8 +484,7 @@ export default function Dashboard({
   }, [topic, activeMilestoneTitle, why, searchQuery, backendUrl, setSelectedVideo, username]);
 
   const handleTabChange = (tab) => {
-    sound.playClockTick();
-    setActiveTab(tab);
+    handleGatedTabChange(tab);
   };
 
   const handleSelectVideo = (video) => {
@@ -580,17 +584,23 @@ export default function Dashboard({
           <span style={{ fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "2px", fontFamily: "var(--font-gamer)" }}>NAVIGATION SYSTEM</span>
         </div>
         <div className="dashboard-sidebar-nav">
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => handleTabChange(item.id)}
-              className={`hud-nav-btn ${activeTab === item.id ? "hud-nav-btn-active" : ""}`}
-              style={{ width: "100%" }}
-            >
-              <span style={{ fontSize: "15px" }}>{item.icon}</span>
-              <span style={{ fontFamily: "var(--font-outfit)" }}>{item.label}</span>
-            </button>
-          ))}
+          {navItems.map(item => {
+            const locked = isTabLocked(item.id);
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleTabChange(item.id)}
+                className={`hud-nav-btn ${activeTab === item.id ? "hud-nav-btn-active" : ""}`}
+                style={{ 
+                  width: "100%",
+                  ...(locked ? { opacity: 0.45, filter: "grayscale(0.5)" } : {})
+                }}
+              >
+                <span style={{ fontSize: "15px" }}>{locked ? "🔒" : item.icon}</span>
+                <span style={{ fontFamily: "var(--font-outfit)" }}>{item.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Quick Stats Widget */}
@@ -981,6 +991,7 @@ export default function Dashboard({
               getRankTitle={getRankTitle}
               isDarkMode={isDarkMode}
               socket={socket}
+              featureGates={featureGates}
             />
           </div>
         )}
@@ -995,6 +1006,8 @@ export default function Dashboard({
               }}
               onStartSoloStudy={onStartSoloStudy}
               isDarkMode={isDarkMode}
+              featureGates={featureGates}
+              setLockedFeatureAlert={setLockedFeatureAlert}
             />
           </div>
         )}

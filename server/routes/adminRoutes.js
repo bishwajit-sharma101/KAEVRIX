@@ -36,7 +36,18 @@ async function seedDefaultFlags(adminUsername) {
     { key: "SANCTUM_DISABLED", value: false },
     { key: "TELEMETRY_DISABLED", value: false },
     { key: "WAITLIST_ENABLED", value: false },
-    { key: "COMMAND_CENTER_DISABLED", value: false }
+    { key: "COMMAND_CENTER_DISABLED", value: false },
+    { key: "COMMUNITY_DISABLED", value: false },
+    { key: "CHRONOS_DISABLED", value: false },
+    { key: "HISTORY_DISABLED", value: false },
+    { key: "RANKINGS_DISABLED", value: false },
+    { key: "PROFILE_DISABLED", value: false },
+    { key: "CLASH_DISABLED", value: false },
+    { key: "ROADMAP_GEN_DISABLED", value: false },
+    { key: "FRIENDS_DISABLED", value: false },
+    { key: "CHAT_DISABLED", value: false },
+    { key: "PUBLIC_PROFILES_DISABLED", value: false },
+    { key: "NOTES_GEN_DISABLED", value: false }
   ];
 
   for (const flag of defaultFlags) {

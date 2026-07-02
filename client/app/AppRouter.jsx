@@ -30,6 +30,54 @@ export default function AppRouter(props) {
   const [showSystemSettings, setShowSystemSettings] = React.useState(false);
   const [profileAccentColor, setProfileAccentColor] = React.useState("var(--neon-orange)");
 
+  // Feature gates
+  const [featureGates, setFeatureGates] = React.useState({});
+  const [lockedFeatureAlert, setLockedFeatureAlert] = React.useState(null);
+
+  // Mapping: tab id -> feature gate config key
+  const TAB_GATE_MAP = {
+    duels: "CLASH_DISABLED",
+    pathfinder: "PATHFINDER_DISABLED",
+    chronos: "CHRONOS_DISABLED",
+    history: "HISTORY_DISABLED",
+    community: "COMMUNITY_DISABLED",
+    rankings: "RANKINGS_DISABLED",
+    profile: "PROFILE_DISABLED",
+  };
+
+  const isTabLocked = (tabId) => {
+    const gateKey = TAB_GATE_MAP[tabId];
+    return gateKey ? !!featureGates[gateKey] : false;
+  };
+
+  const handleGatedTabChange = (tabId) => {
+    if (isTabLocked(tabId)) {
+      sound.playClockTick();
+      setLockedFeatureAlert(tabId);
+      return;
+    }
+    sound.playClockTick();
+    setActiveTab(tabId);
+    setShowMoreMenu(false);
+  };
+
+  React.useEffect(() => {
+    const fetchGates = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/config/features`, {
+          headers: { "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setFeatureGates(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch feature gates:", err);
+      }
+    };
+    fetchGates();
+  }, [BACKEND_URL]);
+
   React.useEffect(() => {
     try {
       const saved = localStorage.getItem("kaevrix_search_history");
@@ -796,6 +844,11 @@ export default function AppRouter(props) {
           setShowSchedulerSettings={setShowSchedulerSettings}
           showSystemSettings={showSystemSettings}
           setShowSystemSettings={setShowSystemSettings}
+          featureGates={featureGates}
+          isTabLocked={isTabLocked}
+          handleGatedTabChange={handleGatedTabChange}
+          lockedFeatureAlert={lockedFeatureAlert}
+          setLockedFeatureAlert={setLockedFeatureAlert}
         />
       )}
 
@@ -908,6 +961,7 @@ export default function AppRouter(props) {
           onBack={resetToDashboard}
           onAddSoloXp={handleAddSoloXp}
           onCodingModeChange={setIsCodingMode}
+          featureGates={featureGates}
         />
       )}
 
@@ -967,11 +1021,11 @@ export default function AppRouter(props) {
           backdropFilter: "blur(20px)",
         }}>
           <button 
-            onClick={() => { sound.playClockTick(); setActiveTab("history"); setShowMoreMenu(false); }} 
+            onClick={() => handleGatedTabChange("history")} 
             style={{
               background: activeTab === "history" ? "rgba(255, 106, 0, 0.1)" : "transparent",
               border: "none",
-              color: activeTab === "history" ? "#ff6a00" : "var(--text-light)",
+              color: isTabLocked("history") ? "var(--text-muted)" : (activeTab === "history" ? "#ff6a00" : "var(--text-light)"),
               padding: "10px 14px",
               borderRadius: "8px",
               textAlign: "left",
@@ -981,17 +1035,18 @@ export default function AppRouter(props) {
               display: "flex",
               alignItems: "center",
               gap: "10px",
-              fontFamily: "var(--font-outfit)"
+              fontFamily: "var(--font-outfit)",
+              opacity: isTabLocked("history") ? 0.5 : 1
             }}
           >
-            <span>📖</span> History
+            <span>{isTabLocked("history") ? "🔒" : "📖"}</span> History
           </button>
           <button 
-            onClick={() => { sound.playClockTick(); setActiveTab("rankings"); setShowMoreMenu(false); }} 
+            onClick={() => handleGatedTabChange("rankings")} 
             style={{
               background: activeTab === "rankings" ? "rgba(255, 106, 0, 0.1)" : "transparent",
               border: "none",
-              color: activeTab === "rankings" ? "#ff6a00" : "var(--text-light)",
+              color: isTabLocked("rankings") ? "var(--text-muted)" : (activeTab === "rankings" ? "#ff6a00" : "var(--text-light)"),
               padding: "10px 14px",
               borderRadius: "8px",
               textAlign: "left",
@@ -1001,10 +1056,11 @@ export default function AppRouter(props) {
               display: "flex",
               alignItems: "center",
               gap: "10px",
-              fontFamily: "var(--font-outfit)"
+              fontFamily: "var(--font-outfit)",
+              opacity: isTabLocked("rankings") ? 0.5 : 1
             }}
           >
-            <span>🏆</span> Rankings
+            <span>{isTabLocked("rankings") ? "🔒" : "🏆"}</span> Rankings
           </button>
         </div>
       )}
@@ -1014,37 +1070,42 @@ export default function AppRouter(props) {
         <div className="mobile-bottom-nav">
           <button 
             className={`bottom-nav-btn ${activeTab === "duels" ? "bottom-nav-btn-active" : ""}`}
-            onClick={() => { sound.playClockTick(); setActiveTab("duels"); setShowMoreMenu(false); }}
+            onClick={() => handleGatedTabChange("duels")}
+            style={isTabLocked("duels") ? { opacity: 0.4, filter: "grayscale(0.6)" } : {}}
           >
-            <span className="bottom-nav-icon">🎮</span>
+            <span className="bottom-nav-icon">{isTabLocked("duels") ? "🔒" : "🎮"}</span>
             <span className="bottom-nav-label">Arena</span>
           </button>
           <button 
             className={`bottom-nav-btn ${activeTab === "pathfinder" ? "bottom-nav-btn-active" : ""}`}
-            onClick={() => { sound.playClockTick(); setActiveTab("pathfinder"); setShowMoreMenu(false); }}
+            onClick={() => handleGatedTabChange("pathfinder")}
+            style={isTabLocked("pathfinder") ? { opacity: 0.4, filter: "grayscale(0.6)" } : {}}
           >
-            <span className="bottom-nav-icon">🧠</span>
+            <span className="bottom-nav-icon">{isTabLocked("pathfinder") ? "🔒" : "🧠"}</span>
             <span className="bottom-nav-label">Pathfinder</span>
           </button>
           <button 
             className={`bottom-nav-btn ${activeTab === "chronos" ? "bottom-nav-btn-active" : ""}`}
-            onClick={() => { sound.playClockTick(); setActiveTab("chronos"); setShowMoreMenu(false); }}
+            onClick={() => handleGatedTabChange("chronos")}
+            style={isTabLocked("chronos") ? { opacity: 0.4, filter: "grayscale(0.6)" } : {}}
           >
-            <span className="bottom-nav-icon">⏱️</span>
+            <span className="bottom-nav-icon">{isTabLocked("chronos") ? "🔒" : "⏱️"}</span>
             <span className="bottom-nav-label">Chronos</span>
           </button>
           <button 
             className={`bottom-nav-btn ${activeTab === "community" ? "bottom-nav-btn-active" : ""}`}
-            onClick={() => { sound.playClockTick(); setActiveTab("community"); setShowMoreMenu(false); }}
+            onClick={() => handleGatedTabChange("community")}
+            style={isTabLocked("community") ? { opacity: 0.4, filter: "grayscale(0.6)" } : {}}
           >
-            <span className="bottom-nav-icon">💬</span>
+            <span className="bottom-nav-icon">{isTabLocked("community") ? "🔒" : "💬"}</span>
             <span className="bottom-nav-label">Community</span>
           </button>
           <button 
             className={`bottom-nav-btn ${activeTab === "profile" ? "bottom-nav-btn-active" : ""}`}
-            onClick={() => { sound.playClockTick(); setActiveTab("profile"); setShowMoreMenu(false); }}
+            onClick={() => handleGatedTabChange("profile")}
+            style={isTabLocked("profile") ? { opacity: 0.4, filter: "grayscale(0.6)" } : {}}
           >
-            <span className="bottom-nav-icon">👤</span>
+            <span className="bottom-nav-icon">{isTabLocked("profile") ? "🔒" : "👤"}</span>
             <span className="bottom-nav-label">You</span>
           </button>
           <button 
@@ -1054,6 +1115,78 @@ export default function AppRouter(props) {
             <span className="bottom-nav-icon">⋮</span>
             <span className="bottom-nav-label">More</span>
           </button>
+        </div>
+      )}
+      {/* Feature Locked Alert Modal */}
+      {lockedFeatureAlert && (
+        <div 
+          onClick={() => setLockedFeatureAlert(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 99999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.65)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: isDarkMode ? "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)" : "linear-gradient(135deg, #ffffff 0%, #f0f0f5 100%)",
+              border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.25)" : "1px solid rgba(0,0,0,0.1)",
+              borderRadius: "20px",
+              padding: "40px 36px 32px",
+              maxWidth: "400px",
+              width: "90%",
+              textAlign: "center",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(255, 106, 0, 0.08)",
+            }}
+          >
+            <div style={{ fontSize: "48px", marginBottom: "16px" }}>🔒</div>
+            <h3 style={{ 
+              fontFamily: "var(--font-outfit)", 
+              fontWeight: "800", 
+              fontSize: "18px", 
+              color: isDarkMode ? "#ffffff" : "#0f172a",
+              margin: "0 0 8px 0",
+              letterSpacing: "-0.3px"
+            }}>
+              Feature Locked
+            </h3>
+            <p style={{ 
+              fontFamily: "var(--font-outfit)", 
+              fontSize: "14px", 
+              color: "var(--text-muted)", 
+              lineHeight: "1.6",
+              margin: "0 0 24px 0"
+            }}>
+              This feature is temporarily locked for maintenance. Our team is working on it — please try again after some time.
+            </p>
+            <button 
+              onClick={() => setLockedFeatureAlert(null)}
+              style={{
+                background: "linear-gradient(135deg, #ff6a00, #ff8c33)",
+                border: "none",
+                borderRadius: "10px",
+                padding: "10px 32px",
+                fontSize: "13px",
+                fontWeight: "800",
+                color: "#ffffff",
+                cursor: "pointer",
+                fontFamily: "var(--font-outfit)",
+                letterSpacing: "0.5px",
+                transition: "all 0.2s",
+                boxShadow: "0 4px 14px rgba(255, 106, 0, 0.3)"
+              }}
+              onMouseOver={e => e.currentTarget.style.transform = "translateY(-1px)"}
+              onMouseOut={e => e.currentTarget.style.transform = "none"}
+            >
+              GOT IT
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -292,6 +292,10 @@ router.get("/jobs/:id", requireAuth, async (req, res, next) => {
 router.post("/pathfinder/generate", pathfinderDisabledMiddleware, requireAuth, aiLimiter, aiKillSwitchMiddleware, validate(pathfinderGenerateSchema), async (req, res, next) => {
   const { answers, pathfinderMode, isEngineer, devGoal, devLanguage, difficulty } = req.body;
   try {
+    const flag = await SystemConfig.findOne({ key: "ROADMAP_GEN_DISABLED" });
+    if (flag && flag.value) {
+      return res.status(403).json({ error: "Roadmap generation is temporarily disabled for maintenance." });
+    }
     const payload = { answers, pathfinderMode, isEngineer, devGoal, devLanguage, difficulty };
     const { jobId, isDuplicate, lockKey } = await getOrAcquireAiJobLock(req.user.userId, "generate-roadmap", payload);
     if (isDuplicate) {
@@ -365,6 +369,10 @@ router.post("/pathfinder/study-notes", pathfinderDisabledMiddleware, requireAuth
 
   if (!topic || !milestone) return res.status(400).json({ error: "topic and milestone required" });
   try {
+    const flag = await SystemConfig.findOne({ key: "NOTES_GEN_DISABLED" });
+    if (flag && flag.value) {
+      return res.status(403).json({ error: "AI Notes and Quiz generation are temporarily disabled for maintenance." });
+    }
     const payload = { 
       topic, 
       milestone, 
@@ -631,6 +639,10 @@ router.get("/community/friends/:username", requireAuth, requireOwnership, async 
 });
 router.post("/community/request", requireAuth, async (req, res, next) => {
   try {
+    const flag = await SystemConfig.findOne({ key: "FRIENDS_DISABLED" });
+    if (flag && flag.value) {
+      return res.status(403).json({ error: "Friend requests are temporarily disabled for maintenance." });
+    }
     await sendFriendRequest(req.user.username, req.body.toUser);
     res.json({ success: true });
   } catch (err) {
@@ -696,6 +708,20 @@ router.post("/telemetry/track", optionalAuth, telemetryLimiter, validate(telemet
       deviceId
     });
     res.status(202).json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Public endpoint to check active feature gates (no admin status required)
+router.get("/config/features", optionalAuth, async (req, res, next) => {
+  try {
+    const configs = await SystemConfig.find();
+    const mapping = {};
+    configs.forEach(c => {
+      mapping[c.key] = c.value;
+    });
+    res.json(mapping);
   } catch (err) {
     next(err);
   }

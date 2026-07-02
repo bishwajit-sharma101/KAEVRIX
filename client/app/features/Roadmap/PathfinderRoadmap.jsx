@@ -3160,7 +3160,7 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
   );
 }
 
-export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, onSearchDuel, onReset, onStartSoloStudy, isDarkMode }) {
+export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, onSearchDuel, onReset, onStartSoloStudy, isDarkMode, featureGates = {}, setLockedFeatureAlert }) {
   const storageKey = `kaevrix_roadmap_progress_${username}`;
 
   const [roadmap, setRoadmap] = useState(() => {
@@ -4046,7 +4046,14 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
           }}
           isDarkMode={isDarkMode}
           username={username}
-          onChallengeBoss={(m) => setBossBattleMilestone(m)}
+          onChallengeBoss={(m) => {
+            if (featureGates.SANCTUM_DISABLED) {
+              if (setLockedFeatureAlert) setLockedFeatureAlert("sanctum");
+              else alert("Sanctum boss battles are temporarily disabled for maintenance. Please try again later.");
+              return;
+            }
+            setBossBattleMilestone(m);
+          }}
         />
       )}
 

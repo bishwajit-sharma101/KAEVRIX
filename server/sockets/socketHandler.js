@@ -18,6 +18,7 @@ import TelemetryEvent from "../models/TelemetryEvent.js";
 import { logInfrastructureError } from "../services/telemetryHealthService.js";
 import redisClient from "../config/redis.js";
 import logger from "../config/logger.js";
+import SystemConfig from "../models/SystemConfig.js";
 
 // Global map to track online users: username -> socketId
 export const onlineUsers = new Map();
@@ -51,10 +52,20 @@ export function registerSocketHandlers(io) {
       socket.broadcast.emit("user_online", username);
     });
 
-    // Real-time Chat Messaging
     socket.on("send_chat_message", async ({ receiver, message }) => {
       if (!socket.username || !receiver || !message) return;
       try {
+        const chatDisabled = await SystemConfig.findOne({ key: "CHAT_DISABLED" });
+        if (chatDisabled && chatDisabled.value) {
+          socket.emit("receive_chat_message", {
+            id: "system_alert_" + Date.now(),
+            sender: "System",
+            receiver: socket.username,
+            content: "⚠️ Chatting is temporarily disabled for maintenance.",
+            timestamp: new Date().toISOString()
+          });
+          return;
+        }
         const msg = await saveMessage(socket.username, receiver, message);
         
         // Find target socket if online

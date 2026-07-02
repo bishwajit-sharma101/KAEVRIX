@@ -5,7 +5,7 @@ import PathfinderRoadmap from "./PathfinderRoadmap";
 
 const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
 
-export default function CognitivePathfinder({ username, onTriggerSearch, onStartSoloStudy, isDarkMode }) {
+export default function CognitivePathfinder({ username, onTriggerSearch, onStartSoloStudy, isDarkMode, featureGates = {}, setLockedFeatureAlert }) {
   const roadmapKey = `kaevrix_roadmap_progress_${username}`;
   const answersKey = `kaevrix_roadmap_answers_${username}`;
 
@@ -187,10 +187,16 @@ export default function CognitivePathfinder({ username, onTriggerSearch, onStart
           className="pathfinder-cta-btn" 
           onClick={() => {
             sound.playClockTick();
+            if (featureGates.ROADMAP_GEN_DISABLED) {
+              if (setLockedFeatureAlert) setLockedFeatureAlert("roadmap");
+              else alert("Roadmap generation is temporarily disabled for maintenance. Please try again later.");
+              return;
+            }
             setView("onboarding");
           }}
+          style={featureGates.ROADMAP_GEN_DISABLED ? { opacity: 0.5, filter: "grayscale(0.5)" } : {}}
         >
-          <span style={{ fontWeight: "700" }}>Generate Your First Pathway</span>
+          <span style={{ fontWeight: "700" }}>{featureGates.ROADMAP_GEN_DISABLED ? "🔒 Generation Locked" : "Generate Your First Pathway"}</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform 0.3s" }} className="btn-arrow">
             <line x1="5" y1="12" x2="19" y2="12" />
             <polyline points="12 5 19 12 12 19" />
@@ -280,6 +286,8 @@ export default function CognitivePathfinder({ username, onTriggerSearch, onStart
         onReset={handleReset}
         onStartSoloStudy={onStartSoloStudy}
         isDarkMode={isDarkMode}
+        featureGates={featureGates}
+        setLockedFeatureAlert={setLockedFeatureAlert}
       />
     );
   }

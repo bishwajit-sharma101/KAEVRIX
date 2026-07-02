@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import * as sound from "../../utils/audio";
 import ProfilePanel from "../Dashboard/ProfilePanel";
 
-export default function CommunityTab({ username, backendUrl, getRankTitle, isDarkMode, socket }) {
+export default function CommunityTab({ username, backendUrl, getRankTitle, isDarkMode, socket, featureGates = {} }) {
   const [friends, setFriends] = useState([]);
   const [incomingRequests, setIncomingRequests] = useState([]);
   const [discoverUsers, setDiscoverUsers] = useState([]);
@@ -78,6 +78,10 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
   const handleSendDm = (e) => {
     e.preventDefault();
     if (!chatInput.trim() || !activeChatUser || !socket) return;
+    if (featureGates.CHAT_DISABLED) {
+      alert("Chat messaging is temporarily disabled for maintenance. Please try again later.");
+      return;
+    }
     socket.emit("send_dm", { sender: username, receiver: activeChatUser, content: chatInput.trim() });
     setChatInput("");
   };
@@ -147,6 +151,10 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
   const handleSendRequest = async (e, toUser) => {
     e.stopPropagation();
     sound.playClockTick();
+    if (featureGates.FRIENDS_DISABLED) {
+      alert("Friend requests are temporarily disabled for maintenance. Please try again later.");
+      return;
+    }
     try {
       const res = await fetch(`${backendUrl}/api/community/request`, {
         method: "POST",
@@ -1047,7 +1055,14 @@ export default function CommunityTab({ username, backendUrl, getRankTitle, isDar
   };
 
   const Row = ({ user, action, index }) => (
-    <div className="cv4-row" onClick={() => { sound.playClockTick(); setSelectedProfileUser(user.username); }}>
+    <div className="cv4-row" onClick={() => { 
+      sound.playClockTick(); 
+      if (featureGates.PUBLIC_PROFILES_DISABLED) {
+        alert("Viewing other profiles is temporarily disabled for maintenance. Please try again later.");
+        return;
+      }
+      setSelectedProfileUser(user.username); 
+    }}>
       {index != null && (
         <div style={{ width: "24px", textAlign: "center", fontSize: "14px", fontWeight: "900", color: "var(--text-muted)", opacity: 0.35, fontFamily: "var(--font-gamer)" }}>
           {index}

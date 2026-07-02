@@ -972,14 +972,29 @@ export default function CommandCenter({ backendUrl, onExit }) {
   const renderSystemTab = () => {
     // Group system config flags for the dashboard
     const displayFlags = [
+      // --- Platform Core ---
       { label: "User Registrations", flagKey: "REGISTRATION_DISABLED", desc: "Block new registrations in welcoming page", badgeColor: "purple" },
       { label: "Pathfinder Onboarding", flagKey: "PATHFINDER_DISABLED", desc: "Block Pathfinder onboarding answers form", badgeColor: "orange" },
-      { label: "Quiz Generator", flagKey: "QUIZ_DISABLED", desc: "Block post-video quiz generations", badgeColor: "gold" },
-      { label: "Multiplayer Sanctum", flagKey: "SANCTUM_DISABLED", desc: "Temporarily pause lobby matchmaking", badgeColor: "blue" },
-      { label: "AI Route Generators", flagKey: "AI_KILL_SWITCH", desc: "Force offline stubs fallback on all AI routes", badgeColor: "red" },
-      { label: "Telemetry Pipeline", flagKey: "TELEMETRY_DISABLED", desc: "Suppress database telemetry logs ingestion", badgeColor: "purple" },
+      { label: "Profile Tab", flagKey: "PROFILE_DISABLED", desc: "Lock user profile tab access", badgeColor: "purple" },
+      { label: "Chronos Analytics", flagKey: "CHRONOS_DISABLED", desc: "Lock Chronos analytics tab access", badgeColor: "blue" },
+      { label: "Study History", flagKey: "HISTORY_DISABLED", desc: "Lock History tab access", badgeColor: "gold" },
+      { label: "Global Rankings", flagKey: "RANKINGS_DISABLED", desc: "Lock global leaderboard rankings tab", badgeColor: "blue" },
+      { label: "Command Center Gate", flagKey: "COMMAND_CENTER_DISABLED", desc: "Revoke command center access from dashboard", badgeColor: "red" },
       { label: "Onboarding Waitlist", flagKey: "WAITLIST_ENABLED", desc: "Redirect new registrations to waitlists", badgeColor: "blue" },
-      { label: "Command Center Gate", flagKey: "COMMAND_CENTER_DISABLED", desc: "Revoke command center access from dashboard", badgeColor: "red" }
+      // --- Matchmaking & Arena ---
+      { label: "Clash Arena", flagKey: "CLASH_DISABLED", desc: "Lock Arena matchmaking duel entry", badgeColor: "red" },
+      { label: "Multiplayer Sanctum", flagKey: "SANCTUM_DISABLED", desc: "Lock Sanctum boss fight challenges", badgeColor: "red" },
+      // --- AI & Study ---
+      { label: "AI Route Generators", flagKey: "AI_KILL_SWITCH", desc: "Force offline stubs fallback on all AI routes", badgeColor: "red" },
+      { label: "Quiz Generator", flagKey: "QUIZ_DISABLED", desc: "Block post-video quiz generations", badgeColor: "gold" },
+      { label: "Roadmap Generation", flagKey: "ROADMAP_GEN_DISABLED", desc: "Block generating new Pathfinder roadmaps", badgeColor: "orange" },
+      { label: "Notes & Quiz Generation", flagKey: "NOTES_GEN_DISABLED", desc: "Block AI study notes and quiz generation in Solo Study", badgeColor: "orange" },
+      { label: "Telemetry Pipeline", flagKey: "TELEMETRY_DISABLED", desc: "Suppress database telemetry logs ingestion", badgeColor: "purple" },
+      // --- Community ---
+      { label: "Community Tab", flagKey: "COMMUNITY_DISABLED", desc: "Lock Community tab access entirely", badgeColor: "blue" },
+      { label: "Direct Chat Messaging", flagKey: "CHAT_DISABLED", desc: "Block sending chat messages between users", badgeColor: "blue" },
+      { label: "Friend Requests", flagKey: "FRIENDS_DISABLED", desc: "Block sending new friend requests", badgeColor: "purple" },
+      { label: "Public Profile Views", flagKey: "PUBLIC_PROFILES_DISABLED", desc: "Block viewing other users' profile cards", badgeColor: "purple" },
     ];
 
     return (

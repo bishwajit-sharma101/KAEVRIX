@@ -6,7 +6,7 @@ import { parseMarkdownToHTML } from "../../utils/markdown";
 import RechargeOverlay from "./RechargeOverlay";
 
 
-export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl, onBack, onAddSoloXp, onCodingModeChange }) {
+export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl, onBack, onAddSoloXp, onCodingModeChange, featureGates = {} }) {
   const [progress, setProgress] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [activeTab, setActiveTab] = useState("notes"); // notes, quiz
@@ -369,6 +369,12 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
 
   // Generate Notes & Quiz in a single consolidated LLM call
   const handleGenerateNotes = async (isBackground = false) => {
+    if (featureGates.NOTES_GEN_DISABLED) {
+      if (!isBackground) {
+        alert("Notes & quiz generation is temporarily disabled for maintenance. Please try again later.");
+      }
+      return;
+    }
     if (!isBackground) {
       setLoadingNotes(true);
     }
