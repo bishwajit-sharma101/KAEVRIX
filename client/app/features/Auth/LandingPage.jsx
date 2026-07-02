@@ -288,8 +288,8 @@ export default function LandingPage({
         background: "linear-gradient(180deg, rgba(5,5,5,0.9) 0%, rgba(5,5,5,0) 100%)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "16px", cursor: "pointer" }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-          <img src="/logo.png" alt="Kaevrix AI Learning Platform Logo" loading="eager" fetchPriority="high" style={{ width: "auto", height: "32px", filter: "brightness(0) invert(1)" }} />
-          <span className="hide-mobile" style={{ fontSize: "20px", fontWeight: "800", letterSpacing: "2px" }}>KAEVRIX</span>
+          <img src="/logo.png?v=2" alt="Kaevrix AI Learning Platform Logo" loading="eager" fetchPriority="high" style={{ width: "auto", height: "32px", filter: "brightness(0)" }} />
+          <span className="hide-mobile" style={{ fontSize: "20px", fontWeight: "800", letterSpacing: "2px" }}>Kaevrix</span>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>

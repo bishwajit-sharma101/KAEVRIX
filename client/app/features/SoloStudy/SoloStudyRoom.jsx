@@ -329,26 +329,8 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
     setProgress(100);
   };
 
-  // Load existing notes from history on mount if available
-  useEffect(() => {
-    try {
-      const historyKey = `kaevrix_study_history_${username}`;
-      const existingHistoryStr = localStorage.getItem(historyKey);
-      if (existingHistoryStr) {
-        const history = JSON.parse(existingHistoryStr);
-        const videoId = video.id || video.videoId;
-        const savedRecord = history.find(item => (item.video?.id === videoId || item.video?.videoId === videoId || item.id === videoId));
-        if (savedRecord && savedRecord.notes) {
-          setNotes(savedRecord.notes);
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load study notes from history on mount:", e);
-    }
-  }, [video.id, video.videoId, username]);
-
   // Save study session to localStorage history
-  const saveStudySession = (notesText) => {
+  const saveStudySession = (notesText, questions = []) => {
     try {
       const historyKey = `kaevrix_study_history_${username}`;
       const existingHistoryStr = localStorage.getItem(historyKey);
@@ -368,8 +350,9 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
           url: video.url || `https://www.youtube.com/watch?v=${video.videoId || video.id}`
         },
         notes: notesText,
+        questions: questions,
         topic: topic || "General Learning",
-        subTopic: video.title,
+        subTopic: video.activeSubtopic || video.title,
       };
       
       if (index !== -1) {
@@ -384,11 +367,11 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
     }
   };
 
-  const fetchedVideoIdRef = useRef(null);
-
   // Generate Notes & Quiz in a single consolidated LLM call
-  const handleGenerateNotes = async () => {
-    setLoadingNotes(true);
+  const handleGenerateNotes = async (isBackground = false) => {
+    if (!isBackground) {
+      setLoadingNotes(true);
+    }
     setIsQuizReady(false);
     setQuizError(false);
     setNotesError(false);
@@ -403,20 +386,27 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
       "Preparing interactive practice challenges...",
       "Formatting and rendering guide..."
     ];
-    setStatusText(statusMessages[0]);
+    if (!isBackground) {
+      setStatusText(statusMessages[0]);
+    }
 
     let msgIdx = 0;
-    const logInterval = setInterval(() => {
-      msgIdx++;
-      if (msgIdx < statusMessages.length) {
-        setStatusText(statusMessages[msgIdx]);
-      } else {
-        clearInterval(logInterval);
-      }
-    }, 1500);
+    let logInterval;
+    if (!isBackground) {
+      logInterval = setInterval(() => {
+        msgIdx++;
+        if (msgIdx < statusMessages.length) {
+          setStatusText(statusMessages[msgIdx]);
+        } else {
+          clearInterval(logInterval);
+        }
+      }, 1500);
+    }
 
     try {
-      sound.playClockTick();
+      if (!isBackground) {
+        sound.playClockTick();
+      }
       const milestone = {
         id: `solo-${video.id}`,
         title: video.title,
@@ -473,25 +463,56 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
         throw new Error(data.error || "Server failed to return valid notes");
       }
       
-      clearInterval(logInterval);
+      if (logInterval) clearInterval(logInterval);
       setNotes(data.notes);
-      saveStudySession(data.notes); // Persistent save to study history
+      saveStudySession(data.notes, data.postVideoQuestions || []); // Persistent save to study history
       
       // Store the unified enqueued quiz results directly
       if (data.postVideoQuestions) {
         quizDataRef.current = data;
         setIsQuizReady(true);
       }
-      sound.playCorrect();
+      if (!isBackground) {
+        sound.playCorrect();
+      }
     } catch (err) {
       console.error("Combined Notes & Quiz generation failed:", err);
-      clearInterval(logInterval);
+      if (logInterval) clearInterval(logInterval);
       setNotesError(true);
       setQuizError(true);
     } finally {
-      setLoadingNotes(false);
+      if (!isBackground) {
+        setLoadingNotes(false);
+      }
     }
   };
+
+  // Load existing notes from history on mount if available
+  useEffect(() => {
+    try {
+      const historyKey = `kaevrix_study_history_${username}`;
+      const existingHistoryStr = localStorage.getItem(historyKey);
+      if (existingHistoryStr) {
+        const history = JSON.parse(existingHistoryStr);
+        const videoId = video.id || video.videoId;
+        const savedRecord = history.find(item => (item.video?.id === videoId || item.video?.videoId === videoId || item.id === videoId));
+        if (savedRecord) {
+          if (savedRecord.notes) {
+            setNotes(savedRecord.notes);
+          }
+          if (savedRecord.questions && savedRecord.questions.length > 0) {
+            quizDataRef.current = { postVideoQuestions: savedRecord.questions };
+            setIsQuizReady(true);
+          } else if (savedRecord.notes) {
+            // Trigger background generation for the quiz if missing from legacy records
+            handleGenerateNotes(true);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load study notes from history on mount:", e);
+    }
+  }, [video.id, video.videoId, username]);
 
   // Start Quiz
   const handleStartQuiz = async () => {

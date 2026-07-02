@@ -487,9 +487,9 @@ router.post("/personalized-feed", requireAuth, async (req, res) => {
     const cleanTopic = topic.trim();
     const isJobSeeker = why ? /job|career|interview|work|resume/i.test(why) : false;
     const queries = {
-      core: `${cleanTopic} shortcuts cheat sheet tricks cheat sheet tips`,
-      interview: `${cleanTopic} hacks secrets best practices tips and tricks`,
-      tips: `${cleanTopic} advanced concepts deep dive explanation visualization mental models`
+      core: `${cleanTopic}`,
+      interview: `${cleanTopic} guide`,
+      tips: `${cleanTopic} tutorial`
     };
 
     const [coreRes, interviewRes, tipsRes] = await Promise.all([
@@ -499,7 +499,7 @@ router.post("/personalized-feed", requireAuth, async (req, res) => {
     ]);
 
     const formatVideos = (results, categoryName) => {
-      return (results.videos || []).slice(0, 12).map(v => ({
+      return (results.videos || []).slice(0, 16).map(v => ({
         id: v.videoId, title: v.title, channel: v.author ? v.author.name : "Unknown", duration: v.seconds || 300, thumbnail: v.thumbnail || v.image, category: categoryName
       }));
     };
@@ -509,16 +509,26 @@ router.post("/personalized-feed", requireAuth, async (req, res) => {
     const tipsVideos = formatVideos(tipsRes, "Conceptual Deep Dives");
 
     const recommendations = [];
+    const seenIds = new Set();
     let coreIdx = 0, intIdx = 0, tipsIdx = 0;
 
+    const addVideo = (v) => {
+      if (v && !seenIds.has(v.id)) {
+        seenIds.add(v.id);
+        recommendations.push(v);
+      }
+    };
+
     while (coreIdx < coreVideos.length || intIdx < interviewVideos.length || tipsIdx < tipsVideos.length) {
-      for (let i = 0; i < 2; i++) if (coreIdx < coreVideos.length) recommendations.push(coreVideos[coreIdx++]);
+      for (let i = 0; i < 2; i++) {
+        if (coreIdx < coreVideos.length) addVideo(coreVideos[coreIdx++]);
+      }
       if (isJobSeeker) {
-        if (intIdx < interviewVideos.length) recommendations.push(interviewVideos[intIdx++]);
-        else if (tipsIdx < tipsVideos.length) recommendations.push(tipsVideos[tipsIdx++]);
+        if (intIdx < interviewVideos.length) addVideo(interviewVideos[intIdx++]);
+        else if (tipsIdx < tipsVideos.length) addVideo(tipsVideos[tipsIdx++]);
       } else {
-        if (tipsIdx < tipsVideos.length) recommendations.push(tipsVideos[tipsIdx++]);
-        else if (intIdx < interviewVideos.length) recommendations.push(interviewVideos[intIdx++]);
+        if (tipsIdx < tipsVideos.length) addVideo(tipsVideos[tipsIdx++]);
+        else if (intIdx < interviewVideos.length) addVideo(interviewVideos[intIdx++]);
       }
     }
     res.json({ videos: recommendations });

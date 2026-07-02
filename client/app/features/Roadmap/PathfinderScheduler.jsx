@@ -1425,9 +1425,6 @@ export default function PathfinderScheduler({
           width: "280px",
           flexShrink: 0
         }}>
-          <div style={{ fontSize: "10px", fontWeight: "900", color: "#ff6a00", letterSpacing: "1.5px", borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.05)", paddingBottom: "6px", marginBottom: "4px", textTransform: "uppercase" }}>
-            📈 SYNC READOUTS
-          </div>
 
           <div className="telemetry-card" style={{ borderLeft: `3.5px solid ${speedBorderColor}`, borderTop: "none", borderRight: "none", borderBottom: "none" }}>
             <span style={{ fontSize: "10px", fontWeight: "850", color: "var(--text-muted)", letterSpacing: "1px", textTransform: "uppercase" }}>
@@ -1477,16 +1474,6 @@ export default function PathfinderScheduler({
             </span>
           </div>
 
-          {/* Sync Level Progress Bar */}
-          <div style={{ marginTop: "8px", borderTop: isDarkMode ? "1px solid rgba(255,255,255,0.03)" : "1px solid rgba(0,0,0,0.03)", paddingTop: "12px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", fontWeight: "900", color: "var(--text-muted)", marginBottom: "6px" }}>
-              <span>SYNC LEVEL</span>
-              <span style={{ color: syncLevelColor }}>{syncLevelText}</span>
-            </div>
-            <div style={{ width: "100%", height: "4px", background: isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.05)", borderRadius: "2px", overflow: "hidden", position: "relative" }}>
-              <div style={{ height: "100%", width: `${syncPercent}%`, background: velocityStatus === "BEHIND" ? "linear-gradient(90deg, #ef4444 0%, #f87171 100%)" : "linear-gradient(90deg, #ff6a00 0%, #a78bfa 100%)", boxShadow: velocityStatus === "BEHIND" ? "0 0 8px rgba(239,68,68,0.45)" : "0 0 8px rgba(255,106,0,0.45)", transition: "width 0.4s ease" }} />
-            </div>
-          </div>
         </div>
 
         {/* Right Sidebar: Telemetry Cards (Mobile Version: Compact 2x2 stats block card) */}
@@ -1499,11 +1486,6 @@ export default function PathfinderScheduler({
           <div className="hud-corner-bracket hud-bracket-tr" />
           <div className="hud-corner-bracket hud-bracket-bl" />
           <div className="hud-corner-bracket hud-bracket-br" />
-
-          {/* High-tech Sidebar Header */}
-          <div style={{ fontSize: "10px", fontWeight: "900", color: "#ff6a00", letterSpacing: "1.5px", borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.05)", paddingBottom: "6px", marginBottom: "4px", textTransform: "uppercase" }}>
-            📈 SYNC READOUTS
-          </div>
 
           <div style={{
             display: "grid",

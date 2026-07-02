@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import * as sound from "../../utils/audio";
 import CognitivePathfinder from "../Roadmap/CognitivePathfinder";
 import ProfilePanel from "./ProfilePanel";
@@ -82,7 +82,20 @@ export default function Dashboard({
   const [showTodoPopup, setShowTodoPopup] = useState(false);
   const [loadingFeed, setLoadingFeed] = useState(false);
   const [activeMilestones, setActiveMilestones] = useState([]);
-  const [todayVideos, setTodayVideos] = useState([]);
+  const [allTodayVideos, setAllTodayVideos] = useState([]);
+  const [todayCycleIndex, setTodayCycleIndex] = useState(0);
+
+  const todayVideos = useMemo(() => {
+    if (allTodayVideos.length === 0) return [];
+    const start = todayCycleIndex;
+    const end = start + 4;
+    if (end <= allTodayVideos.length) {
+      return allTodayVideos.slice(start, end);
+    } else {
+      return [...allTodayVideos.slice(start, allTodayVideos.length), ...allTodayVideos.slice(0, end - allTodayVideos.length)];
+    }
+  }, [allTodayVideos, todayCycleIndex]);
+
   const [loadingToday, setLoadingToday] = useState(false);
 
   const [showRuneLoader, setShowRuneLoader] = useState(false);
@@ -335,22 +348,24 @@ export default function Dashboard({
   // Fetch Recommended for Today videos
   useEffect(() => {
     if (!topic || !activeSubtopicStr || searchQuery) {
-      setTodayVideos([]);
+      setAllTodayVideos([]);
+      setTodayCycleIndex(0);
       return;
     }
 
     let isMounted = true;
     const fetchTodayVideos = async () => {
       setLoadingToday(true);
-      const query = `${topic} ${activeSubtopicStr} tutorial`;
+      const query = activeSubtopicStr;
       try {
         const res = await fetch(`${backendUrl}/api/search?q=${encodeURIComponent(query)}`, {
           headers: { "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}` }
         });
         if (res.ok && isMounted) {
           const data = await res.json();
-          // Display up to 4 videos for today's objective
-          setTodayVideos(data.slice(0, 4));
+          // Display up to 16 videos, sliced into 4 locally on cycle
+          setAllTodayVideos(data.slice(0, 16));
+          setTodayCycleIndex(0);
         }
       } catch (err) {
         console.error("Failed to fetch today's videos:", err);
@@ -401,6 +416,7 @@ export default function Dashboard({
     ];
   };
 
+  const activeSubtopicText = allIncompleteTasks && allIncompleteTasks[0] ? allIncompleteTasks[0].text : "";
   const activeMilestoneTitle = allIncompleteTasks && allIncompleteTasks[0] ? allIncompleteTasks[0].milestone.title : "";
 
   useEffect(() => {
@@ -408,7 +424,7 @@ export default function Dashboard({
     
     let isMounted = true;
     const fetchFeed = async () => {
-      const currentTopicFocus = activeMilestoneTitle ? `${topic} ${activeMilestoneTitle}` : topic;
+      const currentTopicFocus = activeSubtopicText || activeMilestoneTitle || topic;
       const cacheKey = `kaevrix_feed_${username}_${encodeURIComponent(currentTopicFocus)}_${encodeURIComponent(why)}`;
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
@@ -469,7 +485,11 @@ export default function Dashboard({
 
   const handleSelectVideo = (video) => {
     sound.playClockTick();
-    setSelectedVideo(video);
+    const activeSubtopicText = allIncompleteTasks && allIncompleteTasks[0] ? allIncompleteTasks[0].text : "";
+    setSelectedVideo({
+      ...video,
+      activeSubtopic: activeSubtopicText
+    });
     setStatus("mode_selection");
   };
 
@@ -821,11 +841,39 @@ export default function Dashboard({
               <div style={{ display: "flex", flexDirection: "column", gap: "36px" }}>
                 {/* 1. Active Mission (Recommended) */}
                 <div>
-                  <div className="hud-feed-header">
-                    <div className="hud-feed-header-line" />
-                    <h3 className="hud-feed-title" style={{ fontSize: "14px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "0.5px" }}>
-                      RECOMMENDED FOR TODAY
-                    </h3>
+                  <div className="hud-feed-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div className="hud-feed-header-line" />
+                      <h3 className="hud-feed-title" style={{ fontSize: "14px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "0.5px", margin: 0 }}>
+                        RECOMMENDED FOR TODAY
+                      </h3>
+                    </div>
+                    {allTodayVideos.length > 4 && (
+                      <button
+                        onClick={() => {
+                          sound.playClockTick();
+                          setTodayCycleIndex(prev => (prev + 4) % allTodayVideos.length);
+                        }}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "var(--neon-orange)",
+                          fontSize: "12px",
+                          fontWeight: "800",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "4px 8px",
+                          borderRadius: "4px",
+                          transition: "all 0.2s"
+                        }}
+                        onMouseOver={e => e.currentTarget.style.filter = "brightness(1.2)"}
+                        onMouseOut={e => e.currentTarget.style.filter = "none"}
+                      >
+                        🔄 Cycle Recommendations
+                      </button>
+                    )}
                   </div>
                   
                   {todayVideos.length > 0 ? (

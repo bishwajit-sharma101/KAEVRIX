@@ -252,7 +252,7 @@ export default function AppRouter(props) {
         boxSizing: "border-box" 
       }}
     >
-      {(isMobileSearchActive || searchQuery) ? (
+      {isMobileSearchActive ? (
         <div className="mobile-search-active-bar" style={{ display: "flex", width: "100%", alignItems: "center", gap: "12px" }}>
           <button
             onClick={() => {
@@ -356,7 +356,7 @@ export default function AppRouter(props) {
               </button>
             )}
             <div className="logo-container" onClick={resetToDashboard} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}>
-              <img src="/logo.png" alt="Kaevrix Logo" style={{ width: "40px", height: "40px", objectFit: "contain", display: "block" }} />
+              <img src="/logo.png?v=2" alt="Kaevrix Logo" style={{ width: "40px", height: "40px", objectFit: "contain", display: "block" }} />
               <span 
                 className={`logo-text ${activeTab === "profile" ? "profile-active" : ""}`}
                 style={{ 
@@ -365,7 +365,7 @@ export default function AppRouter(props) {
                   textShadow: activeTab === 'profile' ? '0 0 12px rgba(255, 106, 0, 0.5)' : 'none'
                 }}
               >
-                KAEVRIX
+                Kaevrix
               </span>
             </div>
           </div>

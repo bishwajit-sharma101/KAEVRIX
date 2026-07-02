@@ -3,6 +3,11 @@ import "./index.css";
 export const metadata = {
   title: "Kaevrix",
   description: "Multiplayer Video Matchmaking & Quiz Duel",
+  icons: {
+    icon: "/logo-black.png?v=2",
+    shortcut: "/logo-black.png?v=2",
+    apple: "/logo-black.png?v=2",
+  }
 };
 
 export default function RootLayout({ children }) {

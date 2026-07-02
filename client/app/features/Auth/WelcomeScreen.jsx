@@ -784,12 +784,12 @@ export default function WelcomeScreen({
           }}>
             {/* Kaevrix wordmark */}
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-              <img src="/logo.png" alt="Kaevrix" style={{ width: "36px", height: "36px", objectFit: "contain" }} />
+              <img src="/logo.png?v=2" alt="Kaevrix" style={{ width: "36px", height: "36px", objectFit: "contain" }} />
               <span style={{
                 fontFamily: "var(--font-gamer)", fontSize: "22px", fontWeight: "900",
                 letterSpacing: "4px", color: textColor,
                 textShadow: isDarkMode ? `0 0 20px ${currentThemeColor}88` : "none"
-              }}>KAEVRIX</span>
+              }}>Kaevrix</span>
             </div>
             <div style={{ fontSize: "10px", fontWeight: "800", color: "#ff6a00", letterSpacing: "5px", textTransform: "uppercase", marginBottom: "40px" }}>
               Watch · Quiz · Compete · Ascend
@@ -1636,9 +1636,9 @@ export default function WelcomeScreen({
           {/* Top Bar Game Header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `3px double ${currentThemeColor}66`, paddingBottom: "15px", marginBottom: "15px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-              <img src="/logo.png" alt="Kaevrix Logo" style={{ width: "48px", height: "48px", objectFit: "contain", filter: `drop-shadow(0 0 8px ${currentThemeColor})` }} />
+              <img src="/logo.png?v=2" alt="Kaevrix Logo" style={{ width: "48px", height: "48px", objectFit: "contain", filter: `drop-shadow(0 0 8px ${currentThemeColor})` }} />
               <div>
-                <div style={{ fontSize: "30px", fontWeight: "900", letterSpacing: "4px", color: textColor, textShadow: isDarkMode ? `0 0 8px ${currentThemeColor}bb` : "none" }}>KAEVRIX</div>
+                <div style={{ fontSize: "30px", fontWeight: "900", letterSpacing: "4px", color: textColor, textShadow: isDarkMode ? `0 0 8px ${currentThemeColor}bb` : "none" }}>Kaevrix</div>
                 <div style={{ fontSize: "11px", color: "#ff6a00", letterSpacing: "3px", fontWeight: "bold", textTransform: "uppercase" }}>Synchronized Watch-&-Quiz Duel</div>
               </div>
             </div>
