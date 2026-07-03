@@ -4689,5 +4689,196 @@ body.dark-theme .todo-task-item {
   }
 }
 
+/* ==========================================================================
+   📚 Global High-Fidelity Study Notes Typography
+   ========================================================================== */
+.study-notes-document {
+  font-family: 'Inter', sans-serif;
+}
+.study-notes-document h1, .study-notes-document h2, .study-notes-document h3 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.study-notes-document h1 {
+  font-size: 32px;
+  margin: 40px 0 20px 0;
+  background: linear-gradient(135deg, #ff6a00, #ffb300, #ff4500);
+  background-size: 200% auto;
+  animation: textGradient 4s linear infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+@keyframes textGradient {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+.study-notes-document h2 {
+  font-size: 24px;
+  margin: 36px 0 16px 0;
+  padding-bottom: 12px;
+  position: relative;
+}
+.study-notes-document h2::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 60px;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #ff6a00, transparent);
+}
+.notes-dark h2 { color: #facc15 !important; }
+.notes-light h2 { color: #ea580c !important; }
+
+.study-notes-document h3 {
+  font-size: 18px;
+  margin: 28px 0 12px 0;
+}
+.notes-dark h3 { color: #fb923c !important; }
+.notes-light h3 { color: #c2410c !important; }
+
+.study-notes-document p {
+  font-size: 15.5px;
+  line-height: 1.85;
+  margin-bottom: 20px;
+  letter-spacing: 0.01em;
+}
+.notes-dark p { color: rgba(255,255,255,0.85) !important; }
+.notes-light p { color: #334155 !important; }
+
+.study-notes-document strong {
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  display: inline-block;
+  margin: 0 2px;
+}
+.notes-dark strong { 
+  color: #fff !important;
+  background: rgba(255, 106, 0, 0.2) !important;
+  box-shadow: 0 0 10px rgba(255,106,0,0.1);
+}
+.notes-light strong { 
+  color: #9a3412 !important;
+  background: #ffedd5 !important;
+  box-shadow: 0 0 10px rgba(234,88,12,0.1);
+}
+
+.study-notes-document blockquote {
+  margin: 24px 0;
+  padding: 16px 24px;
+  border-left: 4px solid #ff6a00;
+  border-radius: 0 12px 12px 0;
+  font-style: italic;
+  font-size: 16px;
+}
+.notes-dark blockquote {
+  background: linear-gradient(90deg, rgba(255,106,0,0.1) 0%, transparent 100%) !important;
+  color: #fb923c !important;
+}
+.notes-light blockquote {
+  background: linear-gradient(90deg, rgba(255,106,0,0.05) 0%, transparent 100%) !important;
+  color: #c2410c !important;
+}
+
+/* Bullet points and lists */
+.study-notes-document ul, .study-notes-document ol {
+  padding-left: 24px;
+  margin: 16px 0 24px 0;
+}
+.study-notes-document li {
+  margin-bottom: 10px;
+  line-height: 1.7;
+  font-size: 15.5px;
+}
+.study-notes-document li::marker {
+  color: #ff6a00;
+}
+.notes-dark li { color: rgba(255,255,255,0.85) !important; }
+.notes-light li { color: #475569 !important; }
+
+/* Tables */
+.study-notes-document table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 32px 0;
+  font-size: 14.5px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+.notes-dark table {
+  border: 1px solid rgba(255, 106, 0, 0.2) !important;
+  background: rgba(25, 20, 15, 0.4) !important;
+}
+.notes-light table {
+  border: 1px solid #fed7aa !important;
+  background: #fffcf9 !important;
+}
+.study-notes-document th, .study-notes-document td {
+  padding: 16px 20px;
+  text-align: left;
+}
+.study-notes-document th {
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 12.5px;
+  letter-spacing: 0.8px;
+}
+.notes-dark th {
+  background: rgba(255, 106, 0, 0.2) !important;
+  color: #fcd34d !important;
+}
+.notes-light th {
+  background: #ffedd5 !important;
+  color: #c2410c !important;
+}
+.study-notes-document td {
+  border-bottom: 1px solid rgba(255, 106, 0, 0.1);
+}
+.notes-dark td {
+  color: rgba(255,255,255,0.85) !important;
+  border-color: rgba(255, 106, 0, 0.1) !important;
+}
+.notes-light td {
+  color: #475569 !important;
+  border-color: #ffedd5 !important;
+}
+.study-notes-document tr:last-child td {
+  border-bottom: none;
+}
+
+/* Code Snippets */
+.study-notes-document code {
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+.notes-dark code {
+  background: rgba(255, 106, 0, 0.15) !important;
+  color: #fb923c !important;
+  border: 1px solid rgba(255, 106, 0, 0.25) !important;
+}
+.notes-light code {
+  background: #fff7ed !important;
+  color: #ea580c !important;
+  border: 1px solid #ffedd5 !important;
+}
+.study-notes-document pre code {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  color: inherit !important;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+
 
 

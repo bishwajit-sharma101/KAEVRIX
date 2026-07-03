@@ -151,13 +151,13 @@ export function parseMarkdownToHTML(md) {
         .replace(/>/g, "&gt;");
       
       // Inline code
-      mdText = mdText.replace(/`([^`\n]+)`/g, '<code style="background: rgba(255,106,0,0.1); color: #ea580c; padding: 2px 6px; border-radius: 6px; font-size: 0.9em; font-family: monospace; font-weight: bold;">$1</code>');
+      mdText = mdText.replace(/`([^`\n]+)`/g, '<code style="background: rgba(255,106,0,0.1); color: var(--neon-orange, #ff6a00); padding: 2px 6px; border-radius: 6px; font-size: 0.9em; font-family: monospace; font-weight: bold;">$1</code>');
       
       // Headers
-      mdText = mdText.replace(/^# (.+)$/gm, '<h1 style="font-size: 28px; font-weight: 900; color: #0f172a; margin: 36px 0 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; letter-spacing: -0.5px;">$1</h1>');
-      mdText = mdText.replace(/^## (.+)$/gm, '<h2 style="font-size: 22px; font-weight: 850; color: #0f172a; margin: 30px 0 14px; border-left: 4px solid #ff6a00; padding-left: 14px; letter-spacing: -0.3px;">$1</h2>');
-      mdText = mdText.replace(/^### (.+)$/gm, '<h3 style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 24px 0 10px;">$1</h3>');
-      mdText = mdText.replace(/^#### (.+)$/gm, '<h4 style="font-size: 15px; font-weight: 700; color: #334155; margin: 18px 0 6px;">$1</h4>');
+      mdText = mdText.replace(/^# (.+)$/gm, '<h1 style="font-size: 28px; font-weight: 900; color: var(--text-light); margin: 36px 0 18px; border-bottom: 2px solid var(--glass-border, #e2e8f0); padding-bottom: 10px; letter-spacing: -0.5px;">$1</h1>');
+      mdText = mdText.replace(/^## (.+)$/gm, '<h2 style="font-size: 22px; font-weight: 850; color: inherit; margin: 30px 0 14px; border-left: 4px solid var(--neon-orange, #ff6a00); padding-left: 14px; letter-spacing: -0.3px;">$1</h2>');
+      mdText = mdText.replace(/^### (.+)$/gm, '<h3 style="font-size: 18px; font-weight: 800; color: inherit; margin: 24px 0 10px;">$1</h3>');
+      mdText = mdText.replace(/^#### (.+)$/gm, '<h4 style="font-size: 15px; font-weight: 700; color: inherit; margin: 18px 0 6px;">$1</h4>');
       
       // Tables
       const lines = mdText.split("\n");
@@ -170,7 +170,7 @@ export function parseMarkdownToHTML(md) {
         if (line.startsWith("|") && line.endsWith("|")) {
           if (!inTable) {
             inTable = true;
-            tableHtml = '<div style="overflow-x: auto; margin: 24px 0; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);"><table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">';
+            tableHtml = '<div style="overflow-x: auto; margin: 24px 0; border: 1px solid var(--glass-border, #e2e8f0); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);"><table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">';
           }
           if (line.includes("---") || line.includes("===")) {
             continue;
@@ -179,15 +179,15 @@ export function parseMarkdownToHTML(md) {
           const isHeader = !tableHtml.includes("</thead>") && !tableHtml.includes("</tr>");
           
           if (isHeader) {
-            tableHtml += '<thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;"><tr>';
+            tableHtml += '<thead style="background: var(--bg-dark-surface, #f8fafc); border-bottom: 2px solid var(--glass-border, #e2e8f0);"><tr>';
             cells.forEach(c => {
-              tableHtml += `<th style="padding: 14px 18px; font-weight: 800; color: #0f172a;">${c}</th>`;
+              tableHtml += `<th style="padding: 14px 18px; font-weight: 800; color: inherit;">${c}</th>`;
             });
             tableHtml += '</tr></thead><tbody>';
           } else {
-            tableHtml += '<tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.backgroundColor=\'#f8fafc\'" onmouseout="this.style.backgroundColor=\'transparent\'">';
+            tableHtml += '<tr style="border-bottom: 1px solid var(--glass-border, #f1f5f9); transition: background 0.15s;" onmouseover="this.style.backgroundColor=\'var(--glass-border)\'" onmouseout="this.style.backgroundColor=\'transparent\'">';
             cells.forEach(c => {
-              tableHtml += `<td style="padding: 14px 18px; color: #334155; line-height: 1.5;">${c}</td>`;
+              tableHtml += `<td style="padding: 14px 18px; color: inherit; line-height: 1.5;">${c}</td>`;
             });
             tableHtml += '</tr>';
           }
@@ -208,12 +208,12 @@ export function parseMarkdownToHTML(md) {
       mdText = normalLines.join("\n");
       
       // Bold & Italics
-      mdText = mdText.replace(/\*\*([^*]+)\*\*/g, '<strong style="color: #0f172a; font-weight: 700;">$1</strong>');
+      mdText = mdText.replace(/\*\*([^*]+)\*\*/g, '<strong style="color: inherit; font-weight: 700;">$1</strong>');
       mdText = mdText.replace(/\*([^*]+)\*/g, '<em style="font-style: italic;">$1</em>');
       
       // Lists
-      mdText = mdText.replace(/^\s*-\s+(.+)$/gm, '<li style="color: #334155; font-size: 15px; line-height: 1.8; margin-bottom: 8px; list-style-type: disc; margin-left: 24px;">$1</li>');
-      mdText = mdText.replace(/^\s*\*\s+(.+)$/gm, '<li style="color: #334155; font-size: 15px; line-height: 1.8; margin-bottom: 8px; list-style-type: disc; margin-left: 24px;">$1</li>');
+      mdText = mdText.replace(/^\s*-\s+(.+)$/gm, '<li style="color: inherit; font-size: 15px; line-height: 1.8; margin-bottom: 8px; list-style-type: disc; margin-left: 24px;">$1</li>');
+      mdText = mdText.replace(/^\s*\*\s+(.+)$/gm, '<li style="color: inherit; font-size: 15px; line-height: 1.8; margin-bottom: 8px; list-style-type: disc; margin-left: 24px;">$1</li>');
       
       // Group adjacent <li> elements into <ul>
       mdText = mdText.replace(/(<li[^>]*>.*?<\/li>)+/gs, '<ul style="padding-left: 0; margin: 12px 0 20px;">$&</ul>');
@@ -226,7 +226,7 @@ export function parseMarkdownToHTML(md) {
         if (trimmed.startsWith("<h") || trimmed.startsWith("<ul") || trimmed.startsWith("<div") || trimmed.startsWith("<table") || trimmed.startsWith("<blockquote")) {
           return trimmed;
         }
-        return `<p style="color: #334155; font-size: 15.5px; line-height: 1.8; margin: 0 0 18px;">${trimmed.replace(/\n/g, "<br/>")}</p>`;
+        return `<p style="color: inherit; font-size: 15.5px; line-height: 1.8; margin: 0 0 18px;">${trimmed.replace(/\n/g, "<br/>")}</p>`;
       });
       
       resultHtml += parsedBlocks.join("\n");

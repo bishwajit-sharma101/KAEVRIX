@@ -1555,6 +1555,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                       </button>
                     </div>
                     <div 
+                      className={`study-notes-document ${isDarkMode ? "notes-dark" : "notes-light"}`}
                       style={{ lineHeight: "1.8", fontSize: "15px", textAlign: "left" }} 
                       dangerouslySetInnerHTML={{ __html: parseMarkdownToHTML(notes) }} 
                     />

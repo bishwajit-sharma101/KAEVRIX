@@ -557,7 +557,7 @@ export default function StudyHistory({ username, isDarkMode, onStartSoloStudy })
 
                   {/* Rendered markdown notes document */}
                   <div
-                    className="history-notes-document"
+                    className={`history-notes-document study-notes-document ${isDarkMode ? "notes-dark" : "notes-light"}`}
                     style={{ textAlign: "left", padding: "0 10px" }}
                     dangerouslySetInnerHTML={{ __html: parseMarkdownToHTML(selectedItem.notes) }}
                   />

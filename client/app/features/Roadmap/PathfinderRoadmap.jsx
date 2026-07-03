@@ -916,6 +916,7 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
             ) : notes ? (
               /* Display Generated Notes */
               <div 
+                className={`study-notes-document ${isDarkMode ? "notes-dark" : "notes-light"}`}
                 style={{
                   lineHeight: "1.8",
                   fontFamily: "var(--font-sans)",
