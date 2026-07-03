@@ -1358,11 +1358,11 @@ export default function ProfilePanel({
 
       {/* Inferno Effect */}
       {profileEffect === "inferno" && (
-        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
-          <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "300px", background: "linear-gradient(to top, rgba(255,60,0,0.4), transparent)", mixBlendMode: "screen" }} />
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, overflow: "visible" }}>
+          <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "100%", background: "linear-gradient(to top, rgba(255,60,0,0.4), transparent)", mixBlendMode: "screen", WebkitMaskImage: "radial-gradient(ellipse at 50% 100%, black 30%, transparent 75%)", maskImage: "radial-gradient(ellipse at 50% 100%, black 30%, transparent 75%)" }} />
           {particlesConfig["inferno"]?.map((p, i) => (
             <div key={i} style={{ 
-              position: "absolute", bottom: "-20px", left: p.left + "%", 
+              position: "absolute", bottom: "10px", left: p.left + "%", 
               width: p.size + "px", height: p.size + "px", 
               background: p.color, borderRadius: "50%", boxShadow: "0 0 10px " + p.color,
               animation: "fireEmber " + p.duration + "s ease-in " + p.delay + "s infinite"
@@ -1373,11 +1373,11 @@ export default function ProfilePanel({
 
       {/* Rage Effect */}
       {profileEffect === "rage" && (
-        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
-          <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "300px", background: "linear-gradient(to top, rgba(255,0,0,0.4), transparent)", mixBlendMode: "screen" }} />
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, overflow: "visible" }}>
+          <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "100%", background: "linear-gradient(to top, rgba(255,0,0,0.4), transparent)", mixBlendMode: "screen", WebkitMaskImage: "radial-gradient(ellipse at 50% 100%, black 30%, transparent 75%)", maskImage: "radial-gradient(ellipse at 50% 100%, black 30%, transparent 75%)" }} />
           {particlesConfig["rage"]?.map((p, i) => (
             <div key={i} style={{ 
-              position: "absolute", bottom: "-20px", left: p.left + "%", 
+              position: "absolute", bottom: "10px", left: p.left + "%", 
               width: p.size + "px", height: p.size + "px", 
               background: p.color, borderRadius: "50%", boxShadow: "0 0 15px " + p.color,
               animation: "fireEmber " + p.duration + "s ease-in " + p.delay + "s infinite"
@@ -1388,11 +1388,11 @@ export default function ProfilePanel({
 
       {/* Void Effect */}
       {profileEffect === "void" && (
-        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, overflow: "hidden" }}>
-          <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "300px", background: "linear-gradient(to top, rgba(138,43,226,0.5), transparent)", mixBlendMode: "screen" }} />
+        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, overflow: "visible" }}>
+          <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "100%", background: "linear-gradient(to top, rgba(138,43,226,0.5), transparent)", mixBlendMode: "screen", WebkitMaskImage: "radial-gradient(ellipse at 50% 100%, black 30%, transparent 75%)", maskImage: "radial-gradient(ellipse at 50% 100%, black 30%, transparent 75%)" }} />
           {particlesConfig["void"]?.map((p, i) => (
             <div key={i} style={{ 
-              position: "absolute", bottom: "-20px", left: p.left + "%", 
+              position: "absolute", bottom: "10px", left: p.left + "%", 
               width: p.size + "px", height: p.size + "px", 
               background: p.color, borderRadius: "50%", filter: "blur(5px)",
               animation: "fireEmber " + p.duration + "s ease-in " + p.delay + "s infinite"
@@ -2314,15 +2314,16 @@ export default function ProfilePanel({
 
       <ProfileStyles />
 
-      {/* --- BACKGROUND PROFILE EFFECTS --- */}
-      {backgroundEffectsElement}
-
+      {/* --- BANNER WITH BACKGROUND PROFILE EFFECTS --- */}
       <div style={{ 
         width: "100%", height: "240px", 
         background: bannerBackground,
         position: "relative",
-        borderBottom: "1px solid rgba(255,255,255,0.1)"
-      }} />
+        borderBottom: "1px solid rgba(255,255,255,0.1)",
+        overflow: "visible"
+      }}>
+        {backgroundEffectsElement}
+      </div>
 
       {/* 2. PROFILE BODY (No Boxes, Pure Layout) */}
       <div style={{ padding: "0 clamp(24px, 4vw, 60px)", position: "relative" }}>

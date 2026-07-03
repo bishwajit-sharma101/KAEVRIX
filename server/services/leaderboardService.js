@@ -127,7 +127,7 @@ export async function updatePlayerStats(username, xpGained, won, videoDetails = 
     const updatedUser = await User.findOneAndUpdate(
       { username: normalizedUsername },
       updateOp,
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedUser) {
@@ -203,7 +203,7 @@ export async function addSoloXp(username, xpEarned, videoTitle) {
         },
         ...(historyItem.length > 0 ? { $push: { watchHistory: { $each: historyItem, $position: 0, $slice: 20 } } } : {})
       },
-      { new: true } // Return the updated document
+      { returnDocument: 'after' }
     );
 
     if (!updatedUser) {

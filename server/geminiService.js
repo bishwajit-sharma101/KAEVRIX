@@ -13,6 +13,135 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 const OLLAMA_MODEL = "gemma4:e4b";
 
+// ── Robust JSON parsing helper for LLM outputs ─────────────────────────────
+/**
+ * Attempts to parse potentially malformed JSON from LLM responses.
+ * Handles: markdown fences, trailing commas, unescaped control chars,
+ * truncated JSON, and falls back to regex extraction for notes+quiz.
+ */
+function repairAndParseJSON(rawText, context = "unknown") {
+  if (!rawText || typeof rawText !== "string") {
+    throw new Error(`[JSON Repair] Empty or invalid input for ${context}`);
+  }
+
+  let text = rawText.trim();
+
+  // Step 1: Strip markdown code fences (```json ... ``` or ``` ... ```)
+  text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+
+  // Step 2: Try direct parse first (fast path)
+  try {
+    return JSON.parse(text);
+  } catch (_) {
+    // Continue to repair strategies
+  }
+
+  // Step 3: Fix trailing commas before ] or } (common LLM mistake)
+  let repaired = text.replace(/,\s*([\]\}])/g, "$1");
+
+  // Step 4: Fix unescaped control characters inside JSON string values
+  // Walk character-by-character to find string boundaries and escape control chars
+  repaired = repairControlCharsInStrings(repaired);
+
+  // Step 5: Try parsing the repaired text
+  try {
+    return JSON.parse(repaired);
+  } catch (_) {
+    // Continue to more aggressive repairs
+  }
+
+  // Step 6: Try to fix truncated JSON by closing open brackets/braces
+  let truncFixed = repaired;
+  let openBraces = 0, openBrackets = 0;
+  let inString = false, escaped = false;
+  for (const ch of truncFixed) {
+    if (escaped) { escaped = false; continue; }
+    if (ch === '\\') { escaped = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') openBraces++;
+    if (ch === '}') openBraces--;
+    if (ch === '[') openBrackets++;
+    if (ch === ']') openBrackets--;
+  }
+  // Remove any trailing comma before we close
+  truncFixed = truncFixed.replace(/,\s*$/, "");
+  while (openBrackets > 0) { truncFixed += "]"; openBrackets--; }
+  while (openBraces > 0) { truncFixed += "}"; openBraces--; }
+
+  try {
+    return JSON.parse(truncFixed);
+  } catch (_) {
+    // Continue to regex extraction
+  }
+
+  // Step 7: Last resort — try to extract the first valid JSON object from the text
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      const extracted = repairControlCharsInStrings(jsonMatch[0].replace(/,\s*([\]\}])/g, "$1"));
+      return JSON.parse(extracted);
+    } catch (_) {
+      // Fall through
+    }
+  }
+
+  // If all repair strategies fail, throw with context
+  throw new Error(`[JSON Repair] All parse strategies failed for ${context}. First 200 chars: ${text.substring(0, 200)}`);
+}
+
+/**
+ * Repairs unescaped control characters (newlines, tabs, etc.) inside JSON string values.
+ * Walks the text character-by-character to properly handle string boundaries.
+ */
+function repairControlCharsInStrings(text) {
+  const result = [];
+  let inString = false;
+  let i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    if (inString) {
+      if (ch === '\\') {
+        // Escaped character — pass through both the backslash and next char
+        result.push(ch);
+        i++;
+        if (i < text.length) {
+          result.push(text[i]);
+        }
+        i++;
+        continue;
+      }
+      if (ch === '"') {
+        // End of string
+        inString = false;
+        result.push(ch);
+        i++;
+        continue;
+      }
+      // Check for unescaped control characters inside string
+      const code = ch.charCodeAt(0);
+      if (code < 0x20) {
+        // Replace control chars with their escaped versions
+        if (ch === '\n') result.push('\\n');
+        else if (ch === '\r') result.push('\\r');
+        else if (ch === '\t') result.push('\\t');
+        else result.push('\\u' + code.toString(16).padStart(4, '0'));
+        i++;
+        continue;
+      }
+      result.push(ch);
+      i++;
+    } else {
+      if (ch === '"') {
+        inString = true;
+      }
+      result.push(ch);
+      i++;
+    }
+  }
+  return result.join('');
+}
+
 // ── Ollama helpers ──────────────────────────────────────────────────────────
 async function ollamaGenerate(prompt, format = "json", userId = null, endpoint = "unknown") {
   const body = {
@@ -413,7 +542,7 @@ Return ONLY valid JSON, no markdown.`;
       raw = await ollamaGenerate(prompt, "json", userId, "/pathfinder/generate");
     }
 
-    const roadmap = JSON.parse(raw);
+    const roadmap = repairAndParseJSON(raw, "pathfinder/generate");
 
     if (!roadmap.level1?.milestones) {
       throw new Error("Invalid roadmap structure from AI");
@@ -520,7 +649,7 @@ Return ONLY valid JSON, no markdown.`;
     raw = await ollamaGenerate(prompt, "json", userId, "/pathfinder/generate-level");
   }
 
-  const result = JSON.parse(raw);
+  const result = repairAndParseJSON(raw, "pathfinder/generate-level");
   if (!result.milestones || result.milestones.length === 0) {
     throw new Error("Invalid level structure from AI");
   }
@@ -830,12 +959,8 @@ Respond ONLY with a valid JSON object matching the format below. Do not wrap the
       resultText = await ollamaGenerate(prompt, "json", userId, "/pathfinder/study-notes-and-quiz");
     }
 
-    // Try parsing the combined JSON response
-    let cleanedText = resultText.trim();
-    if (cleanedText.startsWith("```")) {
-      cleanedText = cleanedText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-    }
-    const parsed = JSON.parse(cleanedText);
+    // Try parsing the combined JSON response (with LLM repair)
+    const parsed = repairAndParseJSON(resultText, "study-notes-and-quiz");
     
     // Ensure all postVideoQuestions are marked conceptual and have valid keys
     if (parsed.postVideoQuestions && Array.isArray(parsed.postVideoQuestions)) {
@@ -1491,7 +1616,7 @@ Format specification:
     try {
       console.log(`[Gemini Quiz Generator] Generating quiz via Gemini API for video: "${title}"`);
       const responseText = await callGeminiAPI(prompt, "application/json", userId, "/quiz/generate");
-      const quizData = JSON.parse(responseText.trim());
+      const quizData = repairAndParseJSON(responseText, "quiz/generate-gemini");
       const validated = validateQuizData(quizData);
       return { ...validated, captions: transcriptList };
     } catch (geminiErr) {
@@ -1505,7 +1630,7 @@ Format specification:
     try {
       console.log(`[Ollama Quiz Generator] Generating quiz via Ollama ${OLLAMA_MODEL} for video: "${title}"`);
       const responseText = await ollamaGenerate(prompt, "json", userId, "/quiz/generate");
-      const quizData = JSON.parse(responseText.trim());
+      const quizData = repairAndParseJSON(responseText, "quiz/generate-ollama");
       const validated = validateQuizData(quizData);
       return { ...validated, captions: transcriptList };
     } catch (ollamaErr) {
@@ -1600,7 +1725,7 @@ Format specification:
     try {
       console.log(`[Gemini Boss Generator] Generating boss questions via Gemini API for milestone: "${mTitle}"`);
       const responseText = await callGeminiAPI(prompt, "application/json", userId, "/boss/generate");
-      const bossData = JSON.parse(responseText.trim());
+      const bossData = repairAndParseJSON(responseText, "boss/generate-gemini");
       return validateBossData(bossData);
     } catch (geminiErr) {
       console.warn(`[Gemini Boss Generator] Gemini API failed: ${geminiErr.message}. Trying Ollama as fallback...`);
@@ -1613,7 +1738,7 @@ Format specification:
     try {
       console.log(`[Ollama Boss Generator] Generating boss questions via Ollama ${OLLAMA_MODEL} for milestone: "${mTitle}"`);
       const responseText = await ollamaGenerate(prompt, "json", userId, "/boss/generate");
-      const bossData = JSON.parse(responseText.trim());
+      const bossData = repairAndParseJSON(responseText, "boss/generate-ollama");
       return validateBossData(bossData);
     } catch (ollamaErr) {
       console.warn(`[Ollama Boss Generator] Ollama failed: ${ollamaErr.message}. Using default template fallback...`);
