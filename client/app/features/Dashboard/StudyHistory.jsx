@@ -586,7 +586,7 @@ export default function StudyHistory({ username, isDarkMode, onStartSoloStudy })
   );
 }
 
-const StudyNotesContent = memo(({ notes, isDarkMode }) => {
+const StudyNotesContent = memo(({ notes, isDarkMode, isFocusMode = false }) => {
   const sanitizeCode = (rawCode) => {
     let code = rawCode
       // Collapse multi-dash arrows first to prevent parser confusion
@@ -719,11 +719,11 @@ const StudyNotesContent = memo(({ notes, isDarkMode }) => {
         document.body.appendChild(script);
       }
     }
-  }, [notes, isDarkMode]);
+  }, [notes, isDarkMode, isFocusMode]);
 
   return (
     <div 
-      className={`study-notes-document ${isDarkMode ? "notes-dark" : "notes-light"}`}
+      className={`study-notes-document ${isDarkMode ? "notes-dark" : "notes-light"} ${isFocusMode ? "focus-mode" : ""}`}
       style={{ lineHeight: "1.8", fontSize: "15px", textAlign: "left" }} 
       dangerouslySetInnerHTML={{ __html: parseMarkdownToHTML(notes) }} 
     />
