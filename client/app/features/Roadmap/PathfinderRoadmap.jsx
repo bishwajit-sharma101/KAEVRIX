@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { fetchWithJobPolling } from "../../utils/asyncJob";
 import * as sound from "../../utils/audio";
 import { parseMarkdownToHTML } from "../../utils/markdown";
@@ -510,6 +510,23 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
   const answers = savedAnswers ? JSON.parse(savedAnswers) : [];
   const userReason = answers.find(a => a.question.toLowerCase().includes("why"))?.answer || "learning";
 
+  // Migrate legacy arrows in existing studyNotes if any
+  useEffect(() => {
+    if (milestone?.studyNotes && (milestone.studyNotes.includes("→") || milestone.studyNotes.includes("->") || milestone.studyNotes.includes("=>"))) {
+      const cleaned = milestone.studyNotes
+        .replace(/[\u2192\u2794\u279c\u27a1]/g, "-->")
+        .replace(/->/g, "-->")
+        .replace(/=>/g, "==>");
+      milestone.studyNotes = cleaned;
+      setNotes(cleaned);
+      if (onSaveNotes) {
+        onSaveNotes(milestone.id, cleaned);
+      }
+    }
+  }, [milestone]);
+
+
+
   const cleanMilestoneTitle = (title) => {
     if (!title) return "";
     const rawAns = answers && answers.length > 0 ? answers[0].answer : "";
@@ -914,16 +931,7 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
                 </div>
               </div>
             ) : notes ? (
-              /* Display Generated Notes */
-              <div 
-                className={`study-notes-document ${isDarkMode ? "notes-dark" : "notes-light"}`}
-                style={{
-                  lineHeight: "1.8",
-                  fontFamily: "var(--font-sans)",
-                  textAlign: "left"
-                }}
-                dangerouslySetInnerHTML={{ __html: parseMarkdownToHTML(notes) }}
-              />
+              <StudyNotesContent notes={notes} isDarkMode={isDarkMode} />
             ) : (
               /* Call to Action to Generate Notes */
               <div style={{
@@ -987,6 +995,25 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
                     }}
                   >
                     Smart Notes ✨
+                  </button>
+                  <button
+                    onClick={() => setNoteStyle("visual")}
+                    style={{
+                      padding: "8px 20px",
+                      borderRadius: "12px",
+                      border: "none",
+                      background: noteStyle === "visual" ? (isDarkMode ? "rgba(255, 106, 0, 0.15)" : "#ffedd5") : "transparent",
+                      color: noteStyle === "visual" ? "#ff6a00" : (isDarkMode ? "#94a3b8" : "#64748b"),
+                      fontWeight: noteStyle === "visual" ? "800" : "600",
+                      fontSize: "13.5px",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px"
+                    }}
+                  >
+                    Visual Stories 🎨
                   </button>
                 </div>
 
@@ -4105,3 +4132,147 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
     </div>
   );
 }
+
+const StudyNotesContent = memo(({ notes, isDarkMode }) => {
+  const sanitizeCode = (rawCode) => {
+    let code = rawCode
+      // Collapse multi-dash arrows first to prevent parser confusion
+      .replace(/-{3,}>>/g, "->流通->") // Temporary placeholder for sequence arrow
+      .replace(/-{3,}/g, "-") // Collapse all other multi-dashes to a single dash
+      .replace(/->流通->/g, "->>") // Restore sequence arrow
+      .replace(/={3,}>/g, "==>")
+      // Normalize standard arrow styles without overriding sequence arrows
+      .replace(/[\u2192\u2794\u279c\u27a1]/g, "-->") // Unicode right arrows
+      .replace(/->(?!>)/g, "-->") // Standard flowchart arrow
+      .replace(/=>(?!>)/g, "==>") // Thick flowchart arrow
+      .replace(/[\u2190]/g, "<--") // Unicode left arrow
+      .replace(/<-(?!<)/g, "<--")
+      .trim();
+
+    // Process line-by-line to sanitize nested quotes and tag-like content inside node labels
+    const lines = code.split("\n");
+    const processedLines = lines.map(line => {
+      return line.replace(/([a-zA-Z0-9_-]+)([\(\[\{])"([\s\S]*?)"([\)\}\]])/g, (match, nodeName, openBrack, content, closeBrack) => {
+        const sanitizedContent = content
+          .replace(/"/g, "'")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+        return `${nodeName}${openBrack}"${sanitizedContent}"${closeBrack}`;
+      });
+    });
+
+    return processedLines.join("\n");
+  };
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && notes && notes.includes("```mermaid")) {
+      const renderMermaid = async () => {
+        if (!window.mermaid) return;
+        try {
+          window.mermaid.initialize({
+            startOnLoad: false,
+            theme: isDarkMode ? "dark" : "default",
+            securityLevel: "loose",
+            fontFamily: "var(--font-sans)",
+            flowchart: { useMaxWidth: true, htmlLabels: true }
+          });
+
+          let retries = 0;
+          const attemptRender = async () => {
+            const elements = document.querySelectorAll(".mermaid");
+            const uncompiled = Array.from(elements).filter(el => !el.querySelector("svg") && !el.querySelector(".mermaid-error-box"));
+            
+            if (uncompiled.length === 0) {
+              if (retries < 6) {
+                retries++;
+                setTimeout(attemptRender, 100);
+              }
+              return;
+            }
+
+            for (let i = 0; i < uncompiled.length; i++) {
+              const el = uncompiled[i];
+              const code = sanitizeCode(el.textContent);
+              const id = `mermaid-svg-${Date.now()}-${i}`;
+              try {
+                const { svg } = await window.mermaid.render(id, code);
+                el.innerHTML = svg;
+              } catch (err) {
+                console.error("Failed to render mermaid diagram:", err);
+                const errEl = document.getElementById(id);
+                if (errEl) errEl.remove();
+                const bindEl = document.getElementById(`d${id}`);
+                if (bindEl) bindEl.remove();
+                
+                el.innerHTML = `
+                  <div class="mermaid-error-box" style="
+                    background: ${isDarkMode ? 'rgba(239, 68, 68, 0.05)' : '#fef2f2'};
+                    border: 1px solid ${isDarkMode ? 'rgba(239, 68, 68, 0.2)' : '#fec2c2'};
+                    border-radius: 12px;
+                    padding: 20px;
+                    text-align: left;
+                    font-family: var(--font-sans);
+                    max-width: 600px;
+                    margin: 0 auto;
+                  ">
+                    <div style="display: flex; align-items: center; gap: 8px; color: ${isDarkMode ? '#f87171' : '#dc2626'}; font-weight: 800; font-size: 14.5px; margin-bottom: 8px;">
+                      ⚠️ Unable to Parse Diagram Syntax
+                    </div>
+                    <div style="font-size: 12.5px; color: ${isDarkMode ? '#94a3b8' : '#475569'}; line-height: 1.5; margin-bottom: 12px;">
+                      The AI generated diagram contains a syntax mistake. Try using the **Regenerate** option to rebuild notes for this milestone.
+                    </div>
+                    <details style="cursor: pointer;">
+                      <summary style="font-size: 12px; font-weight: 700; color: ${isDarkMode ? '#64748b' : '#94a3b8'}; outline: none;">
+                        View Raw Source Code
+                      </summary>
+                      <pre style="
+                        margin-top: 8px;
+                        padding: 12px;
+                        border-radius: 8px;
+                        background: ${isDarkMode ? '#0d1321' : '#f8fafc'};
+                        color: ${isDarkMode ? '#e2e8f0' : '#0f172a'};
+                        font-size: 12px;
+                        font-family: monospace;
+                        overflow-x: auto;
+                        white-space: pre-wrap;
+                        text-align: left;
+                      ">${code}</pre>
+                    </details>
+                  </div>
+                `;
+              }
+            }
+          };
+
+          await attemptRender();
+        } catch (err) {
+          console.error("Mermaid execution failed:", err);
+        }
+      };
+
+      if (window.mermaid) {
+        renderMermaid();
+      } else {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js";
+        script.async = true;
+        script.onload = async () => {
+          try {
+            renderMermaid();
+          } catch (err) {
+            console.error("Mermaid script onload run failed:", err);
+          }
+        };
+        document.body.appendChild(script);
+      }
+    }
+  }, [notes, isDarkMode]);
+
+  return (
+    <div 
+      className={`study-notes-document ${isDarkMode ? "notes-dark" : "notes-light"}`}
+      style={{ lineHeight: "1.8", fontSize: "15px", textAlign: "left" }} 
+      dangerouslySetInnerHTML={{ __html: parseMarkdownToHTML(notes) }} 
+    />
+  );
+});

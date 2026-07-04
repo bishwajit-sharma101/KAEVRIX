@@ -717,6 +717,64 @@ Ensure the tone is professional, encouraging, and highly educational. Generate t
 Your word count and depth must dynamically adapt to the complexity of the milestone:
 - For complex milestones (involving intricate rules, underlying architecture, or multi-step logic): Write a detailed, exhaustive study guide (800-1200 words) covering deep theory, edge cases, extensive examples, and detailed explanations.
 - For simple or syntax-only milestones (straightforward definitions, basic terms, or simple conventions): Keep it concise and direct (400-600 words) with clear explanations and examples. Do NOT add unnecessary fluff or wordy explanations just to hit a high word count.`;
+  } else if (noteStyle === 'visual') {
+    prompt = `You are Kaevrix's Visual Storytelling Engine.
+These notes prioritize understanding through visual storytelling rather than textual explanations.
+Your objective is to make the learner understand concepts primarily through diagrams, Mermaid charts, comparison tables, visual hierarchies, timelines, execution flows, architecture diagrams, decision trees, and code walkthroughs.
+A learner should be able to understand at least 70–80% of the topic simply by scrolling through the visuals.
+Text exists only to connect visuals together.
+
+Every major concept should first ask:
+"Can this be shown instead of explained?"
+If yes, show it.
+Do not describe a process that can be drawn.
+Do not describe relationships that can be mapped.
+Do not describe architecture that can be diagrammed.
+
+Generate professional Mermaid diagrams whenever they improve learning.
+Use advanced Mermaid syntax. Avoid tiny A->B->C diagrams.
+Prefer: layered diagrams, subgraphs, decision trees, execution flows, architecture diagrams, sequence diagrams, state diagrams, class diagrams, ER diagrams, timelines, mindmaps, journey diagrams.
+Visuals should tell the story. The learner should feel like they are watching the concept unfold rather than reading about it.
+
+CRITICAL MERMAID SYNTAX RULES & VALIDATION (MUST FOLLOW STRICTLY):
+1. NO MIXING DIAGRAM TYPES: A single mermaid code block must use exactly ONE type.
+   - NEVER put sequence diagram commands (like 'note over', 'Note over', 'participant') inside flowcharts/graphs ('graph LR' or 'graph TD').
+   - NEVER mix timelines or mindmaps with graph arrows.
+2. GRAPH DIRECTIVES: Start flowcharts/graphs with 'graph TD' or 'graph LR'.
+3. STRICT DOUBLE-QUOTES FOR LABELS: EVERY node text label MUST be wrapped in double quotes inside brackets. For example:
+   - Correct: A["File A (moduleA.js)"]
+   - Incorrect: A[File A (moduleA.js)]
+   - Correct: B{"Exports: Function/Variable"}
+   - Incorrect: B{Exports: Function/Variable}
+   Any node text that contains spaces, parentheses, brackets, colons, semi-colons, commas, or special characters MUST be wrapped in double quotes.
+4. INDENTATION FOR TIMELINES & MINDMAPS: You MUST use exactly 4 spaces of indentation for nested elements in timelines and mindmaps to satisfy the parser. Do NOT write them flat. For example:
+   timeline
+       title Timeline Title
+       section Section Name
+           2009 : Event 1 : Event 2
+5. NO MARKDOWN INSIDE LABELS: Do not use bold '**', italics '*', or other markdown styles inside the double-quoted node label (e.g., do NOT do: A["**My Node**"]). Keep label text clean and plain.
+6. STYLING RULES: If applying custom node styles, use valid syntax:
+   - Correct: style A fill:#d4af37,stroke:#333,stroke-width:2px;
+   - Never use spaces after colons or incorrect hexadecimal formats.
+7. SEQUENCE DIAGRAMS: Use 'sequenceDiagram' followed by 'participant ParticipantName as "Display Name"'.
+8. MINDMAPS: Mindmaps must start with 'mindmap' and use indentation for hierarchy. Do NOT use arrows '-->' in mindmaps.
+9. Ensure all Mermaid blocks are closed properly with triple-backticks.
+10. Never invent Mermaid syntax. Generate Mermaid syntax strictly compatible with Mermaid v10+.
+
+OUTPUT STRUCTURE & FORMATTING:
+- Use whitespace, tables, visual comparisons, callouts, and icons.
+- Paragraphs must be short and never exceed 4-5 lines. Avoid large walls of text.
+- Whenever code appears, visualize its execution showing Input -> Execution -> Memory Changes -> Output using Mermaid diagrams whenever appropriate.
+- Structure sections as: What? -> Why? -> How? -> Internally How? -> What Happens Next? -> Where Is This Used? -> What Can Go Wrong? -> Best Practices.
+
+Topic: ${topic}
+Milestone: ${milestone.title}
+Description: ${milestone.description || ""}
+Key Points: ${(milestone.keyPoints || []).join(", ")}
+User's Reason for learning: ${userReason}
+User's 3-month success target: ${userGoal}
+
+Output ONLY the final Markdown formatted study guide.`;
   } else {
     prompt = `You are a world-class expert educator.
 Generate an exhaustive, high-fidelity, and deeply detailed "Smart Study Guide" for this milestone.
@@ -859,6 +917,61 @@ Identify 3-4 actual, high-quality questions related to this milestone, with Idea
 ## ⚡ Interactive Practice & Exercises
 Provide 2 small exercises or mental puzzles with answers hidden below.
 `;
+  } else if (noteStyle === 'visual') {
+    notesGuidelines = `
+You are Kaevrix's Visual Storytelling Engine.
+These notes prioritize understanding through visual storytelling rather than textual explanations.
+Your objective is to make the learner understand concepts primarily through diagrams, Mermaid charts, comparison tables, visual hierarchies, timelines, execution flows, architecture diagrams, decision trees, and code walkthroughs.
+A learner should be able to understand at least 70–80% of the topic simply by scrolling through the visuals.
+Text exists only to connect visuals together.
+
+Every major concept should first ask:
+"Can this be shown instead of explained?"
+If yes, show it.
+Do not describe a process that can be drawn.
+Do not describe relationships that can be mapped.
+Do not describe architecture that can be diagrammed.
+
+Generate professional Mermaid diagrams whenever they improve learning.
+Use advanced Mermaid syntax. Avoid tiny A->B->C diagrams.
+Prefer: layered diagrams, subgraphs, decision trees, execution flows, architecture diagrams, sequence diagrams, state diagrams, class diagrams, ER diagrams, timelines, mindmaps, journey diagrams.
+Visuals should tell the story. The learner should feel like they are watching the concept unfold rather than reading about it.
+
+CRITICAL MERMAID SYNTAX RULES & VALIDATION (MUST FOLLOW STRICTLY):
+1. NO MIXING DIAGRAM TYPES: A single mermaid code block must use exactly ONE type.
+   - NEVER put sequence diagram commands (like 'note over', 'Note over', 'participant') inside flowcharts/graphs ('graph LR' or 'graph TD').
+   - NEVER mix timelines or mindmaps with graph arrows.
+2. GRAPH DIRECTIVES: Start flowcharts/graphs with 'graph TD' or 'graph LR'.
+3. STRICT DOUBLE-QUOTES FOR LABELS: EVERY node text label MUST be wrapped in double quotes inside brackets. For example:
+   - Correct: A["File A (moduleA.js)"]
+   - Incorrect: A[File A (moduleA.js)]
+   - Correct: B{"Exports: Function/Variable"}
+   - Incorrect: B{Exports: Function/Variable}
+   Any node text that contains spaces, parentheses, brackets, colons, semi-colons, commas, or special characters MUST be wrapped in double quotes.
+4. INDENTATION FOR TIMELINES & MINDMAPS: You MUST use exactly 4 spaces of indentation for nested elements in timelines and mindmaps to satisfy the parser. Do NOT write them flat. For example:
+   timeline
+       title Timeline Title
+       section Section Name
+           2009 : Event 1 : Event 2
+5. NO MARKDOWN INSIDE LABELS: Do not use bold '**', italics '*', or other markdown styles inside the double-quoted node label (e.g., do NOT do: A["**My Node**"]). Keep label text clean and plain.
+6. STYLING RULES: If applying custom node styles, use valid syntax:
+   - Correct: style A fill:#d4af37,stroke:#333,stroke-width:2px;
+   - Never use spaces after colons or incorrect hexadecimal formats.
+7. SEQUENCE DIAGRAMS: Use 'sequenceDiagram' followed by 'participant ParticipantName as "Display Name"'.
+8. MINDMAPS: Mindmaps must start with 'mindmap' and use indentation for hierarchy. Do NOT use arrows '-->' in mindmaps.
+9. Ensure all Mermaid blocks are closed properly with triple-backticks.
+10. Never invent Mermaid syntax. Generate Mermaid syntax strictly compatible with Mermaid v10+.
+
+OUTPUT STRUCTURE & FORMATTING:
+- Use whitespace, tables, visual comparisons, callouts, and icons.
+- Paragraphs must be short and never exceed 4-5 lines. Avoid large walls of text.
+- Whenever code appears, visualize its execution showing Input -> Execution -> Memory Changes -> Output using Mermaid diagrams whenever appropriate.
+- Structure sections as: What? -> Why? -> How? -> Internally How? -> What Happens Next? -> Where Is This Used? -> What Can Go Wrong? -> Best Practices.
+
+CRITICAL JSON REQUIREMENT:
+- The generated study notes MUST be returned as a single JSON-encoded string inside the "notes" property of the JSON response. Do not output raw markdown directly.
+- The notes text must be properly escaped for inclusion in a JSON string (e.g., escape backslashes, escape double quotes, use \n for newlines).
+`;
   } else {
     notesGuidelines = `
 Dynamically construct a "Smart Study Guide" based on these rules:
@@ -959,8 +1072,107 @@ Respond ONLY with a valid JSON object matching the format below. Do not wrap the
       resultText = await ollamaGenerate(prompt, "json", userId, "/pathfinder/study-notes-and-quiz");
     }
 
-    // Try parsing the combined JSON response (with LLM repair)
-    const parsed = repairAndParseJSON(resultText, "study-notes-and-quiz");
+    // Try parsing the combined JSON response (with LLM repair and regex fallback)
+    let parsed;
+    try {
+      parsed = repairAndParseJSON(resultText, "study-notes-and-quiz");
+    } catch (parseErr) {
+      console.warn(`[NotesAndQuiz] repairAndParseJSON failed, attempting regex extraction:`, parseErr.message);
+      try {
+        let cleanText = resultText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+        let notesExtracted = "";
+        let postQuestions = [];
+        let inQuestions = [];
+
+        // Determine notes string by using index boundaries to bypass unescaped inner double quotes
+        const notesKeyIndex = cleanText.indexOf('"notes"');
+        if (notesKeyIndex !== -1) {
+          const colonIndex = cleanText.indexOf(':', notesKeyIndex);
+          if (colonIndex !== -1) {
+            const startQuoteIndex = cleanText.indexOf('"', colonIndex + 1);
+            if (startQuoteIndex !== -1) {
+              let endKeyIndex = cleanText.indexOf('"postVideoQuestions"');
+              if (endKeyIndex === -1) {
+                endKeyIndex = cleanText.indexOf('"inVideoQuestions"');
+              }
+              if (endKeyIndex === -1) {
+                endKeyIndex = cleanText.lastIndexOf('}');
+              }
+              if (endKeyIndex !== -1 && endKeyIndex > startQuoteIndex) {
+                const endQuoteIndex = cleanText.lastIndexOf('"', endKeyIndex - 1);
+                if (endQuoteIndex > startQuoteIndex) {
+                  notesExtracted = cleanText.substring(startQuoteIndex + 1, endQuoteIndex);
+                }
+              }
+            }
+          }
+        }
+
+        // Clean up notes text and handle replacements
+        if (notesExtracted) {
+          notesExtracted = notesExtracted
+            .replace(/\\"/g, '"')
+            .replace(/\\n/g, '\n')
+            .replace(/\\t/g, '\t')
+            .replace(/\\\\/g, '\\');
+        } else {
+          // Fallback to matching first markdown header block
+          const markdownRegex = /(?:^|[\r\n])(#[\s\S]*?)(?:\{|\"postVideoQuestions)/i;
+          const mdMatch = cleanText.match(markdownRegex);
+          if (mdMatch) {
+            notesExtracted = mdMatch[1].trim();
+          }
+        }
+
+        // Extract postVideoQuestions array
+        const postQuestionsRegex = /"postVideoQuestions"\s*:\s*(\[[\s\S]*?\])/i;
+        const postMatch = cleanText.match(postQuestionsRegex);
+        if (postMatch) {
+          try {
+            postQuestions = JSON.parse(postMatch[1].replace(/,\s*([\]\}])/g, "$1"));
+          } catch (_) {
+            const objRegex = /\{[\s\S]*?\}/g;
+            let m;
+            while ((m = objRegex.exec(postMatch[1])) !== null) {
+              try {
+                postQuestions.push(JSON.parse(m[0].replace(/,\s*([\]\}])/g, "$1")));
+              } catch (_) {}
+            }
+          }
+        }
+
+        // Extract inVideoQuestions array
+        const inQuestionsRegex = /"inVideoQuestions"\s*:\s*(\[[\s\S]*?\])/i;
+        const inMatch = cleanText.match(inQuestionsRegex);
+        if (inMatch) {
+          try {
+            inQuestions = JSON.parse(inMatch[1].replace(/,\s*([\]\}])/g, "$1"));
+          } catch (_) {
+            const objRegex = /\{[\s\S]*?\}/g;
+            let m;
+            while ((m = objRegex.exec(inMatch[1])) !== null) {
+              try {
+                inQuestions.push(JSON.parse(m[0].replace(/,\s*([\]\}])/g, "$1")));
+              } catch (_) {}
+            }
+          }
+        }
+
+        if (notesExtracted || postQuestions.length > 0) {
+          parsed = {
+            notes: notesExtracted,
+            postVideoQuestions: postQuestions,
+            inVideoQuestions: inQuestions
+          };
+          console.log("[NotesAndQuiz] Regex recovery successful!");
+        } else {
+          throw new Error("Could not extract any content using regex");
+        }
+      } catch (regexErr) {
+        console.error("[NotesAndQuiz] Regex fallback parser also failed:", regexErr);
+        throw parseErr;
+      }
+    }
     
     // Ensure all postVideoQuestions are marked conceptual and have valid keys
     if (parsed.postVideoQuestions && Array.isArray(parsed.postVideoQuestions)) {

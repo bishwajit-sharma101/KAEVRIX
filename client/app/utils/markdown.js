@@ -91,58 +91,66 @@ export function parseMarkdownToHTML(md) {
       
       // Trim trailing newline
       code = code.replace(/\n$/, "");
-      const highlighted = highlightCode(code, lang);
-      
-      // Render code block with window styling (macOS window bar)
-      registryCounter++;
-      const copyId = `code-snippet-${registryCounter}`;
-      codeRegistry.set(copyId, code);
+      if (lang.toLowerCase() === "mermaid") {
+        resultHtml += `
+          <div class="mermaid-diagram-window" style="background: rgba(255, 255, 255, 0.015); border-radius: 12px; margin: 24px 0; border: 1px solid var(--glass-border, #e2e8f0); padding: 24px; text-align: center; display: flex; justify-content: center; overflow-x: auto; min-height: 100px;">
+            <pre class="mermaid" style="margin: 0; background: transparent; font-family: inherit; color: inherit; font-size: 14px;">${code}</pre>
+          </div>
+        `;
+      } else {
+        const highlighted = highlightCode(code, lang);
+        
+        // Render code block with window styling (macOS window bar)
+        registryCounter++;
+        const copyId = `code-snippet-${registryCounter}`;
+        codeRegistry.set(copyId, code);
 
-      resultHtml += `
-        <div class="code-screenshot-window" style="
-          background: #090d16;
-          border-radius: 12px;
-          margin: 24px 0;
-          box-shadow: 0 12px 36px rgba(0,0,0,0.5);
-          border: 1px solid #1e293b;
-          overflow: hidden;
-          font-family: 'Fira Code', 'Courier New', Courier, monospace;
-          text-align: left;
-        ">
-          <div style="
-            background: #0d1321;
-            padding: 12px 18px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid #1e293b;
+        resultHtml += `
+          <div class="code-screenshot-window" style="
+            background: #090d16;
+            border-radius: 12px;
+            margin: 24px 0;
+            box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+            border: 1px solid #1e293b;
+            overflow: hidden;
+            font-family: 'Fira Code', 'Courier New', Courier, monospace;
+            text-align: left;
           ">
-            <div style="display: flex; gap: 8px;">
-              <span style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f56; display: inline-block;"></span>
-              <span style="width: 12px; height: 12px; border-radius: 50%; background: #ffbd2e; display: inline-block;"></span>
-              <span style="width: 12px; height: 12px; border-radius: 50%; background: #27c93f; display: inline-block;"></span>
+            <div style="
+              background: #0d1321;
+              padding: 12px 18px;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              border-bottom: 1px solid #1e293b;
+            ">
+              <div style="display: flex; gap: 8px;">
+                <span style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f56; display: inline-block;"></span>
+                <span style="width: 12px; height: 12px; border-radius: 50%; background: #ffbd2e; display: inline-block;"></span>
+                <span style="width: 12px; height: 12px; border-radius: 50%; background: #27c93f; display: inline-block;"></span>
+              </div>
+              <span style="color: #64748b; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${lang}</span>
+              <button 
+                class="code-copy-btn"
+                data-copy-id="${copyId}"
+              >
+                📋 Copy
+              </button>
             </div>
-            <span style="color: #64748b; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${lang}</span>
-            <button 
-              class="code-copy-btn"
-              data-copy-id="${copyId}"
-            >
-              📋 Copy
-            </button>
+            <div style="
+              padding: 20px 24px;
+              margin: 0;
+              overflow-x: auto;
+              font-size: 14px;
+              line-height: 1.65;
+              color: #f8fafc;
+              background: #05070c;
+            ">
+              <pre style="margin: 0; white-space: pre; font-family: inherit;"><code>${highlighted}</code></pre>
+            </div>
           </div>
-          <div style="
-            padding: 20px 24px;
-            margin: 0;
-            overflow-x: auto;
-            font-size: 14px;
-            line-height: 1.65;
-            color: #f8fafc;
-            background: #05070c;
-          ">
-            <pre style="margin: 0; white-space: pre; font-family: inherit;"><code>${highlighted}</code></pre>
-          </div>
-        </div>
-      `;
+        `;
+      }
       isInsideCode = false;
     } else {
       let mdText = part

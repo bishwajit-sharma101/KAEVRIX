@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { fetchWithJobPolling } from "../../utils/asyncJob";
 import * as sound from "../../utils/audio";
 import YoutubePlayer from "../Shared/YoutubePlayer";
@@ -25,6 +25,8 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
   const [isNotesExpanded, setIsNotesExpanded] = useState(false);
   const focusAudioRef = useRef(null);
   const [noteStyle, setNoteStyle] = useState("smart");
+  const [isRegenModalOpen, setIsRegenModalOpen] = useState(false);
+  const [tempRegenStyle, setTempRegenStyle] = useState("smart");
 
   // Quiz States: not_started, loading, active, completed
   const [quizState, setQuizState] = useState("not_started");
@@ -369,13 +371,14 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
 
   // Generate Notes & Quiz in a single consolidated LLM call
   const handleGenerateNotes = async (isBackground = false) => {
+    const isBg = isBackground === true;
     if (featureGates.NOTES_GEN_DISABLED) {
-      if (!isBackground) {
+      if (!isBg) {
         alert("Notes & quiz generation is temporarily disabled for maintenance. Please try again later.");
       }
       return;
     }
-    if (!isBackground) {
+    if (!isBg) {
       setLoadingNotes(true);
     }
     setIsQuizReady(false);
@@ -392,13 +395,13 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
       "Preparing interactive practice challenges...",
       "Formatting and rendering guide..."
     ];
-    if (!isBackground) {
+    if (!isBg) {
       setStatusText(statusMessages[0]);
     }
 
     let msgIdx = 0;
     let logInterval;
-    if (!isBackground) {
+    if (!isBg) {
       logInterval = setInterval(() => {
         msgIdx++;
         if (msgIdx < statusMessages.length) {
@@ -410,7 +413,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
     }
 
     try {
-      if (!isBackground) {
+      if (!isBg) {
         sound.playClockTick();
       }
       const milestone = {
@@ -478,7 +481,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
         quizDataRef.current = data;
         setIsQuizReady(true);
       }
-      if (!isBackground) {
+      if (!isBg) {
         sound.playCorrect();
       }
     } catch (err) {
@@ -487,7 +490,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
       setNotesError(true);
       setQuizError(true);
     } finally {
-      if (!isBackground) {
+      if (!isBg) {
         setLoadingNotes(false);
       }
     }
@@ -499,7 +502,22 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
       const historyKey = `kaevrix_study_history_${username}`;
       const existingHistoryStr = localStorage.getItem(historyKey);
       if (existingHistoryStr) {
-        const history = JSON.parse(existingHistoryStr);
+        let history = JSON.parse(existingHistoryStr);
+        let migrated = false;
+        history = history.map(item => {
+          if (item.notes && (item.notes.includes("→") || item.notes.includes("->") || item.notes.includes("=>"))) {
+            item.notes = item.notes
+              .replace(/[\u2192\u2794\u279c\u27a1]/g, "-->")
+              .replace(/->/g, "-->")
+              .replace(/=>/g, "==>");
+            migrated = true;
+          }
+          return item;
+        });
+        if (migrated) {
+          localStorage.setItem(historyKey, JSON.stringify(history));
+        }
+
         const videoId = video.id || video.videoId;
         const savedRecord = history.find(item => (item.video?.id === videoId || item.video?.videoId === videoId || item.id === videoId));
         if (savedRecord) {
@@ -519,6 +537,8 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
       console.error("Failed to load study notes from history on mount:", e);
     }
   }, [video.id, video.videoId, username]);
+
+
 
   // Start Quiz
   const handleStartQuiz = async () => {
@@ -1307,78 +1327,117 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
             {/* Focus Audio Element */}
             <audio ref={focusAudioRef} src="/songs/song16.mp3" loop />
 
-            {/* Focus Audio Toggle Button */}
-            <button
-              onClick={() => {
-                sound.playClockTick();
-                if (focusAudioRef.current) {
-                  if (isFocusPlaying) {
-                    focusAudioRef.current.pause();
-                    setIsFocusPlaying(false);
-                    setIsNotesExpanded(false);
-                  } else {
-                    focusAudioRef.current.play().then(() => {
-                      setIsFocusPlaying(true);
-                      setIsNotesExpanded(true);
-                    }).catch(err => console.log("Audio block", err));
-                  }
-                }
-              }}
-              title={isFocusPlaying ? "Deactivate Focus Mode" : "Activate Focus Mode"}
-              style={{
-                background: isFocusPlaying ? (isDarkMode ? "rgba(16, 185, 129, 0.15)" : "#d1fae5") : (isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed"),
-                border: isFocusPlaying ? (isDarkMode ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid #10b981") : (isDarkMode ? "1px solid rgba(255, 106, 0, 0.2)" : "1px solid #ffedd5"),
-                color: isFocusPlaying ? "#10b981" : (isDarkMode ? "#ff8c3a" : "#ea580c"),
-                borderRadius: "8px",
-                padding: "0 14px",
-                height: "36px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                marginLeft: "12px",
-                flexShrink: 0,
-                fontSize: "13px",
-                fontWeight: "900",
-                letterSpacing: "0.5px",
-                textTransform: "uppercase",
-                fontFamily: "'Outfit', sans-serif",
-                gap: "8px"
-              }}
-              onMouseOver={e => {
-                if (!isFocusPlaying) {
-                  e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.16)" : "#ffedd5";
-                }
-              }}
-              onMouseOut={e => {
-                if (!isFocusPlaying) {
-                  e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed";
-                }
-              }}
-            >
-              {isFocusPlaying ? (
-                <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 14h6v6" />
-                    <path d="M20 10h-6V4" />
-                    <path d="M14 10l7-7" />
-                    <path d="M10 14l-7 7" />
-                  </svg>
-                  <span>FOCUSING</span>
-                </>
-              ) : (
-                <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M15 3h6v6" />
-                    <path d="M9 21H3v-6" />
-                    <path d="M21 3l-7 7" />
-                    <path d="M3 21l7-7" />
-                  </svg>
-                  <span>FOCUS</span>
-                </>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {activeTab === "notes" && notes && (
+                <button
+                  onClick={() => {
+                    sound.playClockTick();
+                    setTempRegenStyle(noteStyle);
+                    setIsRegenModalOpen(true);
+                  }}
+                  title="Regenerate Study Notes"
+                  style={{
+                    background: isDarkMode ? "rgba(239, 68, 68, 0.08)" : "#fef2f2",
+                    border: isDarkMode ? "1px solid rgba(239, 68, 68, 0.2)" : "1px solid #fee2e2",
+                    color: isDarkMode ? "#f87171" : "#dc2626",
+                    borderRadius: "8px",
+                    padding: "0 14px",
+                    height: "36px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    fontSize: "13px",
+                    fontWeight: "900",
+                    letterSpacing: "0.5px",
+                    textTransform: "uppercase",
+                    fontFamily: "'Outfit', sans-serif",
+                    gap: "6px"
+                  }}
+                  onMouseOver={e => {
+                    e.currentTarget.style.background = isDarkMode ? "rgba(239, 68, 68, 0.16)" : "#fee2e2";
+                  }}
+                  onMouseOut={e => {
+                    e.currentTarget.style.background = isDarkMode ? "rgba(239, 68, 68, 0.08)" : "#fef2f2";
+                  }}
+                >
+                  🔄 Regenerate
+                </button>
               )}
-            </button>
+
+              {/* Focus Audio Toggle Button */}
+              <button
+                onClick={() => {
+                  sound.playClockTick();
+                  if (focusAudioRef.current) {
+                    if (isFocusPlaying) {
+                      focusAudioRef.current.pause();
+                      setIsFocusPlaying(false);
+                      setIsNotesExpanded(false);
+                    } else {
+                      focusAudioRef.current.play().then(() => {
+                        setIsFocusPlaying(true);
+                        setIsNotesExpanded(true);
+                      }).catch(err => console.log("Audio block", err));
+                    }
+                  }
+                }}
+                title={isFocusPlaying ? "Deactivate Focus Mode" : "Activate Focus Mode"}
+                style={{
+                  background: isFocusPlaying ? (isDarkMode ? "rgba(16, 185, 129, 0.15)" : "#d1fae5") : (isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed"),
+                  border: isFocusPlaying ? (isDarkMode ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid #10b981") : (isDarkMode ? "1px solid rgba(255, 106, 0, 0.2)" : "1px solid #ffedd5"),
+                  color: isFocusPlaying ? "#10b981" : (isDarkMode ? "#ff8c3a" : "#ea580c"),
+                  borderRadius: "8px",
+                  padding: "0 14px",
+                  height: "36px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  flexShrink: 0,
+                  fontSize: "13px",
+                  fontWeight: "900",
+                  letterSpacing: "0.5px",
+                  textTransform: "uppercase",
+                  fontFamily: "'Outfit', sans-serif",
+                  gap: "8px"
+                }}
+                onMouseOver={e => {
+                  if (!isFocusPlaying) {
+                    e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.16)" : "#ffedd5";
+                  }
+                }}
+                onMouseOut={e => {
+                  if (!isFocusPlaying) {
+                    e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed";
+                  }
+                }}
+              >
+                {isFocusPlaying ? (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 14h6v6" />
+                      <path d="M20 10h-6V4" />
+                      <path d="M14 10l7-7" />
+                      <path d="M10 14l-7 7" />
+                    </svg>
+                    <span>FOCUSING</span>
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M15 3h6v6" />
+                      <path d="M9 21H3v-6" />
+                      <path d="M21 3l-7 7" />
+                      <path d="M3 21l7-7" />
+                    </svg>
+                    <span>FOCUS</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Tab Content Display Pane */}
@@ -1554,11 +1613,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                         📥 Download Notes (.pdf)
                       </button>
                     </div>
-                    <div 
-                      className={`study-notes-document ${isDarkMode ? "notes-dark" : "notes-light"}`}
-                      style={{ lineHeight: "1.8", fontSize: "15px", textAlign: "left" }} 
-                      dangerouslySetInnerHTML={{ __html: parseMarkdownToHTML(notes) }} 
-                    />
+                    <StudyNotesContent notes={notes} isDarkMode={isDarkMode} />
                   </div>
                 ) : (
                   /* Call to Action Generate notes */
@@ -1671,6 +1726,25 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                         }}
                       >
                         Smart Notes ✨
+                      </button>
+                      <button
+                        onClick={() => setNoteStyle("visual")}
+                        style={{
+                          padding: "8px 20px",
+                          borderRadius: "12px",
+                          border: "none",
+                          background: noteStyle === "visual" ? (isDarkMode ? "rgba(255, 106, 0, 0.15)" : "#ffedd5") : "transparent",
+                          color: noteStyle === "visual" ? "#ff6a00" : (isDarkMode ? "#94a3b8" : "#64748b"),
+                          fontWeight: noteStyle === "visual" ? "800" : "600",
+                          fontSize: "13.5px",
+                          cursor: "pointer",
+                          transition: "all 0.2s",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px"
+                        }}
+                      >
+                        Visual Stories 🎨
                       </button>
                     </div>
 
@@ -2275,13 +2349,326 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
 
       </div>
 
-      {/* ═══ RECHARGE OVERLAY ═══ */}
-      {isRecharging && (
-        <RechargeOverlay
-          onComplete={handleRechargeComplete}
-          isDarkMode={isDarkMode}
-        />
+      {/* ═══ REGENERATE NOTE STYLE MODAL ═══ */}
+      {isRegenModalOpen && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(15, 23, 42, 0.75)",
+          backdropFilter: "blur(8px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+          padding: "20px"
+        }}>
+          <div style={{
+            background: isDarkMode ? "#1e1e24" : "#ffffff",
+            border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
+            borderRadius: "20px",
+            width: "100%",
+            maxWidth: "480px",
+            padding: "32px",
+            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.35)",
+            boxSizing: "border-box",
+            position: "relative"
+          }}>
+            <h3 style={{
+              margin: "0 0 12px 0",
+              fontSize: "20px",
+              fontWeight: "900",
+              color: isDarkMode ? "#ffb300" : "#ea580c",
+              fontFamily: "'Outfit', sans-serif",
+              letterSpacing: "0.5px"
+            }}>
+              🔄 REGENERATE STUDY NOTES
+            </h3>
+            
+            <p style={{
+              margin: "0 0 24px 0",
+              fontSize: "14px",
+              lineHeight: "1.6",
+              color: isDarkMode ? "#94a3b8" : "#475569"
+            }}>
+              Choose the study guide format you want to generate. This will completely overwrite your current notes and quiz for this milestone.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "28px" }}>
+              {/* Basic Option */}
+              <div 
+                onClick={() => setTempRegenStyle("basic")}
+                style={{
+                  padding: "16px",
+                  borderRadius: "12px",
+                  border: tempRegenStyle === "basic" 
+                    ? "2px solid #ff6a00" 
+                    : (isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0"),
+                  background: tempRegenStyle === "basic"
+                    ? (isDarkMode ? "rgba(255,106,0,0.1)" : "#fff7ed")
+                    : (isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc"),
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+              >
+                <div style={{ fontWeight: "700", fontSize: "14.5px", color: isDarkMode ? "#f8fafc" : "#0f172a", marginBottom: "4px" }}>
+                  Standard Notes
+                </div>
+                <div style={{ fontSize: "12px", color: isDarkMode ? "#94a3b8" : "#64748b" }}>
+                  Exhaustive, traditional study guide layout with definitions and exercises.
+                </div>
+              </div>
+
+              {/* Smart Option */}
+              <div 
+                onClick={() => setTempRegenStyle("smart")}
+                style={{
+                  padding: "16px",
+                  borderRadius: "12px",
+                  border: tempRegenStyle === "smart" 
+                    ? "2px solid #ff6a00" 
+                    : (isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0"),
+                  background: tempRegenStyle === "smart"
+                    ? (isDarkMode ? "rgba(255,106,0,0.1)" : "#fff7ed")
+                    : (isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc"),
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+              >
+                <div style={{ fontWeight: "700", fontSize: "14.5px", color: isDarkMode ? "#f8fafc" : "#0f172a", marginBottom: "4px" }}>
+                  Smart Notes ✨
+                </div>
+                <div style={{ fontSize: "12px", color: isDarkMode ? "#94a3b8" : "#64748b" }}>
+                  AI-driven study layout with conceptual, practical, and interview-relevant parts.
+                </div>
+              </div>
+
+              {/* Visual Option */}
+              <div 
+                onClick={() => setTempRegenStyle("visual")}
+                style={{
+                  padding: "16px",
+                  borderRadius: "12px",
+                  border: tempRegenStyle === "visual" 
+                    ? "2px solid #ff6a00" 
+                    : (isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0"),
+                  background: tempRegenStyle === "visual"
+                    ? (isDarkMode ? "rgba(255,106,0,0.1)" : "#fff7ed")
+                    : (isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc"),
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+              >
+                <div style={{ fontWeight: "700", fontSize: "14.5px", color: isDarkMode ? "#f8fafc" : "#0f172a", marginBottom: "4px" }}>
+                  Visual Stories 🎨
+                </div>
+                <div style={{ fontSize: "12px", color: isDarkMode ? "#94a3b8" : "#64748b" }}>
+                  Prioritizes diagrams, Mermaid charts, flowcharts, comparisons, and visual story layouts.
+                </div>
+              </div>
+            </div>
+
+            {/* Warning Alert */}
+            <div style={{
+              background: isDarkMode ? "rgba(239, 68, 68, 0.15)" : "#fef2f2",
+              border: "1px solid rgba(239, 68, 68, 0.25)",
+              borderRadius: "10px",
+              padding: "12px",
+              color: isDarkMode ? "#f87171" : "#dc2626",
+              fontSize: "12.5px",
+              lineHeight: "1.5",
+              marginBottom: "24px",
+              fontWeight: "600"
+            }}>
+              ⚠️ Warning: Your existing notes and multiple-choice questions for this video will be permanently replaced.
+            </div>
+
+            <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setIsRegenModalOpen(false)}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "8px",
+                  border: isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0",
+                  background: "transparent",
+                  color: isDarkMode ? "#cbd5e1" : "#475569",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  sound.playClockTick();
+                  setNoteStyle(tempRegenStyle);
+                  setIsRegenModalOpen(false);
+                  setTimeout(() => {
+                    handleGenerateNotes(false);
+                  }, 100);
+                }}
+                style={{
+                  padding: "10px 24px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: "linear-gradient(135deg, #ff6a00, #ee5d00)",
+                  color: "#ffffff",
+                  fontWeight: "900",
+                  cursor: "pointer",
+                  boxShadow: "0 4px 12px rgba(255,106,0,0.25)",
+                  transition: "all 0.2s"
+                }}
+              >
+                Regenerate Notes
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
 }
+
+const StudyNotesContent = memo(({ notes, isDarkMode }) => {
+  const sanitizeCode = (rawCode) => {
+    let code = rawCode
+      // Collapse multi-dash arrows first to prevent parser confusion
+      .replace(/-{3,}>>/g, "->流通->") // Temporary placeholder for sequence arrow
+      .replace(/-{3,}/g, "-") // Collapse all other multi-dashes to a single dash
+      .replace(/->流通->/g, "->>") // Restore sequence arrow
+      .replace(/={3,}>/g, "==>")
+      // Normalize standard arrow styles without overriding sequence arrows
+      .replace(/[\u2192\u2794\u279c\u27a1]/g, "-->") // Unicode right arrows
+      .replace(/->(?!>)/g, "-->") // Standard flowchart arrow
+      .replace(/=>(?!>)/g, "==>") // Thick flowchart arrow
+      .replace(/[\u2190]/g, "<--") // Unicode left arrow
+      .replace(/<-(?!<)/g, "<--")
+      .trim();
+
+    // Process line-by-line to sanitize nested quotes and tag-like content inside node labels
+    const lines = code.split("\n");
+    const processedLines = lines.map(line => {
+      return line.replace(/([a-zA-Z0-9_-]+)([\(\[\{])"([\s\S]*?)"([\)\}\]])/g, (match, nodeName, openBrack, content, closeBrack) => {
+        const sanitizedContent = content
+          .replace(/"/g, "'")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+        return `${nodeName}${openBrack}"${sanitizedContent}"${closeBrack}`;
+      });
+    });
+
+    return processedLines.join("\n");
+  };
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && notes && notes.includes("```mermaid")) {
+      const renderMermaid = async () => {
+        if (!window.mermaid) return;
+        try {
+          window.mermaid.initialize({
+            startOnLoad: false,
+            theme: isDarkMode ? "dark" : "default",
+            securityLevel: "loose",
+            fontFamily: "var(--font-sans)",
+            flowchart: { useMaxWidth: true, htmlLabels: true }
+          });
+
+          let retries = 0;
+          const attemptRender = async () => {
+            const elements = document.querySelectorAll(".mermaid");
+            const uncompiled = Array.from(elements).filter(el => !el.querySelector("svg") && !el.querySelector(".mermaid-error-box"));
+            
+            if (uncompiled.length === 0) {
+              if (retries < 6) {
+                retries++;
+                setTimeout(attemptRender, 100);
+              }
+              return;
+            }
+
+            for (let i = 0; i < uncompiled.length; i++) {
+              const el = uncompiled[i];
+              const code = sanitizeCode(el.textContent);
+              const id = `mermaid-svg-${Date.now()}-${i}`;
+              try {
+                const { svg } = await window.mermaid.render(id, code);
+                el.innerHTML = svg;
+              } catch (err) {
+                console.error("Failed to render mermaid diagram:", err);
+                const errEl = document.getElementById(id);
+                if (errEl) errEl.remove();
+                const bindEl = document.getElementById(`d${id}`);
+                if (bindEl) bindEl.remove();
+                
+                el.innerHTML = `
+                  <div class="mermaid-error-box" style="
+                    background: ${isDarkMode ? 'rgba(239, 68, 68, 0.05)' : '#fef2f2'};
+                    border: 1px solid ${isDarkMode ? 'rgba(239, 68, 68, 0.2)' : '#fec2c2'};
+                    border-radius: 12px;
+                    padding: 20px;
+                    text-align: left;
+                    font-family: var(--font-sans);
+                    max-width: 600px;
+                    margin: 0 auto;
+                  ">
+                    <div style="display: flex; align-items: center; gap: 8px; color: ${isDarkMode ? '#f87171' : '#dc2626'}; font-weight: 800; font-size: 14.5px; margin-bottom: 8px;">
+                      ⚠️ Unable to Parse Diagram Syntax
+                    </div>
+                    <div style="font-size: 12.5px; color: ${isDarkMode ? '#94a3b8' : '#475569'}; line-height: 1.5; margin-bottom: 12px;">
+                      The AI generated diagram contains a syntax mix-up (e.g. sequence format inside a flowchart). Click the <strong>🔄 Regenerate</strong> button at the top right to try generating again.
+                    </div>
+                    <details style="cursor: pointer;">
+                      <summary style="font-size: 12px; font-weight: 700; color: ${isDarkMode ? '#64748b' : '#94a3b8'}; outline: none;">
+                        View Raw Source Code
+                      </summary>
+                      <pre style="
+                        margin-top: 8px;
+                        padding: 12px;
+                        border-radius: 8px;
+                        background: ${isDarkMode ? '#0d1321' : '#f8fafc'};
+                        color: ${isDarkMode ? '#e2e8f0' : '#0f172a'};
+                        font-size: 12px;
+                        font-family: monospace;
+                        overflow-x: auto;
+                        white-space: pre-wrap;
+                        text-align: left;
+                      ">${code}</pre>
+                    </details>
+                  </div>
+                `;
+              }
+            }
+          };
+
+          await attemptRender();
+        } catch (err) {
+          console.error("Mermaid execution failed:", err);
+        }
+      };
+
+      if (window.mermaid) {
+        renderMermaid();
+      } else {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js";
+        script.async = true;
+        script.onload = async () => {
+          try {
+            renderMermaid();
+          } catch (err) {
+            console.error("Mermaid script onload run failed:", err);
+          }
+        };
+        document.body.appendChild(script);
+      }
+    }
+  }, [notes, isDarkMode]);
+
+  return (
+    <div 
+      className={`study-notes-document ${isDarkMode ? "notes-dark" : "notes-light"}`}
+      style={{ lineHeight: "1.8", fontSize: "15px", textAlign: "left" }} 
+      dangerouslySetInnerHTML={{ __html: parseMarkdownToHTML(notes) }} 
+    />
+  );
+});
