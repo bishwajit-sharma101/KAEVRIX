@@ -2,7 +2,9 @@ import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import * as sound from "../../utils/audio";
 import { CHARACTER_CLASSES } from "../../utils/characterClasses";
 
-const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
+const BACKEND_URL = typeof window !== "undefined" && ["localhost", "127.0.0.1", "::1", "[::1]"].includes(window.location.hostname)
+  ? `http://${window.location.hostname === "localhost" ? "127.0.0.1" : window.location.hostname}:5000`
+  : "";
 const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}&backgroundColor=transparent`;
 
 import { CLASS_COLORS, CLASS_ICONS, CLASS_STATS, PATHFINDER_QUESTIONS, RETRO_TIPS } from "../../utils/authConstants";

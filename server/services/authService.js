@@ -25,7 +25,7 @@ function throwError(message, statusCode = 400) {
 }
 
 export function generateAccessToken(user) {
-  return jwt.sign({ userId: user._id, username: user.username, role: user.role }, SECRET_KEY, { expiresIn: "15m" });
+  return jwt.sign({ userId: user._id, username: user.username, role: user.role }, SECRET_KEY, { expiresIn: "24h" });
 }
 
 export function generateRefreshToken(user) {

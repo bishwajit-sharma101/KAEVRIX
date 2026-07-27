@@ -23,6 +23,15 @@ const telemetryEventSchema = new mongoose.Schema({
   xpAwarded: { type: Number, default: 0 },
   durationMs: { type: Number, default: 0 },
 
+  // Deep interaction tracking fields
+  connectionType: { type: String, required: false },
+  viewportWidth: { type: Number, required: false },
+  viewportHeight: { type: Number, required: false },
+  scrollDepth: { type: Number, default: 0 },
+  idleTime: { type: Number, default: 0 },
+  pageDwellTime: { type: Number, default: 0 },
+  rageClicksCount: { type: Number, default: 0 },
+
   eventType: { 
     type: String, 
     enum: [
@@ -65,7 +74,7 @@ const telemetryEventSchema = new mongoose.Schema({
     required: true 
   },
   metadata: { type: mongoose.Schema.Types.Mixed, default: {} },
-  timestamp: { type: Date, default: Date.now, expires: 604800 }
+  timestamp: { type: Date, default: Date.now, expires: 7776000 }
 });
 
 telemetryEventSchema.index({ eventType: 1, timestamp: -1 });

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { trackTelemetry } from "../../utils/telemetry.js";
 
 const STATUS_LOGS = [
   "📡 Contacting matchmaking server nodes...",
@@ -16,6 +17,14 @@ const BOT_FALLBACK_SECONDS = 60;
 export default function Matchmaking({ avatar, selectedVideo, onCancel }) {
   const [logIdx, setLogIdx] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    trackTelemetry({
+      eventType: "SANCTUM_MATCHMAKING_STARTED",
+      videoId: selectedVideo?.id,
+      topic: selectedVideo?.title
+    });
+  }, [selectedVideo]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -113,7 +122,15 @@ export default function Matchmaking({ avatar, selectedVideo, onCancel }) {
         </span>
       </p>
       <div className="matchmaking-actions">
-        <button className="btn-secondary" onClick={onCancel}>
+        <button className="btn-secondary" onClick={() => {
+          trackTelemetry({
+            eventType: "SANCTUM_ABANDONED",
+            videoId: selectedVideo?.id,
+            topic: selectedVideo?.title,
+            metadata: { canceledAt: new Date().toISOString() }
+          });
+          onCancel();
+        }}>
           CANCEL LOOKUP
         </button>
       </div>

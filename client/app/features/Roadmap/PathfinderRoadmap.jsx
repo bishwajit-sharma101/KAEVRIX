@@ -2,10 +2,13 @@ import { useState, useEffect, memo } from "react";
 import { fetchWithJobPolling } from "../../utils/asyncJob";
 import * as sound from "../../utils/audio";
 import { parseMarkdownToHTML } from "../../utils/markdown";
+import { trackTelemetry } from "../../utils/telemetry.js";
 import BossBattleModal from "./BossBattleModal";
 import CanvasRuneLoader from "../Shared/CanvasRuneLoader";
 
-const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
+const BACKEND_URL = typeof window !== "undefined" && ["localhost", "127.0.0.1", "::1", "[::1]"].includes(window.location.hostname)
+  ? `http://${window.location.hostname === "localhost" ? "127.0.0.1" : window.location.hostname}:5000`
+  : "";
 
 // Status visual config helper
 function getStatusConfig(isDarkMode) {
@@ -35,6 +38,50 @@ const LEVEL_META = {
   4: { emoji: "🏛️", label: "Architecture", range: "Real World Mastery" },
   5: { emoji: "👑", label: "Supreme Mastery", range: "Interview Ready" },
 };
+
+const MINIMAL_TOPIC_EXAMPLE = JSON.stringify({
+  "title": "Closures & Scope Chaining",
+  "description": "Master lexical environments, inner functions retaining outer variable references, and memory encapsulation patterns.",
+  "searchQuery": "JavaScript Closures tutorial depth",
+  "estimatedMinutes": 45,
+  "xpReward": 50,
+  "keyPoints": [
+    "Understand lexical environment creation during execution",
+    "Identify inner function variable binding across outer scopes",
+    "Implement memoization and private state variables using closures"
+  ]
+}, null, 2);
+
+const DETAILED_TOPIC_EXAMPLE = JSON.stringify({
+  "title": "Closures & Scope Chaining",
+  "description": "Master lexical environments, inner functions retaining outer variable references, and practical memory encapsulation patterns.",
+  "searchQuery": "JavaScript Closures tutorial depth",
+  "estimatedMinutes": 45,
+  "xpReward": 60,
+  "keyPoints": [
+    "Understand lexical environment creation during execution",
+    "Identify inner function variable binding across outer scopes",
+    "Implement memoization and private state variables using closures"
+  ],
+  "studyNotes": "# Closures & Scope Chaining\n\nA closure is the combination of a function bundled together with references to its surrounding state (lexical environment).\n\n## Key Concepts\n- **Lexical Environment**: Created whenever a function block starts.\n- **Scope Chain**: Inner functions resolve identifiers by searching up outer scopes.",
+  "adaptiveLesson": {
+    "topicName": "Closures & Scope Chaining",
+    "prerequisites": [
+      {
+        "id": "lexical_scope",
+        "title": "Lexical Scope",
+        "difficulty": "Beginner",
+        "challenge": {
+          "description": "Predict the variable resolution in nested functions.",
+          "codeTemplate": "function outer() {\n  const x = 10;\n  return function inner() {\n    return x;\n  };\n}"
+        },
+        "explanation": {
+          "story": "Lexical scope means functions resolve variables based on where they were declared in source code."
+        }
+      }
+    ]
+  }
+}, null, 2);
 
 const getConstellationLayoutMobile = (n) => {
   if (n === 1) return [{x: 50, y: 50}];
@@ -1045,7 +1092,7 @@ function FullscreenNotesReader({ milestone, roadmapTopic, levelColor, onClose, o
   );
 }
 
-function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, onSearchDuel, onMarkComplete, onUpdateMilestoneData, onOpenNotes, onSelectVideo, isDarkMode, username, onChallengeBoss }) {
+function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, onSearchDuel, onMarkComplete, onUpdateMilestoneData, onOpenNotes, onSelectVideo, isDarkMode, username, onChallengeBoss, roadmap, setStatus, setPracticeContext }) {
   const cfg = getStatusConfig(isDarkMode)[milestone.status] || getStatusConfig(isDarkMode).locked;
   const hasNotes = !!milestone.studyNotes;
 
@@ -2275,6 +2322,8 @@ function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, on
           flexDirection: "row",
           justifyContent: "flex-end"
         }}>
+
+
           {milestone.status === "unlocked" && onChallengeBoss && (
             <button
               disabled={!isAllSubtopicsFinished}
@@ -2295,6 +2344,38 @@ function MilestoneDetailPanel({ roadmapTopic, milestone, levelColor, onClose, on
                 ? (panelTheme === "medieval" ? "⚔️ CHALLENGE BOSS" : "Challenge Boss")
                 : (panelTheme === "medieval" ? "🔒 BOSS LOCKED (FINISH ALL STEPS)" : "🔒 Boss Locked (Finish All Steps)")
               }
+            </button>
+          )}
+
+          {isAllSubtopicsFinished && (
+            <button
+              onClick={() => {
+                sound.playClockTick();
+                const levelNum = roadmap.level1?.milestones?.find(m => m.id === milestone.id) ? 1 :
+                                 roadmap.level2?.milestones?.find(m => m.id === milestone.id) ? 2 : 3;
+                const levelMilestones = levelNum === 1 ? roadmap.level1.milestones :
+                                        levelNum === 2 ? roadmap.level2.milestones :
+                                        roadmap.level3?.milestones || [];
+                setPracticeContext({
+                  topic: roadmapTopic,
+                  level: levelNum,
+                  milestoneId: milestone.id,
+                  milestones: levelMilestones
+                });
+                setStatus("practice_sheet");
+                onClose();
+              }}
+              className="er-btn"
+              style={{
+                flex: 1,
+                background: panelTheme === "medieval" 
+                  ? "linear-gradient(135deg, #b45309 0%, #d97706 100%)" 
+                  : "linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)",
+                borderColor: panelTheme === "medieval" ? "#d97706" : "#14b8a6",
+                color: "#ffffff"
+              }}
+            >
+              {panelTheme === "medieval" ? "📜 CLAIM PRACTICE SHEET" : "🧪 Get Practice Sheet"}
             </button>
           )}
 
@@ -3188,8 +3269,342 @@ function SoloLearningModal({ video, milestone, username, onClose, onMarkComplete
   );
 }
 
-export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, onSearchDuel, onReset, onStartSoloStudy, isDarkMode, featureGates = {}, setLockedFeatureAlert }) {
+export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, onSearchDuel, onReset, onStartSoloStudy, isDarkMode, featureGates = {}, setLockedFeatureAlert, setStatus, practiceContext, setPracticeContext }) {
   const storageKey = `kaevrix_roadmap_progress_${username}`;
+
+  const [showJsonModal, setShowJsonModal] = useState(false);
+  const [copiedJson, setCopiedJson] = useState(false);
+
+  const [addTopicModalLevel, setAddTopicModalLevel] = useState(null);
+  const [customTopicJsonInput, setCustomTopicJsonInput] = useState("");
+  const [addTopicError, setAddTopicError] = useState("");
+
+  const [showAdvancedSettingsModal, setShowAdvancedSettingsModal] = useState(false);
+  const [advancedSelectedLevel, setAdvancedSelectedLevel] = useState("level1");
+  const [advancedTab, setAdvancedTab] = useState("add"); // "add" or "edit"
+  const [editingMilestoneId, setEditingMilestoneId] = useState("");
+  const [isCreatingNewTopic, setIsCreatingNewTopic] = useState(true);
+
+  const getExistingLevels = () => {
+    if (!roadmap) return [];
+    const levelKeys = ["level1", "level2", "level3", "level4", "level5"];
+    const colors = ["#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#ef4444"];
+    const result = [];
+    for (let i = 0; i < levelKeys.length; i++) {
+      const k = levelKeys[i];
+      const data = roadmap[k];
+      if (data && (k === "level1" || (data.milestones && data.milestones.length > 0))) {
+        result.push({
+          key: k,
+          num: i + 1,
+          color: colors[i],
+          title: data.title || LEVEL_META[i + 1]?.label || `Level ${i + 1}`,
+          milestones: data.milestones || []
+        });
+      }
+    }
+    return result;
+  };
+
+  const [editorMode, setEditorMode] = useState("json"); // Only JSON now
+  const [formTitle, setFormTitle] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [formMinutes, setFormMinutes] = useState(45);
+  const [formXp, setFormXp] = useState(50);
+  const [formSearchQuery, setFormSearchQuery] = useState("");
+  const [formKeyPoints, setFormKeyPoints] = useState("");
+  const [formStatus, setFormStatus] = useState("locked");
+
+  const syncFormToJson = (title, desc, min, xp, query, kp, status) => {
+    const kpArr = kp ? kp.split("\n").map(s => s.replace(/^[-•*]\s*/, "").trim()).filter(Boolean) : [];
+    const jsonObj = {
+      title: title || "",
+      description: desc || "",
+      searchQuery: query || "",
+      estimatedMinutes: Number(min) || 45,
+      xpReward: Number(xp) || 50,
+      status: status || "locked",
+      keyPoints: kpArr
+    };
+    setCustomTopicJsonInput(JSON.stringify(jsonObj, null, 2));
+  };
+
+  const populateFormFromObject = (obj) => {
+    if (!obj) {
+      setFormTitle("");
+      setFormDescription("");
+      setFormMinutes(45);
+      setFormXp(50);
+      setFormSearchQuery("");
+      setFormKeyPoints("");
+      setFormStatus("locked");
+      setCustomTopicJsonInput("");
+      return;
+    }
+    if (typeof obj === "string") {
+      const stringObj = {
+        title: obj,
+        description: `Learn ${obj} through interactive study and practice.`,
+        searchQuery: obj,
+        estimatedMinutes: 45,
+        xpReward: 50,
+        status: "locked",
+        keyPoints: []
+      };
+      setFormTitle(obj);
+      setFormDescription(stringObj.description);
+      setFormMinutes(45);
+      setFormXp(50);
+      setFormSearchQuery(obj);
+      setFormKeyPoints("");
+      setFormStatus("locked");
+      setCustomTopicJsonInput(JSON.stringify(stringObj, null, 2));
+      return;
+    }
+    const resolvedTitle = obj.title || obj.topic || obj.topicTitle || obj.topicName || obj.label || obj.name || obj.concept || "";
+    setFormTitle(resolvedTitle);
+    setFormDescription(obj.description || obj.overview || "");
+    setFormMinutes(obj.estimatedMinutes || 45);
+    setFormXp(obj.xpReward || 50);
+    setFormSearchQuery(obj.searchQuery || resolvedTitle || "");
+    setFormKeyPoints(Array.isArray(obj.keyPoints) ? obj.keyPoints.join("\n") : "");
+    setFormStatus(obj.status || "locked");
+
+    const fullObj = {
+      title: resolvedTitle,
+      description: obj.description || obj.overview || "",
+      searchQuery: obj.searchQuery || resolvedTitle || "",
+      estimatedMinutes: obj.estimatedMinutes || 45,
+      xpReward: obj.xpReward || 50,
+      status: obj.status || "locked",
+      keyPoints: obj.keyPoints || [],
+      ...obj
+    };
+    setCustomTopicJsonInput(JSON.stringify(fullObj, null, 2));
+  };
+
+  const handleAddCustomTopic = (e, overrideLevelKey) => {
+    if (e) e.preventDefault();
+    setAddTopicError("");
+
+    const targetKey = overrideLevelKey || addTopicModalLevel || advancedSelectedLevel || "level1";
+    let jsonStr = customTopicJsonInput.trim();
+
+    if (!jsonStr) {
+      setAddTopicError("Please paste or enter a valid JSON payload.");
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch (err) {
+      setAddTopicError(`Invalid JSON syntax: ${err.message}`);
+      return;
+    }
+
+    let itemsToAdd = [];
+    let levelMetaUpdate = {};
+    let isFullLevelPayload = false;
+
+    if (Array.isArray(parsed)) {
+      itemsToAdd = parsed;
+    } else if (parsed && typeof parsed === "object") {
+      if (Array.isArray(parsed.milestones)) {
+        isFullLevelPayload = true;
+        itemsToAdd = parsed.milestones;
+        if (parsed.title) levelMetaUpdate.title = parsed.title;
+        if (parsed.subtitle) levelMetaUpdate.subtitle = parsed.subtitle;
+        if (parsed.color) levelMetaUpdate.color = parsed.color;
+      } else {
+        itemsToAdd = [parsed];
+      }
+    }
+
+    if (itemsToAdd.length === 0) {
+      setAddTopicError("No valid topic milestones found in the JSON payload.");
+      return;
+    }
+
+    for (let i = 0; i < itemsToAdd.length; i++) {
+      const item = itemsToAdd[i];
+      if (!item || typeof item !== "object") {
+        setAddTopicError(`Item ${i + 1} is not a valid JSON object.`);
+        return;
+      }
+      const itemTitle = item.title || item.topic || item.topicTitle || item.topicName || item.label || item.name || item.concept;
+      if (!itemTitle || typeof itemTitle !== "string" || !itemTitle.trim()) {
+        setAddTopicError(`Item ${i + 1} must have a non-empty "title" string property.`);
+        return;
+      }
+    }
+
+    setRoadmap(prev => {
+      if (!prev) return prev;
+      const next = JSON.parse(JSON.stringify(prev));
+      let targetLevel = next[targetKey];
+      if (!targetLevel) {
+        targetLevel = { title: `Level ${targetKey.replace("level", "")}`, milestones: [] };
+        next[targetKey] = targetLevel;
+      }
+
+      if (levelMetaUpdate.title) targetLevel.title = levelMetaUpdate.title;
+      if (levelMetaUpdate.subtitle) targetLevel.subtitle = levelMetaUpdate.subtitle;
+      if (levelMetaUpdate.color) targetLevel.color = levelMetaUpdate.color;
+
+      // If full level payload is pasted, replace old dummy milestones completely!
+      if (isFullLevelPayload) {
+        targetLevel.milestones = [];
+      } else if (!targetLevel.milestones) {
+        targetLevel.milestones = [];
+      }
+
+      itemsToAdd.forEach((item, idx) => {
+        const itemTitle = (item.title || item.topic || item.topicTitle || item.topicName || item.label || item.name || item.concept || "").trim();
+        const milestoneId = item.id || `ms-${targetKey}-${Date.now()}-${idx}`;
+        const milestoneItem = {
+          id: milestoneId,
+          title: itemTitle,
+          description: item.description || `Learn ${itemTitle} through interactive study and practice.`,
+          searchQuery: item.searchQuery || `${prev.topic || ''} ${itemTitle}`,
+          estimatedMinutes: Number(item.estimatedMinutes) || 45,
+          status: item.status || (idx === 0 ? "unlocked" : "locked"),
+          xpReward: Number(item.xpReward) || 50,
+          keyPoints: Array.isArray(item.keyPoints) && item.keyPoints.length > 0 
+            ? item.keyPoints 
+            : [`Understand ${itemTitle} concepts`, `Practice real-world scenarios`],
+          studyNotes: item.studyNotes || `# ${itemTitle}\n\n${item.description || "Custom study notes for this topic."}`,
+          isRevision: !!item.isRevision,
+          isEncrypted: false,
+          ...(item.adaptiveLesson ? { adaptiveLesson: item.adaptiveLesson } : {})
+        };
+        targetLevel.milestones.push(milestoneItem);
+      });
+
+      // Persist to localStorage immediately
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch (_) {}
+
+      return next;
+    });
+
+    sound.playLevelUp();
+    setAddTopicModalLevel(null);
+    setShowAdvancedSettingsModal(false);
+    setEditingMilestoneId("");
+    populateFormFromObject(null);
+  };
+
+  const handleUpdateExistingTopic = (e) => {
+    if (e) e.preventDefault();
+    setAddTopicError("");
+
+    let jsonStr = customTopicJsonInput.trim();
+    if (!jsonStr) {
+      setAddTopicError("JSON input cannot be empty.");
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch (err) {
+      setAddTopicError(`Invalid JSON syntax: ${err.message}`);
+      return;
+    }
+
+    // If user pasted a full level object or array of topics, delegate to handleAddCustomTopic!
+    if (Array.isArray(parsed) || (parsed && typeof parsed === "object" && Array.isArray(parsed.milestones))) {
+      return handleAddCustomTopic(e, advancedSelectedLevel);
+    }
+
+    if (!parsed || typeof parsed !== "object") {
+      setAddTopicError("Updated topic JSON must be a single JSON object.");
+      return;
+    }
+
+    const itemTitle = (parsed.title || parsed.topic || parsed.topicTitle || parsed.topicName || parsed.label || parsed.name || parsed.concept || "").trim();
+    if (!itemTitle) {
+      setAddTopicError("Topic object must have a non-empty 'title'.");
+      return;
+    }
+
+    setRoadmap(prev => {
+      if (!prev) return prev;
+      const next = JSON.parse(JSON.stringify(prev));
+      const targetLevel = next[advancedSelectedLevel];
+      if (!targetLevel || !targetLevel.milestones) return prev;
+
+      const idx = targetLevel.milestones.findIndex(m => m.id === editingMilestoneId);
+      if (idx !== -1) {
+        targetLevel.milestones[idx] = {
+          ...targetLevel.milestones[idx],
+          ...parsed,
+          title: itemTitle,
+          id: editingMilestoneId,
+          isEncrypted: false
+        };
+        if (selectedMilestone && selectedMilestone.id === editingMilestoneId) {
+          setSelectedMilestone({ ...targetLevel.milestones[idx] });
+        }
+      }
+
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch (_) {}
+
+      return next;
+    });
+
+    sound.playCorrect();
+    setShowAdvancedSettingsModal(false);
+    setAddTopicModalLevel(null);
+    setEditingMilestoneId("");
+    populateFormFromObject(null);
+  };
+
+  const handleDeleteExistingTopic = () => {
+    if (!editingMilestoneId) return;
+    if (!window.confirm("Are you sure you want to delete this topic from the level?")) return;
+    setRoadmap(prev => {
+      if (!prev) return prev;
+      const next = JSON.parse(JSON.stringify(prev));
+      const ms = next[advancedSelectedLevel]?.milestones || [];
+      next[advancedSelectedLevel].milestones = ms.filter(m => m.id !== editingMilestoneId);
+      return next;
+    });
+    sound.playClockTick();
+    setEditingMilestoneId("");
+    populateFormFromObject(null);
+  };
+
+  const handleAddNewLevel = () => {
+    const existingLevels = getExistingLevels();
+    const nextNum = existingLevels.length + 1;
+    if (nextNum > 5) {
+      setAddTopicError("Maximum level limit reached (Level 5).");
+      return;
+    }
+    const nextKey = `level${nextNum}`;
+    setRoadmap(prev => {
+      if (!prev) return prev;
+      const next = JSON.parse(JSON.stringify(prev));
+      if (!next[nextKey]) {
+        next[nextKey] = {
+          title: LEVEL_META[nextNum]?.label || `Level ${nextNum}`,
+          milestones: []
+        };
+      }
+      return next;
+    });
+    setAdvancedSelectedLevel(nextKey);
+    setIsCreatingNewTopic(true);
+    setEditingMilestoneId("");
+    populateFormFromObject(null);
+    setAddTopicError("");
+    sound.playLevelUp();
+  };
 
   const [roadmap, setRoadmap] = useState(() => {
     const saved = localStorage.getItem(storageKey);
@@ -3199,11 +3614,64 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
     return initialRoadmap;
   });
 
-  const [selectedMilestone, setSelectedMilestone] = useState(null);
-  const [expandedLevel, setExpandedLevel] = useState(1);
-  const [viewingNotes, setViewingNotes] = useState(false);
-  const [activeVideo, setActiveVideo] = useState(null);
+  const [selectedMilestone, setSelectedMilestone] = useState(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const saved = sessionStorage.getItem("kaevrix_selected_milestone");
+      return saved ? JSON.parse(saved) : null;
+    } catch (_) { return null; }
+  });
+  const [expandedLevel, setExpandedLevel] = useState(() => {
+    if (typeof window === "undefined") return 1;
+    const saved = sessionStorage.getItem("kaevrix_expanded_level");
+    return saved ? Number(saved) : 1;
+  });
+  const [viewingNotes, setViewingNotes] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("kaevrix_viewing_notes") === "true";
+  });
+  const [activeVideo, setActiveVideo] = useState(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const saved = sessionStorage.getItem("kaevrix_active_video");
+      return saved ? JSON.parse(saved) : null;
+    } catch (_) { return null; }
+  });
   const [bossBattleMilestone, setBossBattleMilestone] = useState(null);
+
+  useEffect(() => {
+    if (selectedMilestone) {
+      sessionStorage.setItem("kaevrix_selected_milestone", JSON.stringify(selectedMilestone));
+    } else {
+      sessionStorage.removeItem("kaevrix_selected_milestone");
+    }
+  }, [selectedMilestone]);
+
+  useEffect(() => {
+    sessionStorage.setItem("kaevrix_expanded_level", expandedLevel);
+  }, [expandedLevel]);
+
+  useEffect(() => {
+    sessionStorage.setItem("kaevrix_viewing_notes", viewingNotes ? "true" : "false");
+  }, [viewingNotes]);
+
+  useEffect(() => {
+    if (activeVideo) {
+      sessionStorage.setItem("kaevrix_active_video", JSON.stringify(activeVideo));
+    } else {
+      sessionStorage.removeItem("kaevrix_active_video");
+    }
+  }, [activeVideo]);
+
+  useEffect(() => {
+    if (roadmap) {
+      trackTelemetry({
+        eventType: "ROADMAP_VIEWED",
+        roadmapId: roadmap._id || roadmap.id,
+        topic: roadmap.topic
+      });
+    }
+  }, [roadmap]);
 
   const [isMobileView, setIsMobileView] = useState(false);
   useEffect(() => {
@@ -3335,6 +3803,15 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
 
   const markComplete = (milestone) => {
     sound.playCorrect();
+    trackTelemetry({
+      eventType: "ROADMAP_NODE_COMPLETED",
+      roadmapId: roadmap?._id || roadmap?.id,
+      topic: roadmap?.topic,
+      metadata: {
+        milestoneId: milestone.id,
+        milestoneTitle: milestone.title
+      }
+    });
     setRoadmap(prev => {
       const next = JSON.parse(JSON.stringify(prev));
       const allLevels = ["level1", "level2", "level3"];
@@ -3575,6 +4052,46 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
             </p>
           </div>
           <div style={{ display: "flex", gap: "10px", flexShrink: 0 }}>
+            {/* Reveal JSON Button */}
+            <button
+              onClick={() => {
+                sound.playClockTick();
+                setShowJsonModal(true);
+              }}
+              style={{
+                padding: "10px 18px", borderRadius: "12px",
+                border: isDarkMode ? "1.5px solid var(--glass-border)" : "1.5px solid #e2e8f0", 
+                background: isDarkMode ? "var(--bg-dark-surface)" : "#ffffff",
+                color: isDarkMode ? "#cbd5e1" : "#475569", fontSize: "13px", fontWeight: "700",
+                cursor: "pointer", transition: "all 0.2s"
+              }}
+              onMouseOver={e => { e.currentTarget.style.borderColor = "#ff6a00"; }}
+              onMouseOut={e => { e.currentTarget.style.borderColor = isDarkMode ? "var(--glass-border)" : "#e2e8f0"; }}
+            >
+              🔍 Reveal JSON
+            </button>
+
+            {/* Advanced Roadmap Settings Button */}
+            <button
+              onClick={() => {
+                sound.playClockTick();
+                setShowAdvancedSettingsModal(true);
+                setAddTopicError("");
+              }}
+              style={{
+                padding: "10px 18px", borderRadius: "12px",
+                border: isDarkMode ? "1.5px solid var(--glass-border)" : "1.5px solid #e2e8f0", 
+                background: isDarkMode ? "var(--bg-dark-surface)" : "#ffffff",
+                color: isDarkMode ? "#cbd5e1" : "#475569", fontSize: "13px", fontWeight: "700",
+                cursor: "pointer", transition: "all 0.2s"
+              }}
+              onMouseOver={e => { e.currentTarget.style.borderColor = "#8b5cf6"; }}
+              onMouseOut={e => { e.currentTarget.style.borderColor = isDarkMode ? "var(--glass-border)" : "#e2e8f0"; }}
+              title="Advanced Roadmap Manager (Level & Topic Controls)"
+            >
+              ⚙️ Settings
+            </button>
+
             <button
               onClick={() => { sound.playClockTick(); onReset(); }}
               style={{
@@ -3640,33 +4157,6 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
                   </div>
                 </div>
               ))}
-            </div>
-
-            {/* Active Daily Quest card */}
-            <div style={{
-              background: isDarkMode ? "linear-gradient(135deg, rgba(255, 106, 0, 0.08) 0%, transparent 100%)" : "#ffffff", 
-              border: isDarkMode ? "1.5px solid rgba(255, 106, 0, 0.25)" : "1.5px solid #fed7aa",
-              borderRadius: "18px",
-              padding: "20px", 
-              display: "flex", gap: "20px", alignItems: "center",
-              boxShadow: isDarkMode ? "0 4px 20px rgba(0, 0, 0, 0.3)" : "0 4px 12px rgba(255, 106, 0, 0.03)",
-              marginBottom: "24px"
-            }}>
-              <div style={{
-                width: "48px", height: "48px", borderRadius: "12px",
-                background: "rgba(255, 106, 0, 0.12)", display: "flex", alignItems: "center",
-                justifyContent: "center", fontSize: "24px", color: "var(--neon-orange)", flexShrink: 0,
-                border: "1px solid rgba(255, 106, 0, 0.25)", boxShadow: "0 0 10px rgba(255, 106, 0, 0.1)"
-              }}>
-                ⚔️
-              </div>
-              <div>
-                <div style={{ fontSize: "10px", fontWeight: "900", color: "#f97316", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "4px" }}>ACTIVE DAILY QUEST</div>
-                <div style={{ fontSize: "16px", fontWeight: "900", color: "var(--text-light)" }}>"{roadmap.dailyGoal || "Complete 1 node and watch 1 video daily"}"</div>
-                <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
-                  Complete this objective to maintain your learning streak and gain bonus XP!
-                </div>
-              </div>
             </div>
           </>
         ) : (
@@ -3861,6 +4351,8 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
                   </div>
                 </div>
 
+
+
                 <div style={{ transition: "transform 0.3s", transform: isOpen ? "rotate(180deg)" : "none" }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-muted)", display: "block" }}>
                     <polyline points="6 9 12 15 18 9" />
@@ -3877,7 +4369,7 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
                 const isLevelComplete = data.completedInLevel === data.milestones.length;
                 return (
                   <div className="pathfinder-constellation-container" style={{ 
-                    padding: "40px", 
+                    padding: "32px 40px 40px 40px", 
                     background: "#09090b", // ALWAYS dark for gaming vibe
                     position: "relative",
                     overflow: "hidden",
@@ -3890,6 +4382,19 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
                     `,
                     backgroundSize: '100% 100%, 40px 40px, 40px 40px'
                   }}>
+                    {/* Header Bar inside expanded view */}
+                    <div style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: "16px",
+                      position: "relative",
+                      zIndex: 10
+                    }}>
+                      <span style={{ fontSize: "11px", fontWeight: "900", color: color, textTransform: "uppercase", letterSpacing: "1.2px" }}>
+                        LEVEL {num} TOPICS ({data.milestones.length})
+                      </span>
+                    </div>
                     {/* gamified constellation skill path */}
                     <div style={{
                       position: "relative",
@@ -3953,6 +4458,16 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
                           isSelected={selectedMilestone?.id === milestone.id}
                           onSelect={(m) => {
                             sound.playClockTick();
+                            trackTelemetry({
+                              eventType: "ROADMAP_NODE_OPENED",
+                              roadmapId: roadmap?._id || roadmap?.id,
+                              topic: roadmap?.topic,
+                              metadata: {
+                                milestoneId: m.id,
+                                milestoneTitle: m.title,
+                                status: m.status
+                              }
+                            });
                             setSelectedMilestone(m);
                           }}
                           isDarkMode={isDarkMode}
@@ -4065,8 +4580,31 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
           onSearchDuel={onSearchDuel}
           onMarkComplete={(m) => { markComplete(m); setSelectedMilestone(null); }}
           onUpdateMilestoneData={updateMilestoneData}
-          onOpenNotes={() => setViewingNotes(true)}
+          onOpenNotes={() => {
+            trackTelemetry({
+              eventType: "ROADMAP_NODE_STARTED",
+              roadmapId: roadmap?._id || roadmap?.id,
+              topic: roadmap?.topic,
+              metadata: {
+                milestoneId: selectedMilestone.id,
+                milestoneTitle: selectedMilestone.title,
+                mode: "story"
+              }
+            });
+            setViewingNotes(true);
+          }}
           onSelectVideo={(video) => {
+            trackTelemetry({
+              eventType: "ROADMAP_NODE_STARTED",
+              roadmapId: roadmap?._id || roadmap?.id,
+              topic: roadmap?.topic,
+              metadata: {
+                milestoneId: selectedMilestone.id,
+                milestoneTitle: selectedMilestone.title,
+                mode: "video",
+                videoId: video.id
+              }
+            });
             if (onStartSoloStudy) {
               onStartSoloStudy(video);
             }
@@ -4074,12 +4612,25 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
           }}
           isDarkMode={isDarkMode}
           username={username}
+          roadmap={roadmap}
+          setStatus={setStatus}
+          setPracticeContext={setPracticeContext}
           onChallengeBoss={(m) => {
             if (featureGates.SANCTUM_DISABLED) {
               if (setLockedFeatureAlert) setLockedFeatureAlert("sanctum");
               else alert("Sanctum boss battles are temporarily disabled for maintenance. Please try again later.");
               return;
             }
+            trackTelemetry({
+              eventType: "ROADMAP_NODE_STARTED",
+              roadmapId: roadmap?._id || roadmap?.id,
+              topic: roadmap?.topic,
+              metadata: {
+                milestoneId: selectedMilestone.id,
+                milestoneTitle: selectedMilestone.title,
+                mode: "boss"
+              }
+            });
             setBossBattleMilestone(m);
           }}
         />
@@ -4111,7 +4662,18 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
             roadmap.level2?.milestones?.find(m => m.id === selectedMilestone.id) ? "#f59e0b" : "#8b5cf6"
           }
           username={username}
-          onClose={() => setViewingNotes(false)}
+          onClose={() => {
+            trackTelemetry({
+              eventType: "ROADMAP_ABANDONED",
+              roadmapId: roadmap?._id || roadmap?.id,
+              topic: roadmap?.topic,
+              metadata: {
+                milestoneId: selectedMilestone.id,
+                milestoneTitle: selectedMilestone.title
+              }
+            });
+            setViewingNotes(false);
+          }}
           onSearchDuel={onSearchDuel}
           onMarkComplete={(m) => { markComplete(m); setViewingNotes(false); setSelectedMilestone(null); }}
           onSaveNotes={saveStudyNotes}
@@ -4128,6 +4690,854 @@ export default function PathfinderRoadmap({ roadmap: initialRoadmap, username, o
           onClose={() => setBossBattleMilestone(null)}
           onVictory={(xpEarned) => handleBossVictory(bossBattleMilestone, xpEarned)}
         />
+      )}
+
+      {/* Reveal JSON Modal */}
+      {showJsonModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(3, 5, 10, 0.85)",
+          backdropFilter: "blur(12px)",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "20px"
+        }}>
+          <div style={{
+            background: isDarkMode ? "#090d16" : "#ffffff",
+            border: isDarkMode ? "1.5px solid rgba(255,255,255,0.08)" : "1.5px solid #e2e8f0",
+            borderRadius: "20px",
+            width: "100%",
+            maxWidth: "760px",
+            height: "80vh",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            boxShadow: "0 20px 40px rgba(0,0,0,0.5)"
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "20px 24px",
+              borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.06)" : "1px solid #f1f5f9"
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "900", color: isDarkMode ? "#fff" : "#0f172a" }}>
+                  Roadmap Data Source (JSON)
+                </h3>
+                <span style={{ fontSize: "12px", color: "var(--text-muted)", display: "block", marginTop: "2px" }}>
+                  Copy generated roadmap blueprint to clipboard
+                </span>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(JSON.stringify(roadmap, null, 2));
+                    setCopiedJson(true);
+                    sound.playMatchFound();
+                    setTimeout(() => setCopiedJson(false), 2000);
+                  }}
+                  className="lesson-btn outline"
+                  style={{
+                    padding: "8px 16px",
+                    fontSize: "12.5px",
+                    fontWeight: "800",
+                    background: copiedJson ? "rgba(16,185,129,0.1)" : "rgba(255,255,255,0.03)",
+                    borderColor: copiedJson ? "#10b981" : "rgba(255,255,255,0.08)",
+                    color: copiedJson ? "#10b981" : isDarkMode ? "#cbd5e1" : "#475569",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}
+                >
+                  {copiedJson ? "✅ Copied" : "📋 Copy JSON"}
+                </button>
+
+                <button
+                  onClick={() => {
+                    sound.playClockTick();
+                    setShowJsonModal(false);
+                  }}
+                  className="lesson-btn outline"
+                  style={{
+                    padding: "8px 16px",
+                    fontSize: "12.5px",
+                    fontWeight: "800",
+                    background: isDarkMode ? "rgba(239, 68, 68, 0.1)" : "rgba(239, 68, 68, 0.05)",
+                    borderColor: "rgba(239, 68, 68, 0.3)",
+                    color: "#f87171"
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div style={{
+              flex: 1,
+              padding: "24px",
+              overflowY: "auto",
+              background: isDarkMode ? "#04060b" : "#f8fafc"
+            }}>
+              <pre style={{
+                margin: 0,
+                fontFamily: "'Consolas', 'Courier New', monospace",
+                fontSize: "13px",
+                color: isDarkMode ? "#38bdf8" : "#0284c7",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-all",
+                lineHeight: "1.5"
+              }}>
+                {JSON.stringify(roadmap, null, 2)}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Topic (JSON) Modal */}
+      {addTopicModalLevel && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(3, 5, 10, 0.85)",
+          backdropFilter: "blur(12px)",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "20px"
+        }}>
+          <div style={{
+            background: isDarkMode ? "#090d16" : "#ffffff",
+            border: isDarkMode ? "1.5px solid rgba(255,255,255,0.08)" : "1.5px solid #e2e8f0",
+            borderRadius: "24px",
+            width: "100%",
+            maxWidth: "800px",
+            height: "85vh",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            boxShadow: "0 25px 50px rgba(0,0,0,0.6)"
+          }}>
+            {/* Header */}
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "20px 24px",
+              borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.06)" : "1px solid #f1f5f9"
+            }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontSize: "18px" }}>➕</span>
+                  <h3 style={{ margin: 0, fontSize: "17px", fontWeight: "900", color: isDarkMode ? "#fff" : "#0f172a" }}>
+                    Add Topic to {roadmap[addTopicModalLevel]?.title || addTopicModalLevel?.toUpperCase()}
+                  </h3>
+                </div>
+                <span style={{ fontSize: "12px", color: "var(--text-muted)", display: "block", marginTop: "2px" }}>
+                  Paste JSON for a custom topic node or load an example template below
+                </span>
+              </div>
+
+              <button
+                onClick={() => {
+                  sound.playClockTick();
+                  setAddTopicModalLevel(null);
+                  setAddTopicError("");
+                }}
+                className="lesson-btn outline"
+                style={{
+                  padding: "8px 16px",
+                  fontSize: "12.5px",
+                  fontWeight: "800",
+                  background: isDarkMode ? "rgba(239, 68, 68, 0.1)" : "rgba(239, 68, 68, 0.05)",
+                  borderColor: "rgba(239, 68, 68, 0.3)",
+                  color: "#f87171"
+                }}
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Template Toolbar */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "12px 24px",
+              background: isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc",
+              borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.04)" : "1px solid #e2e8f0",
+              gap: "10px",
+              flexWrap: "wrap"
+            }}>
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playClockTick();
+                    setCustomTopicJsonInput(MINIMAL_TOPIC_EXAMPLE);
+                    setAddTopicError("");
+                  }}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: "8px",
+                    border: "1px solid #3b82f6",
+                    background: "rgba(59, 130, 246, 0.15)",
+                    color: "#60a5fa",
+                    fontSize: "12px",
+                    fontWeight: "800",
+                    cursor: "pointer"
+                  }}
+                >
+                  📋 Load Standard Example
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playClockTick();
+                    setCustomTopicJsonInput(DETAILED_TOPIC_EXAMPLE);
+                    setAddTopicError("");
+                  }}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: "8px",
+                    border: "1px solid #8b5cf6",
+                    background: "rgba(139, 92, 246, 0.15)",
+                    color: "#c084fc",
+                    fontSize: "12px",
+                    fontWeight: "800",
+                    cursor: "pointer"
+                  }}
+                >
+                  🌟 Load Detailed Example (Notes & Lesson)
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomTopicJsonInput("");
+                  setAddTopicError("");
+                }}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "transparent",
+                  color: "var(--text-muted)",
+                  fontSize: "12px",
+                  cursor: "pointer"
+                }}
+              >
+                🧹 Clear Text
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div style={{
+              flex: 1,
+              padding: "20px 24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              overflowY: "auto",
+              background: isDarkMode ? "#04060b" : "#ffffff"
+            }}>
+              {addTopicError && (
+                <div style={{
+                  padding: "12px 16px",
+                  borderRadius: "10px",
+                  background: "rgba(239, 68, 68, 0.15)",
+                  border: "1px solid rgba(239, 68, 68, 0.4)",
+                  color: "#f87171",
+                  fontSize: "13px",
+                  fontWeight: "700"
+                }}>
+                  ⚠️ {addTopicError}
+                </div>
+              )}
+
+              <div style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: "1.5" }}>
+                Fields: <code style={{ color: "#ff6a00" }}>title</code> (required), <code style={{ color: "#3b82f6" }}>description</code>, <code style={{ color: "#3b82f6" }}>searchQuery</code>, <code style={{ color: "#3b82f6" }}>estimatedMinutes</code>, <code style={{ color: "#3b82f6" }}>xpReward</code>, <code style={{ color: "#3b82f6" }}>keyPoints</code>, <code style={{ color: "#3b82f6" }}>studyNotes</code>, <code style={{ color: "#3b82f6" }}>adaptiveLesson</code>.
+              </div>
+
+              <textarea
+                value={customTopicJsonInput}
+                onChange={(e) => {
+                  setCustomTopicJsonInput(e.target.value);
+                  if (addTopicError) setAddTopicError("");
+                }}
+                placeholder={`Paste your topic JSON here...\n\nExample:\n{\n  "title": "Closures & Scope Chaining",\n  "description": "Master lexical environments...",\n  "estimatedMinutes": 45,\n  "xpReward": 50\n}`}
+                style={{
+                  flex: 1,
+                  minHeight: "280px",
+                  width: "100%",
+                  padding: "16px",
+                  borderRadius: "14px",
+                  border: isDarkMode ? "1px solid rgba(255,255,255,0.1)" : "1px solid #cbd5e1",
+                  background: isDarkMode ? "#090d16" : "#f8fafc",
+                  color: isDarkMode ? "#e2e8f0" : "#0f172a",
+                  fontFamily: "'Consolas', 'Courier New', monospace",
+                  fontSize: "13px",
+                  lineHeight: "1.5",
+                  resize: "none",
+                  outline: "none"
+                }}
+              />
+            </div>
+
+            {/* Footer Buttons */}
+            <div style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "12px",
+              padding: "16px 24px",
+              borderTop: isDarkMode ? "1px solid rgba(255,255,255,0.06)" : "1px solid #f1f5f9",
+              background: isDarkMode ? "rgba(255,255,255,0.01)" : "#ffffff"
+            }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setAddTopicModalLevel(null);
+                  setAddTopicError("");
+                }}
+                className="lesson-btn outline"
+                style={{ padding: "10px 20px" }}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleAddCustomTopic}
+                className="lesson-btn primary"
+                style={{ padding: "10px 24px" }}
+              >
+                ✨ Save & Add Topic
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Immersive Topic Studio Overlay */}
+      {showAdvancedSettingsModal && (
+        <div style={{
+          position: "fixed",
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: "linear-gradient(180deg, #0f111a 0%, #04060b 100%)",
+          zIndex: 99999,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+          color: "#f1f5f9"
+        }}>
+          {/* Studio Top Navigation Bar - Glassmorphism */}
+          <header style={{
+            height: "76px",
+            padding: "0 32px",
+            background: "rgba(10, 14, 23, 0.7)",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.04)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexShrink: 0
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+              <div style={{
+                width: "44px", height: "44px", borderRadius: "14px",
+                background: "linear-gradient(135deg, #FF3366 0%, #FF9933 100%)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "20px", boxShadow: "0 8px 24px rgba(255, 51, 102, 0.3)"
+              }}>
+                ✨
+              </div>
+              <div>
+                <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: "#ffffff", letterSpacing: "-0.5px" }}>
+                  Roadmap Studio
+                </h2>
+                <div style={{ fontSize: "13px", color: "#94a3b8", display: "flex", alignItems: "center", gap: "8px", marginTop: "2px", fontWeight: "500" }}>
+                  <span>{roadmap?.topic || "Learning Campaign"}</span>
+                  <span style={{ opacity: 0.5 }}>•</span>
+                  <span style={{ color: "#38bdf8", fontWeight: "600" }}>
+                    {isCreatingNewTopic ? "Create Mode" : `Editing: ${formTitle || "Topic"}`}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              {!isCreatingNewTopic && editingMilestoneId && (
+                <button
+                  type="button"
+                  onClick={handleDeleteExistingTopic}
+                  style={{
+                    padding: "10px 18px",
+                    borderRadius: "10px",
+                    background: "transparent",
+                    border: "1px solid rgba(239, 68, 68, 0.3)",
+                    color: "#f87171",
+                    fontSize: "13px",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    transition: "all 0.2s"
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)"; e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.5)"; }}
+                  onMouseOut={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.3)"; }}
+                >
+                  <span>🗑️</span> Delete
+                </button>
+              )}
+
+              {isCreatingNewTopic ? (
+                <button
+                  type="button"
+                  onClick={(e) => handleAddCustomTopic(e, advancedSelectedLevel)}
+                  style={{
+                    padding: "10px 24px",
+                    borderRadius: "10px",
+                    background: "linear-gradient(135deg, #FF3366 0%, #FF9933 100%)",
+                    border: "none",
+                    color: "#ffffff",
+                    fontSize: "14px",
+                    fontWeight: "800",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    boxShadow: "0 4px 12px rgba(255, 51, 102, 0.3)",
+                    transition: "all 0.2s"
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 16px rgba(255, 51, 102, 0.4)"; }}
+                  onMouseOut={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(255, 51, 102, 0.3)"; }}
+                >
+                  <span>✨</span> Save & Append
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleUpdateExistingTopic}
+                  style={{
+                    padding: "10px 24px",
+                    borderRadius: "10px",
+                    background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                    border: "none",
+                    color: "#ffffff",
+                    fontSize: "14px",
+                    fontWeight: "800",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                    transition: "all 0.2s"
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.4)"; }}
+                  onMouseOut={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)"; }}
+                >
+                  <span>💾</span> Save Changes
+                </button>
+              )}
+
+              {/* Minimal Exit Button */}
+              <button
+                onClick={() => {
+                  sound.playClockTick();
+                  setShowAdvancedSettingsModal(false);
+                  setAddTopicError("");
+                }}
+                style={{
+                  width: "40px", height: "40px",
+                  borderRadius: "10px",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  color: "#94a3b8",
+                  fontSize: "16px",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  marginLeft: "8px"
+                }}
+                onMouseOut={e => { e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)"; e.currentTarget.style.color = "#94a3b8"; e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)"; }}
+              >
+                ✕
+              </button>
+            </div>
+          </header>
+
+          {/* Studio Content Grid */}
+          <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+
+            {/* LEFT COLUMN: Level Tabs & Topic List Sidebar (380px width for spacious layout) */}
+            <aside style={{
+              width: "380px",
+              background: "rgba(0, 0, 0, 0.25)",
+              borderRight: "1px solid rgba(255, 255, 255, 0.04)",
+              display: "flex",
+              flexDirection: "column",
+              flexShrink: 0,
+              boxShadow: "inset -10px 0 20px rgba(0,0,0,0.15)"
+            }}>
+              {/* Dynamic Level Selector Tabs */}
+              <div style={{ padding: "24px 24px 16px 24px", borderBottom: "1px solid rgba(255, 255, 255, 0.03)" }}>
+                <div style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ width: "4px", height: "12px", background: "#3b82f6", borderRadius: "4px" }}></div>
+                    Active Levels ({getExistingLevels().length})
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddNewLevel}
+                    style={{
+                      width: "28px", height: "28px", borderRadius: "8px",
+                      background: "rgba(59, 130, 246, 0.15)",
+                      border: "1px solid rgba(59, 130, 246, 0.3)",
+                      color: "#60a5fa", fontSize: "16px", fontWeight: "700",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: "pointer", transition: "all 0.2s"
+                    }}
+                    title="Add New Level"
+                    onMouseOver={e => { e.currentTarget.style.background = "rgba(59, 130, 246, 0.25)"; e.currentTarget.style.color = "#ffffff"; }}
+                    onMouseOut={e => { e.currentTarget.style.background = "rgba(59, 130, 246, 0.15)"; e.currentTarget.style.color = "#60a5fa"; }}
+                  >
+                    +
+                  </button>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {getExistingLevels().map(({ key, num, color, title, milestones }) => {
+                    const isLevelSelected = advancedSelectedLevel === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => {
+                          sound.playClockTick();
+                          setAdvancedSelectedLevel(key);
+                          const levelMs = milestones || [];
+                          if (levelMs.length > 0) {
+                            setIsCreatingNewTopic(false);
+                            setEditingMilestoneId(levelMs[0].id);
+                            populateFormFromObject(levelMs[0]);
+                          } else {
+                            setIsCreatingNewTopic(true);
+                            setEditingMilestoneId("");
+                            populateFormFromObject(null);
+                          }
+                          setAddTopicError("");
+                        }}
+                        style={{
+                          padding: "14px 18px",
+                          borderRadius: "14px",
+                          border: isLevelSelected ? `1px solid ${color}60` : "1px solid rgba(255,255,255,0.03)",
+                          background: isLevelSelected ? `linear-gradient(90deg, ${color}20 0%, transparent 100%)` : "rgba(255,255,255,0.01)",
+                          color: isLevelSelected ? "#ffffff" : "#94a3b8",
+                          fontSize: "14px",
+                          fontWeight: isLevelSelected ? "700" : "500",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          transition: "all 0.2s ease"
+                        }}
+                        onMouseOver={e => { if(!isLevelSelected) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                        onMouseOut={e => { if(!isLevelSelected) e.currentTarget.style.background = "rgba(255,255,255,0.01)"; }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", overflow: "hidden" }}>
+                          <span style={{ fontSize: "16px", filter: isLevelSelected ? "drop-shadow(0 0 8px rgba(255,255,255,0.4))" : "none" }}>
+                            {LEVEL_META[num]?.emoji || "📍"}
+                          </span>
+                          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            Level {num}: {title}
+                          </span>
+                        </div>
+                        <span style={{
+                          fontSize: "12px",
+                          padding: "4px 10px",
+                          borderRadius: "8px",
+                          background: isLevelSelected ? `${color}30` : "rgba(255,255,255,0.05)",
+                          color: isLevelSelected ? color : "#64748b",
+                          fontWeight: "700",
+                          flexShrink: 0
+                        }}>
+                          {milestones.length}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Topics List Container */}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <div style={{ padding: "20px 24px 14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "1.5px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ width: "4px", height: "12px", background: "#8b5cf6", borderRadius: "4px" }}></div>
+                    Topics ({roadmap[advancedSelectedLevel]?.milestones?.length || 0})
+                  </div>
+                  {/* Action: Create New Topic Button inside header */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClockTick();
+                      setIsCreatingNewTopic(true);
+                      setEditingMilestoneId("");
+                      populateFormFromObject(null);
+                      setAddTopicError("");
+                    }}
+                    style={{
+                      width: "36px", height: "36px", borderRadius: "10px",
+                      background: "rgba(139, 92, 246, 0.15)",
+                      border: "1px solid rgba(139, 92, 246, 0.3)",
+                      color: "#c4b5fd", fontSize: "18px", fontWeight: "700",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: "pointer", transition: "all 0.2s"
+                    }}
+                    title="Create New Topic"
+                    onMouseOver={e => { e.currentTarget.style.background = "rgba(139, 92, 246, 0.25)"; e.currentTarget.style.color = "#ffffff"; }}
+                    onMouseOut={e => { e.currentTarget.style.background = "rgba(139, 92, 246, 0.15)"; e.currentTarget.style.color = "#c4b5fd"; }}
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Clickable Topics Cards List */}
+                <div style={{ flex: 1, overflowY: "auto", padding: "0 24px 24px 24px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                  
+                  {isCreatingNewTopic && (
+                     <div style={{
+                        padding: "20px",
+                        borderRadius: "18px",
+                        border: "1px solid rgba(139, 92, 246, 0.5)",
+                        background: "rgba(139, 92, 246, 0.12)",
+                        boxShadow: "0 8px 24px rgba(139, 92, 246, 0.2)",
+                        position: "relative",
+                        overflow: "hidden",
+                        minHeight: "92px",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center"
+                      }}>
+                        <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "4px", background: "#8b5cf6" }}></div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                           <span style={{ fontSize: "11px", color: "#c4b5fd", fontWeight: "800", background: "rgba(139, 92, 246, 0.25)", padding: "4px 8px", borderRadius: "6px" }}>✨ NEW TOPIC</span>
+                        </div>
+                        <div style={{ fontSize: "15px", fontWeight: "800", color: "#ffffff" }}>
+                          Drafting new concept...
+                        </div>
+                     </div>
+                  )}
+
+                  {(roadmap[advancedSelectedLevel]?.milestones || []).map((m, idx) => {
+                    const isCardActive = !isCreatingNewTopic && editingMilestoneId === m.id;
+                    const statusColor = m.status === "completed" ? "#10b981" : m.status === "unlocked" ? "#f59e0b" : "#64748b";
+                    const statusBadgeText = m.status === "completed" ? "Mastered" : m.status === "unlocked" ? "Unlocked" : "Locked";
+                    const statusIcon = m.status === "completed" ? "✦" : m.status === "unlocked" ? "🔓" : "🔒";
+
+                    return (
+                      <div
+                        key={m.id || idx}
+                        onClick={() => {
+                          sound.playClockTick();
+                          setIsCreatingNewTopic(false);
+                          setEditingMilestoneId(m.id);
+                          populateFormFromObject(m);
+                          setAddTopicError("");
+                        }}
+                        style={{
+                          padding: "20px 22px",
+                          minHeight: "96px",
+                          borderRadius: "18px",
+                          border: isCardActive ? "1.5px solid rgba(56, 189, 248, 0.5)" : "1px solid rgba(255,255,255,0.06)",
+                          background: isCardActive ? "rgba(56, 189, 248, 0.1)" : "rgba(255,255,255,0.03)",
+                          cursor: "pointer",
+                          boxShadow: isCardActive ? "0 8px 28px rgba(0, 0, 0, 0.3)" : "0 2px 8px rgba(0,0,0,0.1)",
+                          transition: "all 0.2s ease",
+                          position: "relative",
+                          overflow: "hidden",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center"
+                        }}
+                        onMouseOver={e => { if(!isCardActive) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                        onMouseOut={e => { if(!isCardActive) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                      >
+                        {isCardActive && <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "4px", background: "#38bdf8", boxShadow: "0 0 12px #38bdf8" }}></div>}
+                        
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                          <span style={{ fontSize: "11px", fontWeight: "800", color: isCardActive ? "#38bdf8" : "#94a3b8", background: isCardActive ? "rgba(56, 189, 248, 0.2)" : "rgba(255,255,255,0.06)", padding: "4px 10px", borderRadius: "6px", letterSpacing: "0.5px" }}>
+                            Node #{idx + 1}
+                          </span>
+                          <span style={{ fontSize: "11px", fontWeight: "700", color: statusColor, display: "flex", alignItems: "center", gap: "4px", background: `${statusColor}15`, padding: "3px 8px", borderRadius: "6px" }}>
+                            {statusIcon} {statusBadgeText}
+                          </span>
+                        </div>
+
+                        <div style={{ fontSize: "15px", fontWeight: "800", color: isCardActive ? "#ffffff" : "#f1f5f9", lineHeight: "1.4", letterSpacing: "-0.2px" }}>
+                          {typeof m === "string" 
+                            ? m 
+                            : (m.title || m.topic || m.topicTitle || m.topicName || m.label || m.name || m.concept || `Topic Node #${idx + 1}`)}
+                        </div>
+
+                        {(typeof m === "object" && m && (m.description || m.overview || m.summary)) && (
+                          <div style={{
+                            fontSize: "12px", color: "#94a3b8", marginTop: "8px", lineHeight: "1.5",
+                            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden"
+                          }}>
+                            {m.description || m.overview || m.summary}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </aside>
+
+            {/* RIGHT COLUMN: Studio Form & Editor Workspace (Flex 1) */}
+            <main style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              position: "relative"
+            }}>
+              {/* Subtle grid background for the editor */}
+              <div style={{
+                position: "absolute", top: 0, left: 0, right: 0, bottom: 0, pointerEvents: "none", zIndex: 0,
+                backgroundImage: "linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)",
+                backgroundSize: "40px 40px", opacity: 0.5
+              }}></div>
+
+              {/* Error Alert Banner */}
+              {addTopicError && (
+                <div style={{
+                  margin: "32px 48px 0 48px",
+                  padding: "16px 20px",
+                  borderRadius: "12px",
+                  background: "rgba(239, 68, 68, 0.1)",
+                  border: "1px solid rgba(239, 68, 68, 0.2)",
+                  color: "#fca5a5",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  zIndex: 1,
+                  boxShadow: "0 10px 30px rgba(239, 68, 68, 0.1)"
+                }}>
+                  <span style={{ fontSize: "18px" }}>⚠️</span> {addTopicError}
+                </div>
+              )}
+
+              {/* Main Editor Body */}
+              <div style={{ flex: 1, padding: "48px", overflowY: "auto", zIndex: 1, scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
+                  /* Raw JSON Code Mode */
+                  <div style={{ maxWidth: "860px", margin: "0 auto", height: "100%", display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                      <div>
+                        <div style={{ fontSize: "13px", fontWeight: "600", color: "#8b5cf6", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "8px" }}>
+                          {isCreatingNewTopic ? "New Implementation" : "Parameter Editing"}
+                        </div>
+                        <h3 style={{ margin: 0, fontSize: "28px", fontWeight: "800", color: "#ffffff", letterSpacing: "-0.5px" }}>
+                          {isCreatingNewTopic ? "Raw JSON Payload" : "Raw JSON Editor"}
+                        </h3>
+                        <div style={{ fontSize: "14px", color: "#64748b", marginTop: "8px" }}>
+                          Directly manipulate the topic object. Validates automatically.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sound.playClockTick();
+                          populateFormFromObject(JSON.parse(MINIMAL_TOPIC_EXAMPLE));
+                        }}
+                        style={{
+                          padding: "10px 20px",
+                          borderRadius: "10px",
+                          border: "1px solid rgba(139, 92, 246, 0.3)",
+                          background: "rgba(139, 92, 246, 0.1)",
+                          color: "#c4b5fd",
+                          fontSize: "14px",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          transition: "all 0.2s"
+                        }}
+                        onMouseOver={e => { e.currentTarget.style.background = "rgba(139, 92, 246, 0.2)"; e.currentTarget.style.borderColor = "rgba(139, 92, 246, 0.5)"; }}
+                        onMouseOut={e => { e.currentTarget.style.background = "rgba(139, 92, 246, 0.1)"; e.currentTarget.style.borderColor = "rgba(139, 92, 246, 0.3)"; }}
+                      >
+                        📋 Load Template
+                      </button>
+                    </div>
+
+                    <textarea
+                      value={customTopicJsonInput}
+                      onChange={(e) => {
+                        setCustomTopicJsonInput(e.target.value);
+                        try {
+                          const parsed = JSON.parse(e.target.value);
+                          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+                            setFormTitle(parsed.title || "");
+                            setFormDescription(parsed.description || "");
+                            setFormMinutes(parsed.estimatedMinutes || 45);
+                            setFormXp(parsed.xpReward || 50);
+                            setFormSearchQuery(parsed.searchQuery || "");
+                            setFormKeyPoints(Array.isArray(parsed.keyPoints) ? parsed.keyPoints.join("\n") : "");
+                            setFormStatus(parsed.status || "locked");
+                          }
+                        } catch (_) {}
+                        if (addTopicError) setAddTopicError("");
+                      }}
+                      placeholder="Paste or edit raw topic JSON payload..."
+                      spellCheck="false"
+                      style={{
+                        flex: 1,
+                        minHeight: "500px",
+                        width: "100%",
+                        padding: "24px",
+                        borderRadius: "16px",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        background: "rgba(0, 0, 0, 0.4)",
+                        color: "#38bdf8",
+                        fontFamily: "'JetBrains Mono', 'Consolas', 'Courier New', monospace",
+                        fontSize: "15px",
+                        lineHeight: "1.7",
+                        resize: "none",
+                        outline: "none",
+                        boxShadow: "inset 0 4px 20px rgba(0,0,0,0.2)",
+                        transition: "border-color 0.2s"
+                      }}
+                      onFocus={e => { e.currentTarget.style.borderColor = "rgba(56, 189, 248, 0.4)"; }}
+                      onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
+                    />
+                  </div>
+              </div>
+            </main>
+
+          </div>
+        </div>
       )}
     </div>
   );

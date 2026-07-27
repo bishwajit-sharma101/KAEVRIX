@@ -77,57 +77,96 @@ export const quizGenerateSchema = z.object({
   params: z.object({}).optional()
 });
 
+const telemetryItemSchema = z.object({
+  eventType: z.enum([
+    // Auth/Sessions/Views
+    "SIGNUP", "USER_REGISTERED", "USER_VERIFIED_EMAIL", "USER_LOGIN", "USER_LOGOUT",
+    "SESSION_STARTED", "SESSION_ENDED", "MFA_CHALLENGE", "MFA_SUCCESS", "MFA_FAILURE",
+    "PASSWORD_RESET_REQUESTED", "PASSWORD_RESET_COMPLETED", "USER_DISABLED", "USER_REENABLED",
+    "COMMAND_CENTER_ACCESSED", "COMMAND_CENTER_ACCESS_DENIED", "PROFILE_UPDATED", "WAITLIST_JOINED",
+    "PAGE_VIEW", "PAGE_EXIT", "FEATURE_OPENED", "FEATURE_CLOSED",
+
+    // Errors & Health
+    "CLIENT_ERROR", "API_ERROR", "SOCKET_ERROR", "MONGO_CONNECTION_FAILED", 
+    "GEMINI_API_FAILED", "GEMINI_API_TIMEOUT",
+
+    // System/AI
+    "AI_REQUEST_EXECUTED", "AI_REQUEST_FAILED", "FEATURE_FLAG_CHANGED", "RATE_LIMIT_EXCEEDED",
+
+    // Pathfinders/Roadmaps
+    "GENERATE_ROADMAP", "PATHFINDER_GENERATED", "PATHFINDER_REGENERATED", "NOTES_GENERATED",
+    "ROADMAP_STARTED", "ROADMAP_COMPLETED", "ROADMAP_ABANDONED", "ROADMAP_VIEWED", "ROADMAP_GENERATED",
+    "ROADMAP_NODE_OPENED", "ROADMAP_NODE_STARTED", "ROADMAP_NODE_COMPLETED", "ROADMAP_NODE_FAILED",
+    "ROADMAP_GENERATION_FAILED", "PATHFINDER_GENERATION_FAILED", "NOTES_GENERATION_FAILED",
+
+    // Video
+    "WATCH_VIDEO", "VIDEO_OPENED", "VIDEO_COMPLETED", "VIDEO_PLAYING", "VIDEO_PAUSED", "VIDEO_RESUMED", 
+    "VIDEO_SEEK", "VIDEO_SKIPPED", "VIDEO_ABANDONED", "SEARCH_PERFORMED", "SEARCH_RESULT_CLICKED", "VIDEO_LOAD_FAILED",
+
+    // Quiz
+    "GENERATE_QUIZ", "QUIZ_GENERATED", "QUIZ_STARTED", "TAKE_QUIZ", "QUIZ_QUESTION_ANSWERED",
+    "QUIZ_FAILED", "QUIZ_RETRY", "QUIZ_PASSED", "QUIZ_COMPLETED", "QUIZ_ABANDONED", "QUIZ_GENERATION_FAILED",
+    
+    // Economy & Progression
+    "EARN_XP", "XP_AWARDED", "LEVEL_UP", "SKILL_TIER_UPGRADED",
+
+    // Sanctum
+    "SANCTUM_MATCHMAKING_STARTED", "SANCTUM_MATCH_FOUND", "SANCTUM_JOINED", 
+    "SANCTUM_QUESTION_ANSWERED", "SANCTUM_WON", "SANCTUM_LOST",
+    "SANCTUM_STARTED", "SANCTUM_COMPLETED", "SANCTUM_ABANDONED"
+  ]),
+  topic: z.string().max(200).optional(),
+  roadmapId: z.string().max(100).optional(),
+  videoId: z.string().max(100).optional(),
+  quizId: z.string().max(100).optional(),
+  pagePath: z.string().max(500).optional(),
+  featureName: z.string().max(200).optional(),
+  journeyId: z.string().max(200).optional(),
+  correlationId: z.string().max(200).optional(),
+  sessionId: z.string().max(200).optional(),
+  deviceId: z.string().max(200).optional(),
+  durationMs: z.number().min(0).max(86400000).optional(), // Max 24 hours
+  connectionType: z.string().max(50).optional(),
+  viewportWidth: z.number().optional(),
+  viewportHeight: z.number().optional(),
+  scrollDepth: z.number().optional(),
+  idleTime: z.number().optional(),
+  pageDwellTime: z.number().optional(),
+  rageClicksCount: z.number().optional(),
+  metadata: z.record(z.any()).optional()
+});
+
 export const telemetrySchema = z.object({
+  body: z.union([telemetryItemSchema, z.array(telemetryItemSchema)]),
+  query: z.object({}).optional(),
+  params: z.object({}).optional()
+});
+
+export const practiceSheetGenerateSchema = z.object({
   body: z.object({
-    eventType: z.enum([
-      // Auth/Sessions/Views
-      "SIGNUP", "USER_REGISTERED", "USER_VERIFIED_EMAIL", "USER_LOGIN", "USER_LOGOUT",
-      "SESSION_STARTED", "SESSION_ENDED", "MFA_CHALLENGE", "MFA_SUCCESS", "MFA_FAILURE",
-      "PASSWORD_RESET_REQUESTED", "PASSWORD_RESET_COMPLETED", "USER_DISABLED", "USER_REENABLED",
-      "COMMAND_CENTER_ACCESSED", "COMMAND_CENTER_ACCESS_DENIED", "PROFILE_UPDATED", "WAITLIST_JOINED",
-      "PAGE_VIEW", "PAGE_EXIT", "FEATURE_OPENED", "FEATURE_CLOSED",
+    topic: z.string().min(1).max(200),
+    level: z.number().min(1).max(10),
+    milestones: z.array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        subtopics: z.array(z.string()).optional()
+      })
+    ),
+    devGoal: z.string().max(200).optional(),
+    devLanguage: z.string().max(100).optional(),
+    difficulty: z.string().max(100).optional()
+  }),
+  query: z.object({}).optional(),
+  params: z.object({}).optional()
+});
 
-      // Errors & Health
-      "CLIENT_ERROR", "API_ERROR", "SOCKET_ERROR", "MONGO_CONNECTION_FAILED", 
-      "GEMINI_API_FAILED", "GEMINI_API_TIMEOUT",
-
-      // System/AI
-      "AI_REQUEST_EXECUTED", "AI_REQUEST_FAILED", "FEATURE_FLAG_CHANGED", "RATE_LIMIT_EXCEEDED",
-
-      // Pathfinders/Roadmaps
-      "GENERATE_ROADMAP", "PATHFINDER_GENERATED", "PATHFINDER_REGENERATED", "NOTES_GENERATED",
-      "ROADMAP_STARTED", "ROADMAP_COMPLETED", "ROADMAP_ABANDONED", "ROADMAP_VIEWED", "ROADMAP_GENERATED",
-      "ROADMAP_NODE_OPENED", "ROADMAP_NODE_STARTED", "ROADMAP_NODE_COMPLETED", "ROADMAP_NODE_FAILED",
-      "ROADMAP_GENERATION_FAILED", "PATHFINDER_GENERATION_FAILED", "NOTES_GENERATION_FAILED",
-
-      // Video
-      "WATCH_VIDEO", "VIDEO_OPENED", "VIDEO_COMPLETED", "VIDEO_PLAYING", "VIDEO_PAUSED", "VIDEO_RESUMED", 
-      "VIDEO_SEEK", "VIDEO_SKIPPED", "VIDEO_ABANDONED", "SEARCH_PERFORMED", "SEARCH_RESULT_CLICKED", "VIDEO_LOAD_FAILED",
-
-      // Quiz
-      "GENERATE_QUIZ", "QUIZ_GENERATED", "QUIZ_STARTED", "TAKE_QUIZ", "QUIZ_QUESTION_ANSWERED",
-      "QUIZ_FAILED", "QUIZ_RETRY", "QUIZ_PASSED", "QUIZ_COMPLETED", "QUIZ_ABANDONED", "QUIZ_GENERATION_FAILED",
-      
-      // Economy & Progression
-      "EARN_XP", "XP_AWARDED", "LEVEL_UP", "SKILL_TIER_UPGRADED",
-
-      // Sanctum
-      "SANCTUM_MATCHMAKING_STARTED", "SANCTUM_MATCH_FOUND", "SANCTUM_JOINED", 
-      "SANCTUM_QUESTION_ANSWERED", "SANCTUM_WON", "SANCTUM_LOST",
-      "SANCTUM_STARTED", "SANCTUM_COMPLETED", "SANCTUM_ABANDONED"
-    ]),
-    topic: z.string().max(200).optional(),
-    roadmapId: z.string().max(100).optional(),
-    videoId: z.string().max(100).optional(),
-    quizId: z.string().max(100).optional(),
-    pagePath: z.string().max(500).optional(),
-    featureName: z.string().max(200).optional(),
-    journeyId: z.string().max(200).optional(),
-    correlationId: z.string().max(200).optional(),
-    sessionId: z.string().max(200).optional(),
-    deviceId: z.string().max(200).optional(),
-    durationMs: z.number().min(0).max(86400000).optional(), // Max 24 hours
-    metadata: z.record(z.any()).optional()
+export const practiceSheetToggleSchema = z.object({
+  body: z.object({
+    topic: z.string().min(1).max(200),
+    level: z.number().min(1).max(10),
+    questionId: z.string().min(1).max(200),
+    completed: z.boolean()
   }),
   query: z.object({}).optional(),
   params: z.object({}).optional()

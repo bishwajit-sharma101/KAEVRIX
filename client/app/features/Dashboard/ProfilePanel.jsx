@@ -1059,7 +1059,9 @@ export default function ProfilePanel({
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
+      const BACKEND_URL = typeof window !== "undefined" && ["localhost", "127.0.0.1", "::1", "[::1]"].includes(window.location.hostname)
+        ? `http://${window.location.hostname === "localhost" ? "127.0.0.1" : window.location.hostname}:5000`
+        : "";
       const res = await fetch(`${BACKEND_URL}/api/profile/${username}`);
       if (res.ok) {
         const data = await res.json();
@@ -2269,7 +2271,9 @@ export default function ProfilePanel({
     setCosmeticIndex(nextIndex);
     
     try {
-      const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
+      const BACKEND_URL = typeof window !== "undefined" && ["localhost", "127.0.0.1", "::1", "[::1]"].includes(window.location.hostname)
+        ? `http://${window.location.hostname === "localhost" ? "127.0.0.1" : window.location.hostname}:5000`
+        : "";
       const res = await fetch(`${BACKEND_URL}/api/profile/cosmetics`, {
         method: "POST",
         headers: { 

@@ -18,6 +18,48 @@ if (typeof document !== "undefined") {
           console.error("Failed to copy code snippet: ", err);
         });
       }
+      return;
+    }
+
+    const zoomBtn = e.target.closest(".mermaid-zoom-btn");
+    if (zoomBtn) {
+      const windowEl = zoomBtn.closest(".mermaid-diagram-window");
+      if (!windowEl) return;
+      const svgEl = windowEl.querySelector("svg");
+      if (!svgEl) return;
+      const valEl = windowEl.querySelector(".mermaid-zoom-val");
+
+      let currentZoom = parseFloat(windowEl.getAttribute("data-zoom") || "1.0");
+
+      if (zoomBtn.classList.contains("zoom-in")) {
+        currentZoom = Math.min(currentZoom + 0.3, 4.0);
+      } else if (zoomBtn.classList.contains("zoom-out")) {
+        currentZoom = Math.max(currentZoom - 0.3, 0.4);
+      } else if (zoomBtn.classList.contains("zoom-reset")) {
+        currentZoom = 1.0;
+      }
+
+      windowEl.setAttribute("data-zoom", currentZoom.toString());
+      if (valEl) {
+        valEl.innerText = `${Math.round(currentZoom * 100)}%`;
+      }
+
+      if (currentZoom === 1.0) {
+        svgEl.style.setProperty("max-width", "100%", "important");
+        svgEl.style.setProperty("width", "100%", "important");
+        svgEl.style.setProperty("height", "auto", "important");
+        svgEl.style.setProperty("zoom", "1", "important");
+        svgEl.style.removeProperty("transform");
+        svgEl.style.removeProperty("transform-origin");
+      } else {
+        svgEl.style.setProperty("max-width", "none", "important");
+        svgEl.style.setProperty("width", "auto", "important");
+        svgEl.style.setProperty("height", "auto", "important");
+        svgEl.style.setProperty("zoom", currentZoom.toString(), "important");
+        // Fallback transform for older engines
+        svgEl.style.setProperty("transform", `scale(${currentZoom})`, "important");
+        svgEl.style.setProperty("transform-origin", "top center", "important");
+      }
     }
   });
 }
@@ -93,8 +135,21 @@ export function parseMarkdownToHTML(md) {
       code = code.replace(/\n$/, "");
       if (lang.toLowerCase() === "mermaid") {
         resultHtml += `
-          <div class="mermaid-diagram-window" style="background: rgba(255, 255, 255, 0.015); border-radius: 12px; margin: 24px 0; border: 1px solid var(--glass-border, #e2e8f0); padding: 24px; text-align: center; display: flex; justify-content: center; overflow-x: auto; min-height: 100px;">
-            <pre class="mermaid" style="margin: 0; background: transparent; font-family: inherit; color: inherit; font-size: 14px;">${code}</pre>
+          <div class="mermaid-diagram-window" data-zoom="1.0" style="position: relative; background: rgba(255, 255, 255, 0.015); border-radius: 12px; margin: 24px 0; border: 1px solid var(--glass-border, #e2e8f0); padding: 48px 24px 24px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow-x: auto; min-height: 100px;">
+            <style>
+              .mermaid-diagram-window svg {
+                max-width: 100% !important;
+                height: auto !important;
+                transition: width 0.2s ease, max-width 0.2s ease;
+              }
+            </style>
+            <div class="mermaid-zoom-controls" style="position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; align-items: center; z-index: 10; user-select: none;">
+              <button class="mermaid-zoom-btn zoom-out" title="Zoom Out" style="padding: 4px 10px; border-radius: 6px; border: 1px solid var(--glass-border, #cbd5e1); background: rgba(255,255,255,0.08); color: inherit; cursor: pointer; font-weight: bold; font-size: 13px; transition: all 0.2s;">-</button>
+              <span class="mermaid-zoom-val" style="font-size: 11px; font-weight: 800; min-width: 36px; text-align: center; color: var(--text-muted, inherit);">100%</span>
+              <button class="mermaid-zoom-btn zoom-in" title="Zoom In" style="padding: 4px 10px; border-radius: 6px; border: 1px solid var(--glass-border, #cbd5e1); background: rgba(255,255,255,0.08); color: inherit; cursor: pointer; font-weight: bold; font-size: 13px; transition: all 0.2s;">+</button>
+              <button class="mermaid-zoom-btn zoom-reset" title="Reset Zoom" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--glass-border, #cbd5e1); background: rgba(255,255,255,0.08); color: inherit; cursor: pointer; font-size: 11px; transition: all 0.2s;">↺</button>
+            </div>
+            <pre class="mermaid" style="margin: 0; background: transparent; font-family: inherit; color: inherit; font-size: 14px; width: 100%; display: flex; justify-content: center;">${code}</pre>
           </div>
         `;
       } else {

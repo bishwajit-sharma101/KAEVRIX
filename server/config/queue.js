@@ -9,7 +9,8 @@ import {
   generateLevelMilestones, 
   generateStudyNotesAndQuiz, 
   generateQuizForVideo, 
-  generateBossQuestions 
+  generateBossQuestions,
+  generateLevelPracticeSheet
 } from "../geminiService.js";
 
 const connection = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379", {
@@ -87,6 +88,17 @@ export const aiWorker = new Worker("ai-jobs", async (job) => {
       break;
     case "generate-boss":
       result = await generateBossQuestions(data.topic, data.milestone, userId);
+      break;
+    case "generate-level-practice":
+      result = await generateLevelPracticeSheet(
+        userId,
+        data.topic,
+        data.level,
+        data.milestones,
+        data.devGoal,
+        data.devLanguage,
+        data.difficulty
+      );
       break;
     default:
       throw new Error(`Unknown job type: ${type}`);

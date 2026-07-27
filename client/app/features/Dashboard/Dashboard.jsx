@@ -6,6 +6,7 @@ import CommunityTab from "../Community/CommunityTab";
 import CanvasRuneLoader from "../Shared/CanvasRuneLoader";
 import PathfinderScheduler from "../Roadmap/PathfinderScheduler";
 import StudyHistory from "./StudyHistory";
+import { trackTelemetry, updateScrollDepth, incrementIdleTime, incrementPageDwellTime, incrementRageClicks, resetDeepMetrics } from "../../utils/telemetry.js";
 
 const TRENDING_TOPICS = [
   { icon: "⚡", label: "JavaScript", color: "#f59e0b", players: 1420 },
@@ -79,7 +80,9 @@ export default function Dashboard({
   isTabLocked,
   handleGatedTabChange,
   lockedFeatureAlert,
-  setLockedFeatureAlert
+  setLockedFeatureAlert,
+  practiceContext,
+  setPracticeContext
 }) {
   const [isRobotHovered, setIsRobotHovered] = useState(false);
   const [personalizedFeed, setPersonalizedFeed] = useState([]);
@@ -116,6 +119,82 @@ export default function Dashboard({
       setIsExploding(true);
     }
   }, [activeLoading, showRuneLoader, isExploding]);
+
+  const lastActivityRef = useRef(Date.now());
+
+  useEffect(() => {
+    // Reset metrics on mount
+    resetDeepMetrics();
+
+    // 1. Dwell & Idle Time Tracker
+    const timeInterval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        incrementPageDwellTime(1);
+        
+        // If no user activity for 10+ seconds, count as idle time
+        if (Date.now() - lastActivityRef.current >= 10000) {
+          incrementIdleTime(1);
+        }
+      }
+    }, 1000);
+
+    const recordUserActivity = () => {
+      lastActivityRef.current = Date.now();
+    };
+
+    window.addEventListener("mousemove", recordUserActivity);
+    window.addEventListener("keydown", recordUserActivity);
+    window.addEventListener("click", recordUserActivity);
+    window.addEventListener("scroll", recordUserActivity);
+
+    // 2. Scroll Depth Tracker
+    const handleScroll = () => {
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (scrollHeight > 0) {
+        const pct = Math.min(100, Math.round((window.scrollY / scrollHeight) * 100));
+        updateScrollDepth(pct);
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+
+    // 3. Rage Clicks Detector
+    let clickHistory = [];
+    const handleClick = (e) => {
+      const now = Date.now();
+      clickHistory.push({ time: now, target: e.target });
+      clickHistory = clickHistory.filter(c => now - c.time < 2000);
+      
+      if (clickHistory.length >= 3) {
+        const firstTarget = clickHistory[0].target;
+        const allSame = clickHistory.every(c => c.target === firstTarget);
+        if (allSame) {
+          incrementRageClicks();
+          trackTelemetry({
+            eventType: "CLIENT_ERROR",
+            metadata: {
+              errorType: "RAGE_CLICKS_DETECTED",
+              targetTag: firstTarget.tagName || "unknown",
+              targetId: firstTarget.id || "unknown",
+              targetClass: firstTarget.className || "unknown"
+            }
+          });
+          clickHistory = []; // Reset history
+        }
+      }
+    };
+    window.addEventListener("click", handleClick);
+
+    // Cleanup listeners
+    return () => {
+      clearInterval(timeInterval);
+      window.removeEventListener("mousemove", recordUserActivity);
+      window.removeEventListener("keydown", recordUserActivity);
+      window.removeEventListener("click", recordUserActivity);
+      window.removeEventListener("scroll", recordUserActivity);
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("click", handleClick);
+    };
+  }, []);
 
   const handleExplodeComplete = () => {
     setShowRuneLoader(false);
@@ -350,7 +429,7 @@ export default function Dashboard({
   const activeSubtopicObj = getActiveSubtopic();
   const activeSubtopicStr = activeSubtopicObj ? activeSubtopicObj.subtopic : "";
 
-  // Fetch Recommended for Today videos
+  // Fetch Recommended for Today videos with instant-load cache & prefetch logic
   useEffect(() => {
     if (!topic || !activeSubtopicStr || searchQuery) {
       setAllTodayVideos([]);
@@ -360,7 +439,24 @@ export default function Dashboard({
 
     let isMounted = true;
     const fetchTodayVideos = async () => {
-      setLoadingToday(true);
+      // 1. Try serving from cache immediately
+      const cacheKey = `kaevrix_cache_rec_${username}_${topic}_${activeSubtopicStr}`;
+      const cachedData = localStorage.getItem(cacheKey);
+      if (cachedData) {
+        try {
+          const parsed = JSON.parse(cachedData);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setAllTodayVideos(parsed);
+            setTodayCycleIndex(0);
+            setLoadingToday(false);
+          }
+        } catch (e) {
+          console.error("Failed to parse cached recommendations:", e);
+        }
+      } else {
+        setLoadingToday(true);
+      }
+
       const query = activeSubtopicStr;
       try {
         const res = await fetch(`${backendUrl}/api/search?q=${encodeURIComponent(query)}`, {
@@ -368,9 +464,20 @@ export default function Dashboard({
         });
         if (res.ok && isMounted) {
           const data = await res.json();
-          // Display up to 16 videos, sliced into 4 locally on cycle
-          setAllTodayVideos(data.slice(0, 16));
+          const sliced = data.slice(0, 16);
+          setAllTodayVideos(sliced);
           setTodayCycleIndex(0);
+          
+          // Update cache
+          localStorage.setItem(cacheKey, JSON.stringify(sliced));
+
+          // Clean up old recommendations cache of finished subtopics of this topic
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(`kaevrix_cache_rec_${username}_${topic}_`) && key !== cacheKey) {
+              localStorage.removeItem(key);
+            }
+          }
         }
       } catch (err) {
         console.error("Failed to fetch today's videos:", err);
@@ -383,7 +490,41 @@ export default function Dashboard({
     return () => {
       isMounted = false;
     };
-  }, [topic, activeSubtopicStr, searchQuery, backendUrl]);
+  }, [topic, activeSubtopicStr, searchQuery, backendUrl, username]);
+
+  // Background prefetch logic: look ahead at the next subtopic of this milestone and fetch its recommendation feed
+  useEffect(() => {
+    if (!topic || !activeMilestones || activeMilestones.length === 0) return;
+    const activeMilestone = activeMilestones.find(m => m.status === "unlocked") || activeMilestones.find(m => m.status !== "completed");
+    if (!activeMilestone || activeMilestone.status === "completed") return;
+
+    const subtopicIdx = activeMilestone.subtopicIndex || 0;
+    const keyPoints = activeMilestone.keyPoints || [];
+    const nextSubtopic = subtopicIdx + 1 < keyPoints.length ? keyPoints[subtopicIdx + 1] : null;
+
+    if (!nextSubtopic) return;
+
+    const prefetchKey = `kaevrix_cache_rec_${username}_${topic}_${nextSubtopic}`;
+    if (localStorage.getItem(prefetchKey)) return; // already cached
+
+    const prefetchNext = async () => {
+      try {
+        const res = await fetch(`${backendUrl}/api/search?q=${encodeURIComponent(nextSubtopic)}`, {
+          headers: { "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem(prefetchKey, JSON.stringify(data.slice(0, 16)));
+        }
+      } catch (err) {
+        console.warn("Failed to prefetch next subtopic recommendations:", err);
+      }
+    };
+
+    // Pre-fetch in background after 3.5 seconds
+    const timer = setTimeout(prefetchNext, 3500);
+    return () => clearTimeout(timer);
+  }, [topic, activeMilestones, backendUrl, username]);
 
   // Helper to extract banner pills dynamically from active roadmap
   const getBannerPills = () => {
@@ -489,6 +630,18 @@ export default function Dashboard({
 
   const handleSelectVideo = (video) => {
     sound.playClockTick();
+    if (searchQuery) {
+      const index = searchResults.findIndex(r => r.id === video.id);
+      trackTelemetry({
+        eventType: "SEARCH_RESULT_CLICKED",
+        metadata: {
+          query: searchQuery,
+          videoId: video.id,
+          videoTitle: video.title,
+          index: index !== -1 ? index : 0
+        }
+      });
+    }
     const activeSubtopicText = allIncompleteTasks && allIncompleteTasks[0] ? allIncompleteTasks[0].text : "";
     setSelectedVideo({
       ...video,
@@ -1008,6 +1161,9 @@ export default function Dashboard({
               isDarkMode={isDarkMode}
               featureGates={featureGates}
               setLockedFeatureAlert={setLockedFeatureAlert}
+              setStatus={setStatus}
+              practiceContext={practiceContext}
+              setPracticeContext={setPracticeContext}
             />
           </div>
         )}

@@ -62,7 +62,7 @@ export const aiLimiter = rateLimit({
 
 export const telemetryLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 100, // 100 telemetry events per 5 mins
+  max: 1000, // 1000 telemetry events per 5 mins
   store: createStore("rl:telemetry:"),
   handler: handleRateLimit("Telemetry Buffer"),
   skip: skipTestRequests,

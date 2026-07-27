@@ -3,6 +3,7 @@ import YoutubePlayer from "../Shared/YoutubePlayer";
 import ChatBox from "../Shared/ChatBox";
 import * as sound from "../../utils/audio";
 import { getUnlockedSkills } from "../../utils/characterClasses";
+import { trackTelemetry } from "../../utils/telemetry.js";
 
 export default function GameArena({
   room,
@@ -30,6 +31,21 @@ export default function GameArena({
   const isSpeedrunner = (selectedClass || "").toLowerCase() === "speedrunner";
   const [activeMilestones, setActiveMilestones] = useState([]);
   const isHellMode = localStorage.getItem("hellMode") === "true" || (JSON.parse(localStorage.getItem(`kaevrix_roadmap_progress_${username}`) || '{}').difficulty === "Hell");
+
+  useEffect(() => {
+    trackTelemetry({
+      eventType: "SANCTUM_JOINED",
+      videoId: room?.video?.id || room?.video?.videoId,
+      topic: room?.video?.title,
+      metadata: {
+        roomId: room?.roomId,
+        opponent: opponent?.username,
+        selectedClass,
+        level,
+        isHellMode
+      }
+    });
+  }, [room?.roomId]);
 
   useEffect(() => {
     if (!username) return;

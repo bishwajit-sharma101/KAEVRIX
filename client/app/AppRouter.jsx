@@ -15,14 +15,23 @@ import DailyLogin from "./features/Dashboard/DailyLogin";
 import SoloStudyRoom from "./features/SoloStudy/SoloStudyRoom";
 import ModeSelection from "./features/GameArena/ModeSelection";
 import CommandCenter from "./features/Admin/CommandCenter";
+import PracticeSheetPage from "./features/Roadmap/PracticeSheetPage";
 
 export default function AppRouter(props) {
-  const { username, setUsername, avatar, setAvatar, selectedClass, setSelectedClass, isRegistered, setIsRegistered, xp, setXp, level, setLevel, wins, setWins, losses, setLosses, isDarkMode, setIsDarkMode, token, setToken, isMusicMuted, setIsMusicMuted, musicProfile, setMusicProfile, keepMusicInGame, setKeepMusicInGame, showMusicSettings, setShowMusicSettings, showSurpassLimits, setShowSurpassLimits, isExitIntercept, setIsExitIntercept, interceptTrackIdx, setInterceptTrackIdx, showDailyModal, setShowDailyModal, journeyDay, setJourneyDay, energy, setEnergy, isFrozen, setIsFrozen, isBlurred, setIsBlurred, progressAtQuizEntry, setProgressAtQuizEntry, doubleDownQuestions, setDoubleDownQuestions, disabledOptions, setDisabledOptions, leaderboard, setLeaderboard, curatedVideos, setCuratedVideos, selectedVideo, setSelectedVideo, selectedSoloVideo, setSelectedSoloVideo, vsBot, setVsBot, searchQuery, setSearchQuery, activeSearchQuery, setActiveSearchQuery, searchResults, setSearchResults, isSearching, setIsSearching, socket, setSocket, status, setStatus, room, setRoom, opponent, setOpponent, countdown, setCountdown, myProgress, setMyProgress, opponentProgress, setOpponentProgress, opponentWaiting, setOpponentWaiting, opponentSubmitted, setOpponentSubmitted, chatMessages, setChatMessages, chatInput, setChatInput, questions, setQuestions, currentQuestionIdx, setCurrentQuestionIdx, selectedAnswers, setSelectedAnswers, quizTimer, setQuizTimer, gameResults, setGameResults, xpGained, setXpGained, leveledUp, setLeveledUp, handleLogout, cancelMatchmaking, handleSearchSubmit, clearSearch, resetToDashboard, startMatchmaking, handleReadyToPlay, handleSendChat, handleVideoProgress, handleVideoFinished, handleUsePowerup, handleSelectOption, handleDoubleDown, handleHackersClue, submitQuizAnswers, handleNextQuestion, handleStartSoloStudy, handleAddSoloXp, exitAttemptsRef, BACKEND_URL, getRankTitle, triggerSearch, initializeSocketAndRegister } = props;
+  const { username, setUsername, avatar, setAvatar, selectedClass, setSelectedClass, isRegistered, setIsRegistered, xp, setXp, level, setLevel, wins, setWins, losses, setLosses, isDarkMode, setIsDarkMode, token, setToken, isMusicMuted, setIsMusicMuted, musicProfile, setMusicProfile, keepMusicInGame, setKeepMusicInGame, showMusicSettings, setShowMusicSettings, showSurpassLimits, setShowSurpassLimits, isExitIntercept, setIsExitIntercept, interceptTrackIdx, setInterceptTrackIdx, showDailyModal, setShowDailyModal, journeyDay, setJourneyDay, energy, setEnergy, isFrozen, setIsFrozen, isBlurred, setIsBlurred, progressAtQuizEntry, setProgressAtQuizEntry, doubleDownQuestions, setDoubleDownQuestions, disabledOptions, setDisabledOptions, leaderboard, setLeaderboard, curatedVideos, setCuratedVideos, selectedVideo, setSelectedVideo, selectedSoloVideo, setSelectedSoloVideo, vsBot, setVsBot, searchQuery, setSearchQuery, activeSearchQuery, setActiveSearchQuery, searchResults, setSearchResults, isSearching, setIsSearching, socket, setSocket, status, setStatus, room, setRoom, opponent, setOpponent, countdown, setCountdown, myProgress, setMyProgress, opponentProgress, setOpponentProgress, opponentWaiting, setOpponentWaiting, opponentSubmitted, setOpponentSubmitted, chatMessages, setChatMessages, chatInput, setChatInput, questions, setQuestions, currentQuestionIdx, setCurrentQuestionIdx, selectedAnswers, setSelectedAnswers, quizTimer, setQuizTimer, gameResults, setGameResults, xpGained, setXpGained, leveledUp, setLeveledUp, handleLogout, cancelMatchmaking, handleSearchSubmit, clearSearch, resetToDashboard, startMatchmaking, handleReadyToPlay, handleSendChat, handleVideoProgress, handleVideoFinished, handleUsePowerup, handleSelectOption, handleDoubleDown, handleHackersClue, submitQuizAnswers, handleNextQuestion, handleStartSoloStudy, handleAddSoloXp, exitAttemptsRef, BACKEND_URL, getRankTitle, triggerSearch, initializeSocketAndRegister, practiceContext, setPracticeContext } = props;
 
   const [isSearchFocused, setIsSearchFocused] = React.useState(false);
   const [isCodingMode, setIsCodingMode] = React.useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState("duels");
+  const [activeTab, setActiveTab] = React.useState(() => {
+    if (typeof window === "undefined") return "duels";
+    return sessionStorage.getItem("kaevrix_current_tab") || "duels";
+  });
+
+  React.useEffect(() => {
+    sessionStorage.setItem("kaevrix_current_tab", activeTab);
+  }, [activeTab]);
+
   const [isMobileSearchActive, setIsMobileSearchActive] = React.useState(false);
   const [showSchedulerSettings, setShowSchedulerSettings] = React.useState(false);
   const [searchHistory, setSearchHistory] = React.useState([]);
@@ -136,6 +145,9 @@ export default function AppRouter(props) {
         keepMusicInGame={keepMusicInGame}
         setKeepMusicInGame={setKeepMusicInGame}
         onAuthSuccess={(user, userToken) => {
+          // Clear any navigation state from previous session or other user
+          sessionStorage.clear();
+
           setToken(userToken);
           localStorage.setItem("kaevrix_token", userToken);
           setUsername(user.username);
@@ -787,7 +799,7 @@ export default function AppRouter(props) {
     <div className="app-container">
       {/* Dynamic Hell Mode styles */}
       {hellModeStyles}
-      {(!isCodingMode || status !== "solo_study") && status !== "command_center" && headerComponent}
+      {(!isCodingMode || status !== "solo_study") && status !== "command_center" && status !== "practice_sheet" && headerComponent}
       {renderSearchHelperOverlay()}
 
       {/* 2. DASHBOARD OR GAME STATES */}
@@ -811,6 +823,8 @@ export default function AppRouter(props) {
           searchQuery={activeSearchQuery}
           isSearching={isSearching}
           searchResults={searchResults}
+          practiceContext={practiceContext}
+          setPracticeContext={setPracticeContext}
           onSearch={(query) => {
             if (!query) {
               clearSearch();
@@ -962,6 +976,16 @@ export default function AppRouter(props) {
           onAddSoloXp={handleAddSoloXp}
           onCodingModeChange={setIsCodingMode}
           featureGates={featureGates}
+        />
+      )}
+
+      {status === "practice_sheet" && (
+        <PracticeSheetPage
+          username={username}
+          isDarkMode={isDarkMode}
+          backendUrl={BACKEND_URL}
+          onBack={resetToDashboard}
+          practiceContext={practiceContext}
         />
       )}
 

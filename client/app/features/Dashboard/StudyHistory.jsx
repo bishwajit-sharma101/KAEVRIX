@@ -588,30 +588,70 @@ export default function StudyHistory({ username, isDarkMode, onStartSoloStudy })
 
 const StudyNotesContent = memo(({ notes, isDarkMode, isFocusMode = false }) => {
   const sanitizeCode = (rawCode) => {
-    let code = rawCode
-      // Collapse multi-dash arrows first to prevent parser confusion
-      .replace(/-{3,}>>/g, "->流通->") // Temporary placeholder for sequence arrow
-      .replace(/-{3,}/g, "-") // Collapse all other multi-dashes to a single dash
-      .replace(/->流通->/g, "->>") // Restore sequence arrow
-      .replace(/={3,}>/g, "==>")
-      // Normalize standard arrow styles without overriding sequence arrows
-      .replace(/[\u2192\u2794\u279c\u27a1]/g, "-->") // Unicode right arrows
-      .replace(/->(?!>)/g, "-->") // Standard flowchart arrow
-      .replace(/=>(?!>)/g, "==>") // Thick flowchart arrow
-      .replace(/[\u2190]/g, "<--") // Unicode left arrow
-      .replace(/<-(?!<)/g, "<--")
-      .trim();
+    let code = rawCode.trim();
 
-    // Process line-by-line to sanitize nested quotes and tag-like content inside node labels
+    // 1. Convert space-separated single dashes connecting nodes (e.g. "B - E" or "B - F") to standard flowchart links "-->"
+    code = code.replace(/\b([a-zA-Z0-9_-]+)\s+-\s+([a-zA-Z0-9_-]+)\b/g, "$1 --> $2");
+
+    // 2. Safely normalize long multi-dash arrows (e.g. --->, ---->, ----->) to standard arrows
+    code = code.replace(/-{3,}>/g, "-->");
+    code = code.replace(/-{2,}>/g, "-->");
+    code = code.replace(/={3,}>/g, "==>");
+    code = code.replace(/={2,}>/g, "==>");
+    code = code.replace(/->/g, "-->");
+    code = code.replace(/=>/g, "==>");
+    code = code.replace(/[\u2192\u2794\u279c\u27a1]/g, "-->");
+
+    // Convert invalid link text patterns: "A -- "text" B" or "A -- text B" (without arrows) to valid Mermaid "A -->|text| B"
+    code = code.replace(/\b([a-zA-Z0-9_-]+)\s+--\s+"([^"]+)"\s+([a-zA-Z0-9_-]+)\b/g, "$1 -->|$2| $3");
+    code = code.replace(/\b([a-zA-Z0-9_-]+)\s+--\s+([^"\->\n]+?)\s+([a-zA-Z0-9_-]+)\b/g, (match, n1, text, n2) => {
+      const cleanText = text.trim().replace(/\s+/g, " ");
+      return `${n1} -->|${cleanText}| ${n2}`;
+    });
+
+    // Merge dangling link text/comments into the node label itself
+    code = code.replace(/\b([a-zA-Z0-9_-]+)([\(\[\{])\s*"([\s\S]*?)"\s*([\)\}\]])\s+--\s+"([^"\n]+)"/g, (match, nodeName, openBrack, label, closeBrack, desc) => {
+      const cleanLabel = label.trim();
+      const cleanDesc = desc.trim();
+      return `${nodeName}${openBrack}"${cleanLabel}<br/><b>(${cleanDesc})</b>"${closeBrack}`;
+    });
+    code = code.replace(/\b([a-zA-Z0-9_-]+)([\(\[\{])\s*"([\s\S]*?)"\s*([\)\}\]])\s+--\s+([^"\-\n]+)/g, (match, nodeName, openBrack, label, closeBrack, desc) => {
+      const cleanLabel = label.trim();
+      const cleanDesc = desc.trim();
+      if (cleanDesc === "" || cleanDesc.includes("subgraph") || cleanDesc.includes("end") || cleanDesc.includes("style")) return match;
+      return `${nodeName}${openBrack}"${cleanLabel}<br/><b>(${cleanDesc})</b>"${closeBrack}`;
+    });
+
+    // 3. Sanitize double quotes, spaces inside brackets, and HTML tags nested inside node brackets (handles multi-line declarations)
+    code = code.replace(/([a-zA-Z0-9_-]+)([\(\[\{])\s*"([\s\S]*?)"\s*([\)\}\]])/g, (match, nodeName, openBrack, content, closeBrack) => {
+      const sanitizedContent = content
+        .replace(/"/g, "'")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      return `${nodeName}${openBrack}"${sanitizedContent}"${closeBrack}`;
+    });
+
+    // Process line-by-line for line-level fixes (splitting side-by-side nodes, extra graphs)
     const lines = code.split("\n");
+    let hasFirstGraph = false;
     const processedLines = lines.map(line => {
-      return line.replace(/([a-zA-Z0-9_-]+)([\(\[\{])"([\s\S]*?)"([\)\}\]])/g, (match, nodeName, openBrack, content, closeBrack) => {
-        const sanitizedContent = content
-          .replace(/"/g, "'")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
-        return `${nodeName}${openBrack}"${sanitizedContent}"${closeBrack}`;
-      });
+      let cleanedLine = line;
+
+      // 4. Split side-by-side node definitions on the same line
+      cleanedLine = cleanedLine.replace(/(\"[^\"]*\")\s+([a-zA-Z0-9_-]+)([\(\[\{]\")/g, '$1;\n$2$3');
+      cleanedLine = cleanedLine.replace(/([\)\}\]])\s+([a-zA-Z0-9_-]+)([\(\[\{])/g, '$1;\n$2$3');
+
+      // 5. Clean up redundant graph declarations (e.g. "style M2 fill:...;graph TD")
+      const graphRegex = /\b(graph|flowchart)\s+(TD|LR|TB|BT|RL)\b/gi;
+      if (graphRegex.test(cleanedLine)) {
+        if (!hasFirstGraph) {
+          hasFirstGraph = true;
+        } else {
+          cleanedLine = cleanedLine.replace(graphRegex, "");
+        }
+      }
+
+      return cleanedLine;
     });
 
     return processedLines.join("\n");
@@ -627,7 +667,10 @@ const StudyNotesContent = memo(({ notes, isDarkMode, isFocusMode = false }) => {
             theme: isDarkMode ? "dark" : "default",
             securityLevel: "loose",
             fontFamily: "var(--font-sans)",
-            flowchart: { useMaxWidth: true, htmlLabels: true }
+            useMaxWidth: false,
+            flowchart: { useMaxWidth: false, htmlLabels: true },
+            sequence: { useMaxWidth: false },
+            gantt: { useMaxWidth: false }
           });
 
           let retries = 0;

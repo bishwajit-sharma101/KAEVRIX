@@ -4,16 +4,25 @@ import * as sound from "../../utils/audio";
 import YoutubePlayer from "../Shared/YoutubePlayer";
 import { parseMarkdownToHTML } from "../../utils/markdown";
 import RechargeOverlay from "./RechargeOverlay";
+import InteractiveLesson from "../Roadmap/InteractiveLesson";
+import { trackTelemetry } from "../../utils/telemetry.js";
 
 
 export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl, onBack, onAddSoloXp, onCodingModeChange, featureGates = {} }) {
   const [progress, setProgress] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
-  const [activeTab, setActiveTab] = useState("notes"); // notes, quiz
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === "undefined") return "notes";
+    return sessionStorage.getItem("kaevrix_solostudy_active_tab") || "notes";
+  }); // notes, quiz
   const [notes, setNotes] = useState(null);
   const [notesError, setNotesError] = useState(false);
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [statusText, setStatusText] = useState("Analyzing video context...");
+
+  useEffect(() => {
+    sessionStorage.setItem("kaevrix_solostudy_active_tab", activeTab);
+  }, [activeTab]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -24,9 +33,18 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
   const [isFocusPlaying, setIsFocusPlaying] = useState(false);
   const [isNotesExpanded, setIsNotesExpanded] = useState(false);
   const focusAudioRef = useRef(null);
-  const [noteStyle, setNoteStyle] = useState("smart");
+  const [noteStyle, setNoteStyle] = useState(() => {
+    if (typeof window === "undefined") return "smart";
+    return sessionStorage.getItem("kaevrix_solostudy_note_style") || "smart";
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem("kaevrix_solostudy_note_style", noteStyle);
+  }, [noteStyle]);
+
   const [isRegenModalOpen, setIsRegenModalOpen] = useState(false);
   const [tempRegenStyle, setTempRegenStyle] = useState("smart");
+  const [showInteractiveOverlay, setShowInteractiveOverlay] = useState(true);
 
   // Quiz States: not_started, loading, active, completed
   const [quizState, setQuizState] = useState("not_started");
@@ -59,6 +77,12 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
       }
     }
   }, [currentQIdx, questions]);
+
+  useEffect(() => {
+    if (notes && notes.trim().startsWith("{")) {
+      setShowInteractiveOverlay(true);
+    }
+  }, [notes]);
 
   const handleRunCode = () => {
     sound.playClockTick();
@@ -473,6 +497,13 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
       }
       
       if (logInterval) clearInterval(logInterval);
+      trackTelemetry({
+        eventType: "NOTES_GENERATED",
+        roadmapId: savedRoadmap?._id || savedRoadmap?.id,
+        topic: savedRoadmap?.topic || topic,
+        videoId: video.id,
+        metadata: { noteStyle }
+      });
       setNotes(data.notes);
       saveStudySession(data.notes, data.postVideoQuestions || []); // Persistent save to study history
       
@@ -487,6 +518,13 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
     } catch (err) {
       console.error("Combined Notes & Quiz generation failed:", err);
       if (logInterval) clearInterval(logInterval);
+      trackTelemetry({
+        eventType: "NOTES_GENERATION_FAILED",
+        roadmapId: savedRoadmap?._id || savedRoadmap?.id,
+        topic: savedRoadmap?.topic || topic,
+        videoId: video.id,
+        metadata: { error: err.message || String(err) }
+      });
       setNotesError(true);
       setQuizError(true);
     } finally {
@@ -551,6 +589,13 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
         setSelectedAnswers(Array(quiz.postVideoQuestions?.length || 5).fill(null));
         setGradedAnswers(Array(quiz.postVideoQuestions?.length || 5).fill(null));
         setCurrentQIdx(0);
+        trackTelemetry({
+          eventType: "QUIZ_STARTED",
+          roadmapId: savedRoadmap?._id || savedRoadmap?.id,
+          topic: savedRoadmap?.topic || topic,
+          videoId: video.id,
+          metadata: { totalQuestions: quiz.postVideoQuestions?.length || 5 }
+        });
         setQuizState("active");
         sound.playMatchFound();
     } catch (err) {
@@ -578,6 +623,20 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
       return next;
     });
 
+    trackTelemetry({
+      eventType: "QUIZ_QUESTION_ANSWERED",
+      roadmapId: savedRoadmap?._id || savedRoadmap?.id,
+      topic: savedRoadmap?.topic || topic,
+      videoId: video.id,
+      metadata: {
+        questionIndex: currentQIdx,
+        questionText: questions[currentQIdx].question,
+        selectedOption: optIdx,
+        correctOption: correctIdx,
+        isCorrect
+      }
+    });
+
     if (isCorrect) {
       sound.playCorrect();
     } else {
@@ -596,6 +655,26 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
       const xp = score * 20; // 20 XP per correct answer
       setQuizScore(score);
       setEarnedXp(xp);
+
+      const totalQs = questions.length;
+      const passed = score >= Math.ceil(totalQs * 0.6);
+
+      trackTelemetry({
+        eventType: "QUIZ_COMPLETED",
+        roadmapId: savedRoadmap?._id || savedRoadmap?.id,
+        topic: savedRoadmap?.topic || topic,
+        videoId: video.id,
+        metadata: { score, totalQuestions: totalQs, passed }
+      });
+
+      trackTelemetry({
+        eventType: passed ? "QUIZ_PASSED" : "QUIZ_FAILED",
+        roadmapId: savedRoadmap?._id || savedRoadmap?.id,
+        topic: savedRoadmap?.topic || topic,
+        videoId: video.id,
+        metadata: { score, totalQuestions: totalQs }
+      });
+
       setQuizState("completed");
       sound.playVictory();
     }
@@ -742,6 +821,16 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
 
   const isCodingChallenge = activeTab === "quiz" && quizState === "active" && questions[currentQIdx]?.type === "coding";
 
+  const parsedLesson = useMemo(() => {
+    if (!notes || !notes.trim().startsWith("{")) return null;
+    try {
+      return JSON.parse(notes);
+    } catch (e) {
+      console.error("Failed to parse interactive notes", e);
+      return null;
+    }
+  }, [notes]);
+
   return (
     <div style={{
       position: "fixed",
@@ -826,15 +915,18 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
         /* High-Fidelity Markdown notes typography styling */
         .study-notes-document {
           font-family: 'Inter', sans-serif;
+          max-width: 1060px;
+          margin: 0 auto;
+          padding: 0;
         }
         .study-notes-document h1, .study-notes-document h2, .study-notes-document h3 {
           font-family: 'Outfit', sans-serif;
           font-weight: 900;
-          letter-spacing: -0.02em;
-          line-height: 1.2;
+          letter-spacing: -0.015em;
+          line-height: 1.35;
         }
         .study-notes-document h1 {
-          font-size: 32px;
+          font-size: 36px;
           margin: 40px 0 20px 0;
           background: linear-gradient(135deg, #ff6a00, #ffb300, #ff4500);
           background-size: 200% auto;
@@ -866,37 +958,38 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
         .notes-light h2 { color: #ea580c; }
         
         .study-notes-document h3 {
-          font-size: 18px;
-          margin: 28px 0 12px 0;
+          font-size: 22px;
+          margin: 28px 0 10px 0;
+          letter-spacing: 0;
         }
-        .notes-dark h3 { color: #fb923c; }
-        .notes-light h3 { color: #c2410c; }
+        .notes-dark h3 { color: #fed7aa; }
+        .notes-light h3 { color: #9a3412; }
         
         .study-notes-document p {
-          font-size: 15.5px;
-          line-height: 1.85;
+          font-size: 17px;
+          line-height: 1.7;
           margin-bottom: 20px;
           letter-spacing: 0.01em;
         }
-        .notes-dark p { color: rgba(255,255,255,0.85); }
+        .notes-dark p { color: rgba(255,255,255,0.88); }
         .notes-light p { color: #334155; }
         
         .study-notes-document strong {
-          font-weight: 700;
+          font-weight: 800;
           padding: 2px 6px;
-          border-radius: 6px;
+          border-radius: 4px;
           display: inline-block;
           margin: 0 2px;
+          box-shadow: none;
         }
         .notes-dark strong { 
-          color: #fff;
-          background: rgba(255, 106, 0, 0.2);
-          box-shadow: 0 0 10px rgba(255,106,0,0.1);
+          color: #1e293b;
+          background: linear-gradient(120deg, #fef08a 0%, #fde047 100%);
         }
         .notes-light strong { 
-          color: #9a3412;
-          background: #ffedd5;
-          box-shadow: 0 0 10px rgba(234,88,12,0.1);
+          color: #0f172a;
+          background: linear-gradient(120deg, #ffedd5 0%, #fed7aa 100%);
+          border-bottom: 2px solid #fdba74;
         }
 
         .study-notes-document blockquote {
@@ -934,25 +1027,26 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
 
         /* Tables */
         .study-notes-document table {
+          display: block;
           width: 100%;
+          overflow-x: auto;
           border-collapse: separate;
           border-spacing: 0;
-          margin: 32px 0;
+          margin: 24px 0;
           font-size: 14.5px;
           border-radius: 12px;
-          overflow: hidden;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+          box-shadow: 0 4px 15px rgba(0,0,0,0.03);
         }
         .notes-dark table {
-          border: 1px solid rgba(255, 106, 0, 0.2);
-          background: rgba(25, 20, 15, 0.4);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(20, 25, 35, 0.4);
         }
         .notes-light table {
-          border: 1px solid #fed7aa;
-          background: #fffcf9;
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
         }
         .study-notes-document th, .study-notes-document td {
-          padding: 16px 20px;
+          padding: 14px 20px;
           text-align: left;
         }
         .study-notes-document th {
@@ -962,23 +1056,25 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
           letter-spacing: 0.8px;
         }
         .notes-dark th {
-          background: rgba(255, 106, 0, 0.2);
-          color: #fcd34d;
+          background: rgba(255, 255, 255, 0.05);
+          color: #e2e8f0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         .notes-light th {
-          background: #ffedd5;
-          color: #c2410c;
+          background: #f8fafc;
+          color: #475569;
+          border-bottom: 1px solid #e2e8f0;
         }
         .study-notes-document td {
-          border-bottom: 1px solid rgba(255, 106, 0, 0.1);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
         .notes-dark td {
           color: rgba(255,255,255,0.85);
-          border-color: rgba(255, 106, 0, 0.1);
+          border-color: rgba(255, 255, 255, 0.05);
         }
         .notes-light td {
-          color: #475569;
-          border-color: #ffedd5;
+          color: #334155;
+          border-color: #f1f5f9;
         }
         .study-notes-document tr:last-child td {
           border-bottom: none;
@@ -987,7 +1083,7 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
         /* Code Snippets */
         .study-notes-document code {
           font-family: 'Fira Code', 'Courier New', monospace;
-          font-size: 14px;
+          font-size: 14.5px;
           padding: 4px 8px;
           border-radius: 6px;
           font-weight: 600;
@@ -1010,6 +1106,18 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
           font-weight: 500;
           box-shadow: none;
         }
+        
+        /* Mermaid Graphs properly scrollable */
+        .study-notes-document .mermaid {
+          display: flex;
+          justify-content: center;
+          width: 100%;
+          overflow-x: auto;
+          margin: 24px 0;
+          padding: 16px;
+          background: var(--bg-secondary);
+          border-radius: 12px;
+        }
       `}</style>
 
       {/* Top Header Navigation */}
@@ -1029,7 +1137,22 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
       }}>
         {/* Left Side: Circular Back Button */}
         <button 
-          onClick={() => { sound.playClockTick(); onBack(); }}
+          onClick={() => {
+            sound.playClockTick();
+            if (quizState === "active") {
+              trackTelemetry({
+                eventType: "QUIZ_ABANDONED",
+                roadmapId: savedRoadmap?._id || savedRoadmap?.id,
+                topic: savedRoadmap?.topic || topic,
+                videoId: video.id,
+                metadata: {
+                  questionsAnswered: gradedAnswers.filter(g => g !== null).length,
+                  totalQuestions: questions.length
+                }
+              });
+            }
+            onBack();
+          }}
           title="Exit Training"
           style={{
             background: isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed",
@@ -1314,56 +1437,100 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
             flexShrink: 0
           }}>
             <div style={{ 
-              fontSize: "14.5px", 
-              fontWeight: "900", 
-              color: isDarkMode ? "#ffb300" : "#ea580c",
-              fontFamily: "'Outfit', sans-serif",
-              letterSpacing: "0.5px",
-              textTransform: "uppercase"
+              display: "flex", 
+              alignItems: "center",
+              gap: "8px",
+              background: isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed",
+              padding: "6px 12px",
+              borderRadius: "20px",
+              border: isDarkMode ? "1px solid rgba(255, 106, 0, 0.15)" : "1px solid #ffedd5",
             }}>
-              {activeTab === "notes" ? "📝 AI Study Guide" : "⚡ Quest Quiz"}
+              <span style={{ fontSize: "16px", filter: "drop-shadow(0 0 8px rgba(255, 106, 0, 0.5))" }}>
+                {activeTab === "notes" ? "✨" : "⚡"}
+              </span>
+              <span style={{ 
+                fontSize: "13px", 
+                fontWeight: "900", 
+                color: isDarkMode ? "#ffb300" : "#ea580c",
+                fontFamily: "'Outfit', sans-serif",
+                letterSpacing: "0.5px",
+                textTransform: "uppercase"
+              }}>
+                {activeTab === "notes" ? "AI Study Guide" : "Quest Quiz"}
+              </span>
             </div>
 
             {/* Focus Audio Element */}
             <audio ref={focusAudioRef} src="/songs/song16.mp3" loop />
 
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               {activeTab === "notes" && notes && (
-                <button
-                  onClick={() => {
-                    sound.playClockTick();
-                    setTempRegenStyle(noteStyle);
-                    setIsRegenModalOpen(true);
-                  }}
-                  title="Regenerate Study Notes"
-                  style={{
-                    background: isDarkMode ? "rgba(239, 68, 68, 0.08)" : "#fef2f2",
-                    border: isDarkMode ? "1px solid rgba(239, 68, 68, 0.2)" : "1px solid #fee2e2",
-                    color: isDarkMode ? "#f87171" : "#dc2626",
-                    borderRadius: "8px",
-                    padding: "0 14px",
-                    height: "36px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                    fontSize: "13px",
-                    fontWeight: "900",
-                    letterSpacing: "0.5px",
-                    textTransform: "uppercase",
-                    fontFamily: "'Outfit', sans-serif",
-                    gap: "6px"
-                  }}
-                  onMouseOver={e => {
-                    e.currentTarget.style.background = isDarkMode ? "rgba(239, 68, 68, 0.16)" : "#fee2e2";
-                  }}
-                  onMouseOut={e => {
-                    e.currentTarget.style.background = isDarkMode ? "rgba(239, 68, 68, 0.08)" : "#fef2f2";
-                  }}
-                >
-                  🔄 Regenerate
-                </button>
+                <>
+                  <button 
+                    onClick={handleDownloadNotes}
+                    title="Download Notes as PDF"
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--text-secondary)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      padding: "6px",
+                      borderRadius: "8px"
+                    }}
+                    onMouseOver={e => {
+                      e.currentTarget.style.background = isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)";
+                      e.currentTarget.style.color = isDarkMode ? "#fff" : "#000";
+                    }}
+                    onMouseOut={e => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "var(--text-secondary)";
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      sound.playClockTick();
+                      setTempRegenStyle(noteStyle);
+                      setIsRegenModalOpen(true);
+                    }}
+                    title="Regenerate Study Notes"
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--text-secondary)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      padding: "6px",
+                      borderRadius: "8px"
+                    }}
+                    onMouseOver={e => {
+                      e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.1)" : "#fff7ed";
+                      e.currentTarget.style.color = "#ff6a00";
+                    }}
+                    onMouseOut={e => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "var(--text-secondary)";
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                      <path d="M3 3v5h5" />
+                    </svg>
+                  </button>
+                </>
               )}
 
               {/* Focus Audio Toggle Button */}
@@ -1385,53 +1552,51 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                 }}
                 title={isFocusPlaying ? "Deactivate Focus Mode" : "Activate Focus Mode"}
                 style={{
-                  background: isFocusPlaying ? (isDarkMode ? "rgba(16, 185, 129, 0.15)" : "#d1fae5") : (isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed"),
-                  border: isFocusPlaying ? (isDarkMode ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid #10b981") : (isDarkMode ? "1px solid rgba(255, 106, 0, 0.2)" : "1px solid #ffedd5"),
-                  color: isFocusPlaying ? "#10b981" : (isDarkMode ? "#ff8c3a" : "#ea580c"),
-                  borderRadius: "8px",
+                  background: isFocusPlaying ? (isDarkMode ? "rgba(16, 185, 129, 0.15)" : "#d1fae5") : "transparent",
+                  border: isFocusPlaying ? (isDarkMode ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid #10b981") : (isDarkMode ? "1px solid rgba(255,255,255,0.15)" : "1px solid #cbd5e1"),
+                  color: isFocusPlaying ? "#10b981" : "var(--text-secondary)",
+                  borderRadius: "20px",
                   padding: "0 14px",
-                  height: "36px",
+                  height: "32px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: "pointer",
-                  transition: "all 0.2s",
+                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                   flexShrink: 0,
-                  fontSize: "13px",
-                  fontWeight: "900",
+                  fontSize: "12px",
+                  fontWeight: "800",
                   letterSpacing: "0.5px",
                   textTransform: "uppercase",
                   fontFamily: "'Outfit', sans-serif",
-                  gap: "8px"
+                  gap: "6px"
                 }}
                 onMouseOver={e => {
                   if (!isFocusPlaying) {
-                    e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.16)" : "#ffedd5";
+                    e.currentTarget.style.background = isDarkMode ? "rgba(255,255,255,0.05)" : "#f1f5f9";
+                    e.currentTarget.style.color = "var(--text-primary)";
+                    e.currentTarget.style.borderColor = isDarkMode ? "rgba(255,255,255,0.25)" : "#94a3b8";
                   }
                 }}
                 onMouseOut={e => {
                   if (!isFocusPlaying) {
-                    e.currentTarget.style.background = isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed";
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                    e.currentTarget.style.borderColor = isDarkMode ? "rgba(255,255,255,0.15)" : "#cbd5e1";
                   }
                 }}
               >
                 {isFocusPlaying ? (
                   <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4 14h6v6" />
-                      <path d="M20 10h-6V4" />
-                      <path d="M14 10l7-7" />
-                      <path d="M10 14l-7 7" />
-                    </svg>
+                    <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 8px #10b981" }} />
                     <span>FOCUSING</span>
                   </>
                 ) : (
                   <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M15 3h6v6" />
-                      <path d="M9 21H3v-6" />
-                      <path d="M21 3l-7 7" />
-                      <path d="M3 21l7-7" />
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
                     </svg>
                     <span>FOCUS</span>
                   </>
@@ -1440,11 +1605,10 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
             </div>
           </div>
 
-          {/* Tab Content Display Pane */}
           <div style={{ 
             flex: isMobile ? "none" : 1, 
             overflowY: isMobile ? "visible" : "auto", 
-            padding: isMobile ? "20px 16px" : "32px", 
+            padding: isMobile ? "16px" : "12px 24px 40px 24px", 
             boxSizing: "border-box" 
           }}>
             
@@ -1571,7 +1735,11 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                       We encountered an issue while generating your study notes and quiz questions. The AI engine might have timed out or encountered an error.
                     </p>
                     <button
-                      onClick={handleGenerateNotes}
+                      onClick={() => {
+                        sound.playClockTick();
+                        setTempRegenStyle(noteStyle);
+                        setIsRegenModalOpen(true);
+                      }}
                       style={{
                         padding: "12px 28px",
                         background: "linear-gradient(135deg, #ef4444, #dc2626)",
@@ -1593,27 +1761,52 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                 ) : notes ? (
                   /* Render Markdown guide */
                   <div className={`study-notes-document ${isDarkMode ? 'notes-dark' : 'notes-light'}`}>
-                    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "24px" }}>
-                      <button 
-                        onClick={handleDownloadNotes}
-                        style={{
-                          padding: "8px 16px",
-                          borderRadius: "10px",
-                          border: isDarkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid #cbd5e1",
-                          background: isDarkMode ? "rgba(255,255,255,0.05)" : "#ffffff",
-                          color: "var(--text-light)",
-                          fontSize: "12.5px",
-                          fontWeight: "750",
-                          cursor: "pointer",
-                          transition: "all 0.2s"
-                        }}
-                        onMouseOver={e => e.currentTarget.style.background = isDarkMode ? "rgba(255,255,255,0.1)" : "#f1f5f9"}
-                        onMouseOut={e => e.currentTarget.style.background = isDarkMode ? "rgba(255,255,255,0.05)" : "#ffffff"}
-                      >
-                        📥 Download Notes (.pdf)
-                      </button>
-                    </div>
-                    <StudyNotesContent notes={notes} isDarkMode={isDarkMode} isFocusMode={isFocusPlaying} />
+                    {parsedLesson ? (
+                      <div style={{
+                        padding: "48px 32px",
+                        textAlign: "center",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: isDarkMode ? "rgba(255,255,255,0.01)" : "rgba(0,0,0,0.02)",
+                        borderRadius: "20px",
+                        border: isDarkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid #e2e8f0",
+                        marginTop: "20px"
+                      }}>
+                        <div style={{ fontSize: "40px", marginBottom: "16px" }}>⚡</div>
+                        <h3 style={{ fontSize: "18px", fontWeight: "900", color: isDarkMode ? "#ffffff" : "#0f172a", marginBottom: "8px", fontFamily: "'Outfit', sans-serif" }}>
+                          Story Mode Available
+                        </h3>
+                        <p style={{ color: isDarkMode ? "#94a3b8" : "#64748b", fontSize: "14px", maxWidth: "340px", lineHeight: "1.5", marginBottom: "24px" }}>
+                          {showInteractiveOverlay 
+                            ? "Interactive Story Mode is currently running. Use the options in the overlay to play, collapse, or exit."
+                            : "This study guide has been generated in our premium interactive storytelling format."
+                          }
+                        </p>
+                        {!showInteractiveOverlay && (
+                          <button
+                            onClick={() => { sound.playClockTick(); setShowInteractiveOverlay(true); }}
+                            style={{
+                              padding: "12px 28px",
+                              borderRadius: "12px",
+                              background: "linear-gradient(135deg, #ff6a00 0%, #ea580c 100%)",
+                              color: "white",
+                              fontWeight: "800",
+                              fontSize: "14px",
+                              border: "none",
+                              cursor: "pointer",
+                              boxShadow: "0 4px 12px rgba(234, 88, 12, 0.25)",
+                              fontFamily: "'Outfit', sans-serif"
+                            }}
+                          >
+                            ⚡ Play Story Mode
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <StudyNotesContent notes={notes} isDarkMode={isDarkMode} isFocusMode={isFocusPlaying} />
+                    )}
                   </div>
                 ) : (
                   /* Call to Action Generate notes */
@@ -1745,6 +1938,25 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                         }}
                       >
                         Visual Stories 🎨
+                      </button>
+                      <button
+                        onClick={() => setNoteStyle("interactive")}
+                        style={{
+                          padding: "8px 20px",
+                          borderRadius: "12px",
+                          border: "none",
+                          background: noteStyle === "interactive" ? (isDarkMode ? "rgba(255, 106, 0, 0.15)" : "#ffedd5") : "transparent",
+                          color: noteStyle === "interactive" ? "#ff6a00" : (isDarkMode ? "#94a3b8" : "#64748b"),
+                          fontWeight: noteStyle === "interactive" ? "800" : "600",
+                          fontSize: "13.5px",
+                          cursor: "pointer",
+                          transition: "all 0.2s",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px"
+                        }}
+                      >
+                        Story Mode ⚡
                       </button>
                     </div>
 
@@ -2465,6 +2677,30 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
                   Prioritizes diagrams, Mermaid charts, flowcharts, comparisons, and visual story layouts.
                 </div>
               </div>
+
+              {/* Story Mode Option */}
+              <div 
+                onClick={() => setTempRegenStyle("interactive")}
+                style={{
+                  padding: "16px",
+                  borderRadius: "12px",
+                  border: tempRegenStyle === "interactive" 
+                    ? "2px solid #ff6a00" 
+                    : (isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0"),
+                  background: tempRegenStyle === "interactive"
+                    ? (isDarkMode ? "rgba(255,106,0,0.1)" : "#fff7ed")
+                    : (isDarkMode ? "rgba(255,255,255,0.02)" : "#f8fafc"),
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+              >
+                <div style={{ fontWeight: "700", fontSize: "14.5px", color: isDarkMode ? "#f8fafc" : "#0f172a", marginBottom: "4px" }}>
+                  Story Mode ⚡
+                </div>
+                <div style={{ fontSize: "12px", color: isDarkMode ? "#94a3b8" : "#64748b" }}>
+                  Step-by-step interactive disclosure, quick quizzes, dynamic pipelines, and code comparisons.
+                </div>
+              </div>
             </div>
 
             {/* Warning Alert */}
@@ -2501,6 +2737,13 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
               <button
                 onClick={() => {
                   sound.playClockTick();
+                  trackTelemetry({
+                    eventType: "PATHFINDER_REGENERATED",
+                    roadmapId: savedRoadmap?._id || savedRoadmap?.id,
+                    topic: savedRoadmap?.topic || topic,
+                    videoId: video.id,
+                    metadata: { fromStyle: noteStyle, toStyle: tempRegenStyle }
+                  });
                   setNoteStyle(tempRegenStyle);
                   setIsRegenModalOpen(false);
                   setTimeout(() => {
@@ -2525,36 +2768,89 @@ export default function SoloStudyRoom({ video, username, isDarkMode, backendUrl,
           </div>
         </div>
       )}
+
+      {showInteractiveOverlay && parsedLesson && (
+        <InteractiveLesson
+          lessonData={parsedLesson}
+          onClose={() => {
+            setShowInteractiveOverlay(false);
+            setIsNotesExpanded(false);
+          }}
+          isDarkMode={isDarkMode}
+          isExpanded={isNotesExpanded}
+          onToggleExpand={() => setIsNotesExpanded(prev => !prev)}
+        />
+      )}
     </div>
   );
 }
 
 const StudyNotesContent = memo(({ notes, isDarkMode, isFocusMode = false }) => {
   const sanitizeCode = (rawCode) => {
-    let code = rawCode
-      // Collapse multi-dash arrows first to prevent parser confusion
-      .replace(/-{3,}>>/g, "->流通->") // Temporary placeholder for sequence arrow
-      .replace(/-{3,}/g, "-") // Collapse all other multi-dashes to a single dash
-      .replace(/->流通->/g, "->>") // Restore sequence arrow
-      .replace(/={3,}>/g, "==>")
-      // Normalize standard arrow styles without overriding sequence arrows
-      .replace(/[\u2192\u2794\u279c\u27a1]/g, "-->") // Unicode right arrows
-      .replace(/->(?!>)/g, "-->") // Standard flowchart arrow
-      .replace(/=>(?!>)/g, "==>") // Thick flowchart arrow
-      .replace(/[\u2190]/g, "<--") // Unicode left arrow
-      .replace(/<-(?!<)/g, "<--")
-      .trim();
+    let code = rawCode.trim();
 
-    // Process line-by-line to sanitize nested quotes and tag-like content inside node labels
+    // 1. Convert space-separated single dashes connecting nodes (e.g. "B - E" or "B - F") to standard flowchart links "-->"
+    code = code.replace(/\b([a-zA-Z0-9_-]+)\s+-\s+([a-zA-Z0-9_-]+)\b/g, "$1 --> $2");
+
+    // 2. Safely normalize long multi-dash arrows (e.g. --->, ---->, ----->) to standard arrows
+    code = code.replace(/-{3,}>/g, "-->");
+    code = code.replace(/-{2,}>/g, "-->");
+    code = code.replace(/={3,}>/g, "==>");
+    code = code.replace(/={2,}>/g, "==>");
+    code = code.replace(/->/g, "-->");
+    code = code.replace(/=>/g, "==>");
+    code = code.replace(/[\u2192\u2794\u279c\u27a1]/g, "-->");
+
+    // Convert invalid link text patterns: "A -- "text" B" or "A -- text B" (without arrows) to valid Mermaid "A -->|text| B"
+    code = code.replace(/\b([a-zA-Z0-9_-]+)\s+--\s+"([^"]+)"\s+([a-zA-Z0-9_-]+)\b/g, "$1 -->|$2| $3");
+    code = code.replace(/\b([a-zA-Z0-9_-]+)\s+--\s+([^"\->\n]+?)\s+([a-zA-Z0-9_-]+)\b/g, (match, n1, text, n2) => {
+      const cleanText = text.trim().replace(/\s+/g, " ");
+      return `${n1} -->|${cleanText}| ${n2}`;
+    });
+
+    // Merge dangling link text/comments into the node label itself
+    code = code.replace(/\b([a-zA-Z0-9_-]+)([\(\[\{])\s*"([\s\S]*?)"\s*([\)\}\]])\s+--\s+"([^"\n]+)"/g, (match, nodeName, openBrack, label, closeBrack, desc) => {
+      const cleanLabel = label.trim();
+      const cleanDesc = desc.trim();
+      return `${nodeName}${openBrack}"${cleanLabel}<br/><b>(${cleanDesc})</b>"${closeBrack}`;
+    });
+    code = code.replace(/\b([a-zA-Z0-9_-]+)([\(\[\{])\s*"([\s\S]*?)"\s*([\)\}\]])\s+--\s+([^"\-\n]+)/g, (match, nodeName, openBrack, label, closeBrack, desc) => {
+      const cleanLabel = label.trim();
+      const cleanDesc = desc.trim();
+      if (cleanDesc === "" || cleanDesc.includes("subgraph") || cleanDesc.includes("end") || cleanDesc.includes("style")) return match;
+      return `${nodeName}${openBrack}"${cleanLabel}<br/><b>(${cleanDesc})</b>"${closeBrack}`;
+    });
+
+    // 3. Sanitize double quotes, spaces inside brackets, and HTML tags nested inside node brackets (handles multi-line declarations)
+    code = code.replace(/([a-zA-Z0-9_-]+)([\(\[\{])\s*"([\s\S]*?)"\s*([\)\}\]])/g, (match, nodeName, openBrack, content, closeBrack) => {
+      const sanitizedContent = content
+        .replace(/"/g, "'")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      return `${nodeName}${openBrack}"${sanitizedContent}"${closeBrack}`;
+    });
+
+    // Process line-by-line for line-level fixes (splitting side-by-side nodes, extra graphs)
     const lines = code.split("\n");
+    let hasFirstGraph = false;
     const processedLines = lines.map(line => {
-      return line.replace(/([a-zA-Z0-9_-]+)([\(\[\{])"([\s\S]*?)"([\)\}\]])/g, (match, nodeName, openBrack, content, closeBrack) => {
-        const sanitizedContent = content
-          .replace(/"/g, "'")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
-        return `${nodeName}${openBrack}"${sanitizedContent}"${closeBrack}`;
-      });
+      let cleanedLine = line;
+
+      // 4. Split side-by-side node definitions on the same line
+      cleanedLine = cleanedLine.replace(/(\"[^\"]*\")\s+([a-zA-Z0-9_-]+)([\(\[\{]\")/g, '$1;\n$2$3');
+      cleanedLine = cleanedLine.replace(/([\)\}\]])\s+([a-zA-Z0-9_-]+)([\(\[\{])/g, '$1;\n$2$3');
+
+      // 5. Clean up redundant graph declarations (e.g. "style M2 fill:...;graph TD")
+      const graphRegex = /\b(graph|flowchart)\s+(TD|LR|TB|BT|RL)\b/gi;
+      if (graphRegex.test(cleanedLine)) {
+        if (!hasFirstGraph) {
+          hasFirstGraph = true;
+        } else {
+          cleanedLine = cleanedLine.replace(graphRegex, "");
+        }
+      }
+
+      return cleanedLine;
     });
 
     return processedLines.join("\n");
@@ -2570,7 +2866,10 @@ const StudyNotesContent = memo(({ notes, isDarkMode, isFocusMode = false }) => {
             theme: isDarkMode ? "dark" : "default",
             securityLevel: "loose",
             fontFamily: "var(--font-sans)",
-            flowchart: { useMaxWidth: true, htmlLabels: true }
+            useMaxWidth: false,
+            flowchart: { useMaxWidth: false, htmlLabels: true },
+            sequence: { useMaxWidth: false },
+            gantt: { useMaxWidth: false }
           });
 
           let retries = 0;

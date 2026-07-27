@@ -7,7 +7,9 @@ import AppRouter from "./AppRouter";
 import GlobalSplashScreen from "./features/Shared/GlobalSplashScreen";
 import { trackTelemetry } from "./utils/telemetry";
 
-const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
+const BACKEND_URL = typeof window !== "undefined" && ["localhost", "127.0.0.1", "::1", "[::1]"].includes(window.location.hostname)
+  ? `http://${window.location.hostname === "localhost" ? "127.0.0.1" : window.location.hostname}:5000`
+  : "";
 const DEFAULT_AVATAR = "https://api.dicebear.com/7.x/bottts/svg?seed=Cypher&backgroundColor=transparent";
 
 // Global lock for silent refresh to prevent concurrent requests during StrictMode double-mounts
@@ -216,6 +218,7 @@ export default function App() {
     }).catch(err => console.warn("Logout request failed:", err));
 
     localStorage.removeItem("kaevrix_token");
+    sessionStorage.clear(); // Clear all navigation/session state
     setToken("");
     setUsername("");
     setAvatar(DEFAULT_AVATAR);
@@ -245,8 +248,15 @@ export default function App() {
 
   // Matchmaking choices
   const [selectedVideo, setSelectedVideo] = useState(null);
-  const [selectedSoloVideo, setSelectedSoloVideo] = useState(null);
+  const [selectedSoloVideo, setSelectedSoloVideo] = useState(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const saved = sessionStorage.getItem("kaevrix_selected_solo_video");
+      return saved ? JSON.parse(saved) : null;
+    } catch (_) { return null; }
+  });
   const [vsBot, setVsBot] = useState(true); // Default to bot mode for easy local demo
+  const [practiceContext, setPracticeContext] = useState(null);
   
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -256,7 +266,26 @@ export default function App() {
 
   // Socket & Game Connection
   const [socket, setSocket] = useState(null);
-  const [status, setStatus] = useState("idle"); // idle, searching, matched, countdown, playing, quiz, results
+  const [status, setStatus] = useState(() => {
+    if (typeof window === "undefined") return "idle";
+    return sessionStorage.getItem("kaevrix_current_status") || "idle";
+  }); // idle, searching, matched, countdown, playing, quiz, results
+
+  useEffect(() => {
+    if (status) {
+      sessionStorage.setItem("kaevrix_current_status", status);
+    }
+  }, [status]);
+
+  useEffect(() => {
+    if (selectedSoloVideo) {
+      sessionStorage.setItem("kaevrix_selected_solo_video", JSON.stringify(selectedSoloVideo));
+    } else {
+      sessionStorage.removeItem("kaevrix_selected_solo_video");
+    }
+  }, [selectedSoloVideo]);
+
+  const roomStateRef = useRef(null); // reference for socket connection
   const [room, setRoom] = useState(null);
   const [opponent, setOpponent] = useState(null);
   const [countdown, setCountdown] = useState(5);
@@ -463,6 +492,10 @@ export default function App() {
     if (!query.trim()) return;
     setIsSearching(true);
     setActiveSearchQuery(query.trim());
+    trackTelemetry({
+      eventType: "SEARCH_PERFORMED",
+      metadata: { query: query.trim() }
+    });
     try {
       const response = await fetch(`${BACKEND_URL}/api/search?q=${encodeURIComponent(query.trim())}`, {
         headers: { "Authorization": `Bearer ${localStorage.getItem("kaevrix_token")}` }
@@ -827,7 +860,7 @@ export default function App() {
     setDisabledOptions(Array(5).fill([]));
   };
 
-  const appProps = { username, setUsername, avatar, setAvatar, selectedClass, setSelectedClass, isRegistered, setIsRegistered, xp, setXp, level, setLevel, wins, setWins, losses, setLosses, isDarkMode, setIsDarkMode, token, setToken, isMusicMuted, setIsMusicMuted, musicProfile, setMusicProfile, keepMusicInGame, setKeepMusicInGame, showMusicSettings, setShowMusicSettings, showSurpassLimits, setShowSurpassLimits, isExitIntercept, setIsExitIntercept, interceptTrackIdx, setInterceptTrackIdx, showDailyModal, setShowDailyModal, journeyDay, setJourneyDay, energy, setEnergy, isFrozen, setIsFrozen, isBlurred, setIsBlurred, progressAtQuizEntry, setProgressAtQuizEntry, doubleDownQuestions, setDoubleDownQuestions, disabledOptions, setDisabledOptions, leaderboard, setLeaderboard, curatedVideos, setCuratedVideos, selectedVideo, setSelectedVideo, selectedSoloVideo, setSelectedSoloVideo, vsBot, setVsBot, searchQuery, setSearchQuery, activeSearchQuery, setActiveSearchQuery, searchResults, setSearchResults, isSearching, setIsSearching, socket, setSocket, status, setStatus, room, setRoom, opponent, setOpponent, countdown, setCountdown, myProgress, setMyProgress, opponentProgress, setOpponentProgress, opponentWaiting, setOpponentWaiting, opponentSubmitted, setOpponentSubmitted, chatMessages, setChatMessages, chatInput, setChatInput, questions, setQuestions, currentQuestionIdx, setCurrentQuestionIdx, selectedAnswers, setSelectedAnswers, quizTimer, setQuizTimer, gameResults, setGameResults, xpGained, setXpGained, leveledUp, setLeveledUp, handleLogout, cancelMatchmaking, handleSearchSubmit, clearSearch, resetToDashboard, startMatchmaking, handleReadyToPlay, handleSendChat, handleVideoProgress, handleVideoFinished, handleUsePowerup, handleSelectOption, handleDoubleDown, handleHackersClue, submitQuizAnswers, handleNextQuestion, handleStartSoloStudy, handleAddSoloXp, exitAttemptsRef, BACKEND_URL, getRankTitle, triggerSearch, initializeSocketAndRegister };
+  const appProps = { username, setUsername, avatar, setAvatar, selectedClass, setSelectedClass, isRegistered, setIsRegistered, xp, setXp, level, setLevel, wins, setWins, losses, setLosses, isDarkMode, setIsDarkMode, token, setToken, isMusicMuted, setIsMusicMuted, musicProfile, setMusicProfile, keepMusicInGame, setKeepMusicInGame, showMusicSettings, setShowMusicSettings, showSurpassLimits, setShowSurpassLimits, isExitIntercept, setIsExitIntercept, interceptTrackIdx, setInterceptTrackIdx, showDailyModal, setShowDailyModal, journeyDay, setJourneyDay, energy, setEnergy, isFrozen, setIsFrozen, isBlurred, setIsBlurred, progressAtQuizEntry, setProgressAtQuizEntry, doubleDownQuestions, setDoubleDownQuestions, disabledOptions, setDisabledOptions, leaderboard, setLeaderboard, curatedVideos, setCuratedVideos, selectedVideo, setSelectedVideo, selectedSoloVideo, setSelectedSoloVideo, vsBot, setVsBot, searchQuery, setSearchQuery, activeSearchQuery, setActiveSearchQuery, searchResults, setSearchResults, isSearching, setIsSearching, socket, setSocket, status, setStatus, room, setRoom, opponent, setOpponent, countdown, setCountdown, myProgress, setMyProgress, opponentProgress, setOpponentProgress, opponentWaiting, setOpponentWaiting, opponentSubmitted, setOpponentSubmitted, chatMessages, setChatMessages, chatInput, setChatInput, questions, setQuestions, currentQuestionIdx, setCurrentQuestionIdx, selectedAnswers, setSelectedAnswers, quizTimer, setQuizTimer, gameResults, setGameResults, xpGained, setXpGained, leveledUp, setLeveledUp, handleLogout, cancelMatchmaking, handleSearchSubmit, clearSearch, resetToDashboard, startMatchmaking, handleReadyToPlay, handleSendChat, handleVideoProgress, handleVideoFinished, handleUsePowerup, handleSelectOption, handleDoubleDown, handleHackersClue, submitQuizAnswers, handleNextQuestion, handleStartSoloStudy, handleAddSoloXp, exitAttemptsRef, BACKEND_URL, getRankTitle, triggerSearch, initializeSocketAndRegister, practiceContext, setPracticeContext };
   return (
     <>
       {!isAppReady && (

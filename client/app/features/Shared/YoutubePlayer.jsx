@@ -1,9 +1,16 @@
 import { useEffect, useRef } from "react";
+import { trackTelemetry } from "../../utils/telemetry.js";
 
 export default function YoutubePlayer({ videoId, onProgress, onFinished, isFrozen, playbackRate = 1 }) {
   const playerRef = useRef(null);
   const progressIntervalRef = useRef(null);
   const containerId = "youtube-iframe-player";
+
+  // Telemetry tracking refs
+  const hasStartedRef = useRef(false);
+  const hasOpenedRef = useRef(false);
+  const lastPercentageRef = useRef(0);
+  const lastTimeRef = useRef(0);
 
   // Use refs to keep callbacks stable so they never trigger the player recreation effect
   const onProgressRef = useRef(onProgress);
@@ -55,6 +62,24 @@ export default function YoutubePlayer({ videoId, onProgress, onFinished, isFroze
             const duration = ytPlayer.getDuration();
             if (duration > 0) {
               const percentage = Math.min(100, (currentTime / duration) * 100);
+
+              // Seek detection: Check if playhead jumps significantly
+              const timeDiff = currentTime - lastTimeRef.current;
+              if (lastTimeRef.current > 0 && (timeDiff < -1.5 || timeDiff > 2.5)) {
+                trackTelemetry({
+                  eventType: "VIDEO_SEEK",
+                  videoId: videoId,
+                  metadata: {
+                    from: lastTimeRef.current,
+                    to: currentTime,
+                    direction: timeDiff > 0 ? "forward" : "backward"
+                  }
+                });
+              }
+
+              lastPercentageRef.current = Math.round(percentage);
+              lastTimeRef.current = currentTime;
+
               // Trigger the latest callback ref
               if (onProgressRef.current) {
                 onProgressRef.current(Math.round(percentage), currentTime);
@@ -95,15 +120,30 @@ export default function YoutubePlayer({ videoId, onProgress, onFinished, isFroze
               if (isDestroyed) return;
               console.log("[YT Player] Ready and playing:", videoId);
               
+              if (!hasOpenedRef.current) {
+                trackTelemetry({
+                  eventType: "VIDEO_OPENED",
+                  videoId: videoId,
+                  metadata: { playbackRate: playbackRateRef.current }
+                });
+                hasOpenedRef.current = true;
+              }
+
               try {
                 if (isFrozen) {
-                  event.target.pauseVideo();
+                  if (typeof event.target.pauseVideo === "function") {
+                    event.target.pauseVideo();
+                  }
                 } else {
-                  event.target.playVideo();
+                  if (typeof event.target.playVideo === "function") {
+                    event.target.playVideo();
+                  }
                 }
                 // Apply initial playback rate
                 if (playbackRateRef.current && playbackRateRef.current !== 1) {
-                  event.target.setPlaybackRate(playbackRateRef.current);
+                  if (typeof event.target.setPlaybackRate === "function") {
+                    event.target.setPlaybackRate(playbackRateRef.current);
+                  }
                 }
               } catch (err) {
                 console.warn("[YT Player] Autoplay failed or blocked:", err);
@@ -115,15 +155,38 @@ export default function YoutubePlayer({ videoId, onProgress, onFinished, isFroze
 
               // YT.PlayerState.PLAYING = 1
               if (event.data === window.YT.PlayerState.PLAYING) {
+                const currentTime = typeof event.target.getCurrentTime === "function" ? event.target.getCurrentTime() : 0;
+                if (!hasStartedRef.current) {
+                  trackTelemetry({
+                    eventType: "VIDEO_PLAYING",
+                    videoId: videoId,
+                    metadata: { startAt: currentTime, playbackRate: playbackRateRef.current }
+                  });
+                  hasStartedRef.current = true;
+                } else {
+                  trackTelemetry({
+                    eventType: "VIDEO_RESUMED",
+                    videoId: videoId,
+                    metadata: { resumeAt: currentTime }
+                  });
+                }
+
                 // If frozen, force pause
                 if (isFrozen) {
-                  event.target.pauseVideo();
+                  try {
+                    if (typeof event.target.pauseVideo === "function") {
+                      event.target.pauseVideo();
+                    }
+                  } catch (e) {
+                    console.warn("[YT Player] pauseVideo failed on frozen PLAYING:", e);
+                  }
                 } else {
-                  event.target.playVideo();
                   // Re-apply playback rate just in case YouTube reset it
                   if (playbackRateRef.current) {
                     try {
-                      event.target.setPlaybackRate(playbackRateRef.current);
+                      if (typeof event.target.setPlaybackRate === "function") {
+                        event.target.setPlaybackRate(playbackRateRef.current);
+                      }
                     } catch (e) {
                       console.warn("[YT Player] setPlaybackRate failed on PLAYING:", e);
                     }
@@ -132,6 +195,14 @@ export default function YoutubePlayer({ videoId, onProgress, onFinished, isFroze
                 }
               } else {
                 stopProgressTracking();
+                if (event.data === window.YT.PlayerState.PAUSED) {
+                  const currentTime = typeof event.target.getCurrentTime === "function" ? event.target.getCurrentTime() : 0;
+                  trackTelemetry({
+                    eventType: "VIDEO_PAUSED",
+                    videoId: videoId,
+                    metadata: { pauseAt: currentTime }
+                  });
+                }
               }
 
               // YT.PlayerState.ENDED = 0
@@ -189,6 +260,18 @@ export default function YoutubePlayer({ videoId, onProgress, onFinished, isFroze
     return () => {
       isDestroyed = true;
       stopProgressTracking();
+
+      // Check if video is abandoned (less than 95% complete)
+      if (hasStartedRef.current && lastPercentageRef.current < 95) {
+        trackTelemetry({
+          eventType: "VIDEO_ABANDONED",
+          videoId: videoId,
+          metadata: {
+            lastPercentage: lastPercentageRef.current,
+            lastSecond: lastTimeRef.current
+          }
+        });
+      }
       
       if (playerRef.current) {
         try {

@@ -3,6 +3,7 @@ import { YoutubeTranscript } from "youtube-transcript";
 import path from "path";
 import { fileURLToPath } from "url";
 import TelemetryEvent from "./models/TelemetryEvent.js";
+import PracticeSheet from "./models/PracticeSheet.js";
 import { trackAICost } from "./services/budgetTracker.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -245,6 +246,96 @@ async function callGeminiAPI(prompt, responseMimeType = "text/plain", userId = n
     }).catch(e => console.error(e));
     throw err;
   }
+}
+
+async function callOpenRouterAPI(prompt, responseMimeType = "text/plain", userId = null, endpoint = "unknown") {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new Error("No OpenRouter API key configured");
+  }
+
+  const startTime = Date.now();
+  try {
+    const body = {
+      model: "openai/gpt-oss-120b:free",
+      messages: [{ role: "user", content: prompt }]
+    };
+    if (responseMimeType === "application/json") {
+      body.response_format = { type: "json_object" };
+    }
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://kaevrix.edu",
+        "X-Title": "Kaevrix"
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      throw new Error(`OpenRouter API HTTP Error ${response.status}: ${errText}`);
+    }
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content;
+    if (!text) {
+      throw new Error("Empty response from OpenRouter API");
+    }
+
+    TelemetryEvent.create({
+      username: "system",
+      eventType: "AI_REQUEST_EXECUTED",
+      metadata: { provider: "openrouter", model: "openai/gpt-oss-120b:free", latencyMs: Date.now() - startTime }
+    }).catch(e => console.error(e));
+
+    const usage = data.usage || {};
+    const inputTokens = usage.prompt_tokens || Math.ceil(prompt.length / 4);
+    const outputTokens = usage.completion_tokens || Math.ceil(text.length / 4);
+    trackAICost(userId, endpoint, inputTokens, outputTokens).catch(e => console.error("trackAICost failed:", e));
+
+    return text;
+  } catch (err) {
+    TelemetryEvent.create({
+      username: "system",
+      eventType: "AI_REQUEST_FAILED",
+      metadata: { provider: "openrouter", model: "openai/gpt-oss-120b:free", errorMessage: err.message, latencyMs: Date.now() - startTime }
+    }).catch(e => console.error(e));
+    throw err;
+  }
+}
+
+async function callAIPipeline(prompt, responseMimeType = "text/plain", userId = null, endpoint = "unknown") {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const useGemini = apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE";
+
+  if (useGemini) {
+    try {
+      console.log(`[AI Pipeline] Attempting Gemini API...`);
+      return await callGeminiAPI(prompt, responseMimeType, userId, endpoint);
+    } catch (gemErr) {
+      console.error(`[AI Pipeline] Gemini API failed (${gemErr.message}). Falling back to OpenRouter...`);
+    }
+  }
+
+  const openRouterKey = process.env.OPENROUTER_API_KEY;
+  const useOpenRouter = openRouterKey && openRouterKey !== "";
+
+  if (useOpenRouter) {
+    try {
+      console.log(`[AI Pipeline] Attempting OpenRouter API (openai/gpt-oss-120b:free)...`);
+      return await callOpenRouterAPI(prompt, responseMimeType, userId, endpoint);
+    } catch (orErr) {
+      console.error(`[AI Pipeline] OpenRouter API failed (${orErr.message}). Falling back to Ollama...`);
+    }
+  }
+
+  console.log(`[AI Pipeline] Falling back to Ollama ${OLLAMA_MODEL}...`);
+  const format = responseMimeType === "application/json" ? "json" : "text";
+  return await ollamaGenerate(prompt, format, userId, endpoint);
 }
 
 function buildFallbackRoadmap(topic, goal) {
@@ -524,23 +615,7 @@ ${useGemini ? `- You MUST generate milestones for ALL levels (Level 1 to Level $
 Return ONLY valid JSON, no markdown.`;
 
   try {
-    let raw;
-    let geminiFailed = false;
-
-    if (useGemini) {
-      try {
-        console.log(`[Pathfinder] Generating roadmap for: "${userTopicShort}" via Gemini API`);
-        raw = await callGeminiAPI(prompt, "application/json", userId, "/pathfinder/generate");
-      } catch (gemErr) {
-        console.error(`[Pathfinder] Gemini API failed (${gemErr.message}). Falling back to Ollama...`);
-        geminiFailed = true;
-      }
-    }
-    
-    if (!useGemini || geminiFailed) {
-      console.log(`[Pathfinder] Generating roadmap for: "${userTopicShort}" via Ollama ${OLLAMA_MODEL}`);
-      raw = await ollamaGenerate(prompt, "json", userId, "/pathfinder/generate");
-    }
+    const raw = await callAIPipeline(prompt, "application/json", userId, "/pathfinder/generate");
 
     const roadmap = repairAndParseJSON(raw, "pathfinder/generate");
 
@@ -637,17 +712,7 @@ Generate a JSON object with this EXACT structure:
 
 Return ONLY valid JSON, no markdown.`;
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  const useGemini = apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE";
-
-  let raw;
-  if (useGemini) {
-    console.log(`[Pathfinder] Generating Level ${level} for: "${topic}" via Gemini API`);
-    raw = await callGeminiAPI(prompt, "application/json", userId, "/pathfinder/generate-level");
-  } else {
-    console.log(`[Pathfinder] Generating Level ${level} for: "${topic}" via Ollama`);
-    raw = await ollamaGenerate(prompt, "json", userId, "/pathfinder/generate-level");
-  }
+  const raw = await callAIPipeline(prompt, "application/json", userId, "/pathfinder/generate-level");
 
   const result = repairAndParseJSON(raw, "pathfinder/generate-level");
   if (!result.milestones || result.milestones.length === 0) {
@@ -816,29 +881,8 @@ Ensure the tone is professional, encouraging, and highly educational.
 Output ONLY the final Markdown formatted study guide. Use beautiful typography, bolding, and structuring. Make the notes visually stunning and awesome.`;
   }
 
-  dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
-  const apiKey = process.env.GEMINI_API_KEY;
-  const useGemini = apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE";
-
   try {
-    let notes;
-    let geminiFailed = false;
-
-    if (useGemini) {
-      try {
-        console.log(`[StudyNotes] Generating study notes for: "${milestone.title}" via Gemini API`);
-        notes = await callGeminiAPI(prompt, "text/plain", userId, "/pathfinder/study-notes");
-      } catch (gemErr) {
-        console.error(`[StudyNotes] Gemini API failed (${gemErr.message}). Falling back to Ollama...`);
-        geminiFailed = true;
-      }
-    }
-    
-    if (!useGemini || geminiFailed) {
-      console.log(`[StudyNotes] Generating study notes for: "${milestone.title}" via Ollama ${OLLAMA_MODEL}`);
-      notes = await ollamaGenerate(prompt, "text", userId, "/pathfinder/study-notes");
-    }
-    
+    const notes = await callAIPipeline(prompt, "text/plain", userId, "/pathfinder/study-notes");
     return notes.trim();
   } catch (err) {
     console.error(`[StudyNotes] AI study notes generation failed: ${err.message}`);
@@ -894,7 +938,10 @@ export async function generateStudyNotesAndQuiz(topic, milestone, answers = [], 
 
   // Notes prompt part based on noteStyle
   let notesGuidelines = "";
+  let notesFormatSpec = "";
+
   if (noteStyle === 'basic') {
+    notesFormatSpec = `"notes": "The complete markdown formatted study guide text string goes here. Use newlines (\\n) and proper markdown escape sequences."`;
     notesGuidelines = `
 Your study guide MUST follow this exact Markdown structure:
 # ${milestone.title}
@@ -918,6 +965,7 @@ Identify 3-4 actual, high-quality questions related to this milestone, with Idea
 Provide 2 small exercises or mental puzzles with answers hidden below.
 `;
   } else if (noteStyle === 'visual') {
+    notesFormatSpec = `"notes": "The complete markdown formatted study guide text string goes here. Use newlines (\\n) and proper markdown escape sequences."`;
     notesGuidelines = `
 You are Kaevrix's Visual Storytelling Engine.
 These notes prioritize understanding through visual storytelling rather than textual explanations.
@@ -970,9 +1018,69 @@ OUTPUT STRUCTURE & FORMATTING:
 
 CRITICAL JSON REQUIREMENT:
 - The generated study notes MUST be returned as a single JSON-encoded string inside the "notes" property of the JSON response. Do not output raw markdown directly.
-- The notes text must be properly escaped for inclusion in a JSON string (e.g., escape backslashes, escape double quotes, use \n for newlines).
+- The notes text must be properly escaped for inclusion in a JSON string (e.g., escape backslashes, escape double quotes, use \\n for newlines).
+`;
+  } else if (noteStyle === 'interactive') {
+    notesFormatSpec = `"notes": {
+    "topicName": "Name of the topic",
+    "masteryCheckpoints": [
+      {
+        "id": "m-1",
+        "title": "Title of the Mastery Challenge",
+        "description": "Complete description of the final mastery programming challenge representing the end-goal of the lesson",
+        "codeTemplate": "Code skeleton template or snippet for the challenge",
+        "prerequisites": ["node-id-1", "node-id-2"]
+      }
+    ],
+    "prerequisiteNodes": [
+      {
+        "id": "node-id-1",
+        "title": "Title of this prerequisite concept",
+        "difficulty": "Easy/Medium/Hard",
+        "prerequisites": ["parent-node-id-optional"],
+        "challenge": {
+          "title": "Prerequisite challenge title",
+          "description": "Challenge description testing this prerequisite concept specifically",
+          "codeTemplate": "Code template or snippet for the challenge"
+        },
+        "explanation": {
+          "story": "A highly engaging, story-based explanation. Walk the user through execution context, V8 memory allocation (heap/stack), or scope chains using clean analogies instead of definitions.",
+          "visuals": {
+            "type": "flowchart/memory/pipeline/compare",
+            "nodes": [
+              { "id": "n1", "label": "Node Label", "type": "stack/heap/scope/function/data", "details": "Description of what this represents" }
+            ],
+            "edges": [
+              { "from": "n1", "to": "n2", "label": "Relation label" }
+            ]
+          }
+        },
+        "solutionBreakdown": {
+          "timeline": [
+            { "step": 1, "action": "Action taking place", "memory": "Stack/Heap memory changes at this step" }
+          ],
+          "walkthrough": "Complete step-by-step description breaking down how the code runs and how the solution works."
+        }
+      }
+    ]
+  }`;
+
+    notesGuidelines = `
+You are Kaevrix's Adaptive Learning and Visual Storytelling Engine.
+Your task is to generate a comprehensive, structured, JSON-based lesson driven by an adaptive challenge-first learning philosophy.
+The notes must NOT be written in markdown. Instead, they must be returned as a nested JSON object under the "notes" key.
+
+Core Philosophy & Structure:
+1. CHALLENGE-FIRST GRAPH: Build a dependency graph of concepts. The top layer consists of the "masteryCheckpoints" (the end goals). The lower layers are the "prerequisiteNodes" which decompose the concepts backwards.
+2. NO WALLS OF TEXT: All text in the "story" must be structured like a walk-through story, describing V8 internals (heap/stack allocation, call stack ticks, scope chains, event loops) using analogies or step-by-step execution. Keep it under 10 lines of high-impact explanation.
+3. VISUALS FORMATTING: For each prerequisite node, design a "visuals" object representing a simple concept map. This map will be rendered using React Flow. Nodes must have clean labels and distinct types (like "stack", "heap", "scope", "function", "data") and explain state transitions clearly.
+4. SOLUTION BREAKDOWN: Provide a detailed code walkthrough and a "timeline" describing the dynamic step-by-step execution of the challenge, detailing stack/heap memory modifications.
+5. PEDAGOGICAL EXPANSION: Do not limit yourself to the transcript. If explaining the topic requires introducing underlying fundamentals (e.g. lexical environments, execution contexts, closure references), inject them in the prerequisite nodes to build a robust, complete mental model.
+
+Structure the "notes" property of the response as a JSON object, NOT a string!
 `;
   } else {
+    notesFormatSpec = `"notes": "The complete markdown formatted study guide text string goes here. Use newlines (\\n) and proper markdown escape sequences."`;
     notesGuidelines = `
 Dynamically construct a "Smart Study Guide" based on these rules:
 - Conceptual: Explain deep ideas and underlying understanding.
@@ -989,7 +1097,7 @@ Dynamically construct a "Smart Study Guide" based on these rules:
 
   const prompt = `You are a world-class technical educator, interviewer, and quiz generator for the Kaevrix educational platform.
 Your task is to generate BOTH:
-1. Exhaustive, high-fidelity study notes formatted in beautiful Markdown.
+1. Exhaustive study notes matching the noteStyle "${noteStyle}".
 2. A comprehensive conceptual multiple-choice quiz (postVideoQuestions and inVideoQuestions) based on the content of the video and the study topics.
 
 VIDEO DETAILS:
@@ -1013,7 +1121,6 @@ ${completedList}
 INSTRUCTIONS FOR STUDY NOTES:
 - Generate a detailed study guide following these rules:
 ${notesGuidelines}
-- Format the notes in clean, beautiful Markdown.
 
 INSTRUCTIONS FOR QUIZ QUESTIONS:
 - All questions MUST be multiple-choice conceptual questions. Do NOT generate coding challenges or any question with type "coding" where the user has to write code.
@@ -1040,7 +1147,7 @@ INSTRUCTIONS FOR QUIZ QUESTIONS:
 FORMAT SPECIFICATION:
 Respond ONLY with a valid JSON object matching the format below. Do not wrap the JSON in markdown blocks (like \`\`\`json).
 {
-  "notes": "The complete markdown formatted study guide text string goes here. Use newlines (\\n) and proper markdown escape sequences.",
+  "notes": ${notesFormatSpec},
   "postVideoQuestions": [
     // exactly 5 conceptual questions
   ],
@@ -1049,28 +1156,8 @@ Respond ONLY with a valid JSON object matching the format below. Do not wrap the
   ]
 }`;
 
-  dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
-  const apiKey = process.env.GEMINI_API_KEY;
-  const useGemini = apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE";
-
   try {
-    let resultText = "";
-    let geminiFailed = false;
-
-    if (useGemini) {
-      try {
-        console.log(`[NotesAndQuiz] Generating notes and quiz via Gemini API`);
-        resultText = await callGeminiAPI(prompt, "application/json", userId, "/pathfinder/study-notes-and-quiz");
-      } catch (gemErr) {
-        console.error(`[NotesAndQuiz] Gemini API failed (${gemErr.message}). Falling back to Ollama...`);
-        geminiFailed = true;
-      }
-    }
-    
-    if (!useGemini || geminiFailed) {
-      console.log(`[NotesAndQuiz] Generating notes and quiz via Ollama ${OLLAMA_MODEL}`);
-      resultText = await ollamaGenerate(prompt, "json", userId, "/pathfinder/study-notes-and-quiz");
-    }
+    const resultText = await callAIPipeline(prompt, "application/json", userId, "/pathfinder/study-notes-and-quiz");
 
     // Try parsing the combined JSON response (with LLM repair and regex fallback)
     let parsed;
@@ -1195,6 +1282,10 @@ Respond ONLY with a valid JSON object matching the format below. Do not wrap the
         answerIndex: typeof q.answerIndex === "number" ? q.answerIndex : 0,
         points: typeof q.points === "number" ? q.points : 50
       }));
+    }
+
+    if (parsed && parsed.notes && typeof parsed.notes === "object") {
+      parsed.notes = JSON.stringify(parsed.notes);
     }
 
     return {
@@ -1818,36 +1909,13 @@ Format specification:
     };
   };
 
-  dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
-  const apiKey = process.env.GEMINI_API_KEY;
-  const useGemini = apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE";
-  let geminiFailed = false;
-
-  // 3. Try Gemini API primary generator
-  if (useGemini) {
-    try {
-      console.log(`[Gemini Quiz Generator] Generating quiz via Gemini API for video: "${title}"`);
-      const responseText = await callGeminiAPI(prompt, "application/json", userId, "/quiz/generate");
-      const quizData = repairAndParseJSON(responseText, "quiz/generate-gemini");
-      const validated = validateQuizData(quizData);
-      return { ...validated, captions: transcriptList };
-    } catch (geminiErr) {
-      console.warn(`[Gemini Quiz Generator] Gemini API failed: ${geminiErr.message}. Trying Ollama as fallback...`);
-      geminiFailed = true;
-    }
-  }
-
-  // 4. Try Ollama (gemma4:e4b) fallback generator
-  if (!useGemini || geminiFailed) {
-    try {
-      console.log(`[Ollama Quiz Generator] Generating quiz via Ollama ${OLLAMA_MODEL} for video: "${title}"`);
-      const responseText = await ollamaGenerate(prompt, "json", userId, "/quiz/generate");
-      const quizData = repairAndParseJSON(responseText, "quiz/generate-ollama");
-      const validated = validateQuizData(quizData);
-      return { ...validated, captions: transcriptList };
-    } catch (ollamaErr) {
-      console.warn(`[Ollama Quiz Generator] Ollama failed: ${ollamaErr.message}. Both Ollama and Gemini APIs failed.`);
-    }
+  try {
+    const responseText = await callAIPipeline(prompt, "application/json", userId, "/quiz/generate");
+    const quizData = repairAndParseJSON(responseText, "quiz/generate");
+    const validated = validateQuizData(quizData);
+    return { ...validated, captions: transcriptList };
+  } catch (err) {
+    console.warn(`[Quiz Generator] AI pipeline failed: ${err.message}. Using template fallback...`);
   }
 
   // 5. Fallback to pre-defined quiz templates if AI engines fail
@@ -1927,34 +1995,12 @@ Format specification:
     return { bossType, bossIntro, questions: validatedQuestions };
   };
 
-  dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
-  const apiKey = process.env.GEMINI_API_KEY;
-  const useGemini = apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE";
-  let geminiFailed = false;
-
-  // 1. Try Gemini API primary generator
-  if (useGemini) {
-    try {
-      console.log(`[Gemini Boss Generator] Generating boss questions via Gemini API for milestone: "${mTitle}"`);
-      const responseText = await callGeminiAPI(prompt, "application/json", userId, "/boss/generate");
-      const bossData = repairAndParseJSON(responseText, "boss/generate-gemini");
-      return validateBossData(bossData);
-    } catch (geminiErr) {
-      console.warn(`[Gemini Boss Generator] Gemini API failed: ${geminiErr.message}. Trying Ollama as fallback...`);
-      geminiFailed = true;
-    }
-  }
-
-  // 2. Try Ollama (gemma4:e4b) fallback generator
-  if (!useGemini || geminiFailed) {
-    try {
-      console.log(`[Ollama Boss Generator] Generating boss questions via Ollama ${OLLAMA_MODEL} for milestone: "${mTitle}"`);
-      const responseText = await ollamaGenerate(prompt, "json", userId, "/boss/generate");
-      const bossData = repairAndParseJSON(responseText, "boss/generate-ollama");
-      return validateBossData(bossData);
-    } catch (ollamaErr) {
-      console.warn(`[Ollama Boss Generator] Ollama failed: ${ollamaErr.message}. Using default template fallback...`);
-    }
+  try {
+    const responseText = await callAIPipeline(prompt, "application/json", userId, "/boss/generate");
+    const bossData = repairAndParseJSON(responseText, "boss/generate");
+    return validateBossData(bossData);
+  } catch (err) {
+    console.warn(`[Boss Generator] AI pipeline failed: ${err.message}. Using default template fallback...`);
   }
 
   // 3. Fallback to pre-defined questions
@@ -2034,4 +2080,182 @@ Format specification:
   ];
 
   return { bossType, bossIntro: fallbackIntro, questions: fallbackQuestions };
+}
+
+/**
+ * Generates a comprehensive practice sheet for all milestones in a level,
+ * dynamically tailored to the user's technology stack, goals, and difficulty settings.
+ * Persists the output into MongoDB for fast subsequent loads.
+ */
+export async function generateLevelPracticeSheet(userId, topic, level, milestonesList, devGoal, devLanguage, difficulty) {
+  console.log(`[Practice Sheet Gen] Starting level-wide generation for User: ${userId}, Topic: "${topic}", Level: ${level}`);
+
+  const activeLanguage = devLanguage || topic;
+  
+  let goalSteering = "";
+  if (devGoal === "Job") {
+    goalSteering = `The user is preparing for a career or job interviews in "${activeLanguage}".
+- Prioritize real-world implementation, debugging, system design, and coding interview challenges.
+- For practical tasks, generate coding variants that resemble tech company interview questions (e.g., LeetCode-style, time/space complexity optimization constraints).
+- Exclude dry academic theory that does not serve real-world readiness.`;
+  } else if (devGoal === "School / College") {
+    goalSteering = `The user is studying for academic exams or coursework in "${activeLanguage}".
+- Focus on conceptual definitions, core academic theory, execution models, and pen-and-paper tracing exercises.
+- Practical tasks should focus on foundational algorithms or standard curriculum exercises.`;
+  } else {
+    goalSteering = `The user is learning for general knowledge or hobbyist projects in "${activeLanguage}".
+- Focus on practical applicability, debugging common gotchas, and explaining real-world utility.
+- Avoid extreme interview difficulty. Make tasks engaging and self-contained.`;
+  }
+
+  let milestonesPrompt = milestonesList.map((m) => {
+    const subtopicsList = Array.isArray(m.subtopics) ? m.subtopics.map(s => `- ${s}`).join("\n") : "";
+    return `Milestone ID: "${m.id}"
+Milestone Title: "${m.title}"
+Subtopics:
+${subtopicsList}`;
+  }).join("\n\n");
+
+  const prompt = `You are an expert curriculum designer and senior technical lead.
+Your task is to generate a comprehensive self-practice sheet for a student learning "${activeLanguage}" at Level ${level}.
+You must generate a practice sheet containing a balanced set of questions/tasks for **every milestone** listed below.
+
+User Context & Goal:
+${goalSteering}
+Roadmap Difficulty Context: ${difficulty || "Medium"}
+
+Milestones to generate practice sheets for:
+${milestonesPrompt}
+
+Requirements:
+1. Dynamic Balance: For each milestone, dynamically decide how many questions to generate (at least 3 to 6 questions per milestone).
+2. Difficulty Split: Categorize questions into "Easy", "Medium", and "Hard" difficulties.
+3. Question Types: Each question must be either "theory" or "practical". 
+   - If a topic is hands-on or code-focused, prioritize "practical" tasks.
+   - If a topic is purely architectural, theoretical, or structural, prioritize "theory" questions.
+   - If a milestone does not benefit from code tasks for the user's goal, do NOT generate practical tasks for it.
+4. Language Alignment: If a question is practical/coding, all prompts, instructions, and code snippets MUST be written in "${activeLanguage}".
+5. Complete Context:
+   - For "theory": provide a clear "question", descriptive "guidance" (hints/points to include), and a detailed model "answer".
+   - For "practical": provide a clear coding "question"/specification, "guidance" (algorithm outline or hints), a boilerplate "codeTemplate" in "${activeLanguage}", a model "answer" (walkthrough or solution implementation code), and 1-3 critical "variants" (e.g., alternative time complexity optimizations, or recursive vs iterative requirements).
+
+Return ONLY a valid JSON object matching the format below. Do not include markdown code blocks, backticks, or any conversational text.
+
+Format specification:
+{
+  "milestones": [
+    {
+      "milestoneId": "m1",
+      "milestoneTitle": "JavaScript ES6+ Refresher",
+      "questions": [
+        {
+          "id": "q_m1_1", // unique sequential ID
+          "type": "theory", // "theory" | "practical"
+          "difficulty": "Easy", // "Easy" | "Medium" | "Hard"
+          "question": "Detailed question text here...",
+          "guidance": "Hints or points the student should cover in their mind/code.",
+          "answer": "Detailed model solution walkthrough or explanation here...",
+          "codeTemplate": "Boilerplate code template string if practical, otherwise empty string",
+          "variants": ["Optional alternate interview variant question 1", "Optional variant 2"]
+        }
+      ]
+    }
+  ]
+}
+`;
+
+  const validatePracticeData = (data) => {
+    if (!data || typeof data !== "object") {
+      throw new Error("Returned content is not a valid practice sheet object");
+    }
+    const msList = Array.isArray(data.milestones) ? data.milestones : [];
+    if (msList.length === 0) {
+      throw new Error("Milestones list is empty or missing in AI response");
+    }
+
+    const validatedMilestones = msList.map((m) => {
+      const questions = Array.isArray(m.questions) ? m.questions : [];
+      return {
+        milestoneId: m.milestoneId || "unknown_m",
+        milestoneTitle: m.milestoneTitle || "Untitled Milestone",
+        questions: questions.map((q, idx) => ({
+          id: q.id || `q_${m.milestoneId || "m"}_${idx + 1}`,
+          type: ["theory", "practical"].includes(q.type) ? q.type : "theory",
+          difficulty: ["Easy", "Medium", "Hard"].includes(q.difficulty) ? q.difficulty : "Medium",
+          question: q.question || "Practice Question",
+          guidance: q.guidance || "Think about the core concepts.",
+          answer: q.answer || "Review the study guides.",
+          codeTemplate: q.codeTemplate || "",
+          variants: Array.isArray(q.variants) ? q.variants : []
+        }))
+      };
+    });
+
+    return { milestones: validatedMilestones };
+  };
+
+  try {
+    const responseText = await callAIPipeline(prompt, "application/json", userId, "/practice/generate");
+    const practiceRaw = repairAndParseJSON(responseText, "practice/generate");
+    const validatedData = validatePracticeData(practiceRaw);
+
+    // Save to Mongoose database
+    const savedDoc = await PracticeSheet.findOneAndUpdate(
+      { userId, roadmapTopic: topic.toLowerCase(), level },
+      {
+        userId,
+        roadmapTopic: topic.toLowerCase(),
+        level,
+        milestones: validatedData.milestones
+      },
+      { upsert: true, new: true }
+    );
+    console.log(`[Practice Sheet Gen] Saved practice sheet to database: ID: ${savedDoc._id}`);
+    return savedDoc;
+
+  } catch (err) {
+    console.error(`[Practice Sheet Gen] Generation failed: ${err.message}. Generating fallback sheet...`);
+    
+    // Fallback template builder
+    const fallbackMilestones = milestonesList.map((m) => {
+      return {
+        milestoneId: m.id,
+        milestoneTitle: m.title,
+        questions: [
+          {
+            id: `q_${m.id}_1`,
+            type: "theory",
+            difficulty: "Easy",
+            question: `What are the core foundational concepts involved in "${m.title}"?`,
+            guidance: "Define the fundamental components and why they are utilized.",
+            answer: `The milestone "${m.title}" represents a key building block. Understanding its lifecycle, configuration parameters, and execution triggers ensures robust architecture.`,
+            codeTemplate: "",
+            variants: ["Explain it in simple layman terms."]
+          },
+          {
+            id: `q_${m.id}_2`,
+            type: "theory",
+            difficulty: "Medium",
+            question: `Describe a common failure pattern or bug when implementing "${m.title}".`,
+            guidance: "Focus on scoping errors, resource leaks, or runtime exceptions.",
+            answer: "Scoping pollution, uncaught rejections, or memory growth occur when lifecycle bounds are unmanaged. Implement lint checkers and strict error isolation.",
+            codeTemplate: "",
+            variants: ["How do we debug this failure pattern?"]
+          }
+        ]
+      };
+    });
+
+    const fallbackDoc = await PracticeSheet.findOneAndUpdate(
+      { userId, roadmapTopic: topic.toLowerCase(), level },
+      {
+        userId,
+        roadmapTopic: topic.toLowerCase(),
+        level,
+        milestones: fallbackMilestones
+      },
+      { upsert: true, new: true }
+    );
+    return fallbackDoc;
+  }
 }

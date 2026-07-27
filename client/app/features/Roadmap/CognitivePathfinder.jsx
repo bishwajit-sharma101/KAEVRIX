@@ -2,10 +2,13 @@ import { useState, useEffect } from "react";
 import * as sound from "../../utils/audio";
 import PathfinderOnboarding from "./PathfinderOnboarding";
 import PathfinderRoadmap from "./PathfinderRoadmap";
+import ManualPathConfig from "./ManualPathConfig";
 
-const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
+const BACKEND_URL = typeof window !== "undefined" && ["localhost", "127.0.0.1", "::1", "[::1]"].includes(window.location.hostname)
+  ? `http://${window.location.hostname === "localhost" ? "127.0.0.1" : window.location.hostname}:5000`
+  : "";
 
-export default function CognitivePathfinder({ username, onTriggerSearch, onStartSoloStudy, isDarkMode, featureGates = {}, setLockedFeatureAlert }) {
+export default function CognitivePathfinder({ username, onTriggerSearch, onStartSoloStudy, isDarkMode, featureGates = {}, setLockedFeatureAlert, setStatus, practiceContext, setPracticeContext }) {
   const roadmapKey = `kaevrix_roadmap_progress_${username}`;
   const answersKey = `kaevrix_roadmap_answers_${username}`;
 
@@ -113,6 +116,32 @@ export default function CognitivePathfinder({ username, onTriggerSearch, onStart
             transform: translateY(1px);
             box-shadow: 0 2px 10px rgba(255, 106, 0, 0.2);
           }
+          .pathfinder-manual-btn {
+            background: ${isDarkMode ? "rgba(255, 255, 255, 0.03)" : "#ffffff"};
+            border: 1px solid ${isDarkMode ? "rgba(255, 106, 0, 0.25)" : "#fed7aa"};
+            color: ${isDarkMode ? "#ffb300" : "#ea580c"} !important;
+            padding: 12px 32px;
+            border-radius: 10px;
+            font-size: 14.5px;
+            font-weight: 800;
+            font-family: var(--font-outfit);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 15px rgba(255, 106, 0, 0.05);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            z-index: 1;
+          }
+          .pathfinder-manual-btn:hover {
+            transform: translateY(-2.5px) scale(1.02);
+            background: ${isDarkMode ? "rgba(255, 106, 0, 0.08)" : "#fff7ed"};
+            box-shadow: 0 8px 25px rgba(255, 106, 0, 0.15);
+          }
+          .pathfinder-manual-btn:active {
+            transform: translateY(1px);
+          }
           @media (max-width: 640px) {
             .steps-container {
               flex-direction: column !important;
@@ -182,26 +211,40 @@ export default function CognitivePathfinder({ username, onTriggerSearch, onStart
           Generate your first pathway to unlock structured learning, quizzes, challenges, and XP rewards.
         </p>
 
-        {/* Generate Button */}
-        <button 
-          className="pathfinder-cta-btn" 
-          onClick={() => {
-            sound.playClockTick();
-            if (featureGates.ROADMAP_GEN_DISABLED) {
-              if (setLockedFeatureAlert) setLockedFeatureAlert("roadmap");
-              else alert("Roadmap generation is temporarily disabled for maintenance. Please try again later.");
-              return;
-            }
-            setView("onboarding");
-          }}
-          style={featureGates.ROADMAP_GEN_DISABLED ? { opacity: 0.5, filter: "grayscale(0.5)" } : {}}
-        >
-          <span style={{ fontWeight: "700" }}>{featureGates.ROADMAP_GEN_DISABLED ? "🔒 Generation Locked" : "Generate Your First Pathway"}</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform 0.3s" }} className="btn-arrow">
-            <line x1="5" y1="12" x2="19" y2="12" />
-            <polyline points="12 5 19 12 12 19" />
-          </svg>
-        </button>
+        {/* Buttons Row */}
+        <div style={{ display: "flex", gap: "12px", zIndex: 1, flexWrap: "wrap", justifyContent: "center", marginBottom: "20px" }}>
+          {/* Generate Button */}
+          <button 
+            className="pathfinder-cta-btn" 
+            onClick={() => {
+              sound.playClockTick();
+              if (featureGates.ROADMAP_GEN_DISABLED) {
+                if (setLockedFeatureAlert) setLockedFeatureAlert("roadmap");
+                else alert("Roadmap generation is temporarily disabled for maintenance. Please try again later.");
+                return;
+              }
+              setView("onboarding");
+            }}
+            style={featureGates.ROADMAP_GEN_DISABLED ? { opacity: 0.5, filter: "grayscale(0.5)", marginBottom: 0 } : { marginBottom: 0 }}
+          >
+            <span style={{ fontWeight: "700" }}>{featureGates.ROADMAP_GEN_DISABLED ? "🔒 Generation Locked" : "Generate Your First Pathway"}</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform 0.3s" }} className="btn-arrow">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </button>
+
+          {/* Manual Path Button */}
+          <button 
+            className="pathfinder-manual-btn"
+            onClick={() => {
+              sound.playClockTick();
+              setView("manual-path");
+            }}
+          >
+            ⚙️ Create Manual Path
+          </button>
+        </div>
 
         {/* Guide Steps Panel (Optimized dense padding) */}
         <div style={{
@@ -277,6 +320,16 @@ export default function CognitivePathfinder({ username, onTriggerSearch, onStart
     );
   }
 
+  if (view === "manual-path") {
+    return (
+      <ManualPathConfig
+        onRoadmapReady={handleRoadmapReady}
+        onBack={() => setView("landing")}
+        isDarkMode={isDarkMode}
+      />
+    );
+  }
+
   if (view === "roadmap" && roadmap) {
     return (
       <PathfinderRoadmap
@@ -288,6 +341,9 @@ export default function CognitivePathfinder({ username, onTriggerSearch, onStart
         isDarkMode={isDarkMode}
         featureGates={featureGates}
         setLockedFeatureAlert={setLockedFeatureAlert}
+        setStatus={setStatus}
+        practiceContext={practiceContext}
+        setPracticeContext={setPracticeContext}
       />
     );
   }

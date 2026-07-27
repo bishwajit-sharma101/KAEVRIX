@@ -89,10 +89,20 @@ app.use(mongoSanitize());
 app.use(cookieParser());
 
 // CORS Configuration
+const allowedOrigins = process.env.NODE_ENV === "production"
+  ? [process.env.CLIENT_URL].filter(Boolean)
+  : [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://[::1]:3000",
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://[::1]:5173",
+      process.env.CLIENT_URL
+    ].filter(Boolean);
+
 const corsOptions = {
-  origin: process.env.NODE_ENV === "production" 
-    ? process.env.CLIENT_URL 
-    : (process.env.CLIENT_URL || "http://localhost:5173"),
+  origin: allowedOrigins,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true
 };

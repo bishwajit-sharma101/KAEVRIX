@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { fetchWithJobPolling } from "../../utils/asyncJob";
 import * as sound from "../../utils/audio";
+import { trackTelemetry } from "../../utils/telemetry.js";
 
 // Detailed 32x32 Pixel Art SVG Components
 function PlayerKnightSVG({ isHurt }) {
@@ -569,6 +570,30 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
   const [loading, setLoading] = useState(true);
   const [stage, setStage] = useState("summoning"); // summoning, intro, battle, victory, defeat
   const [bossData, setBossData] = useState(null);
+
+  const handleClose = () => {
+    if (stage === "battle" || stage === "intro" || stage === "summoning") {
+      trackTelemetry({
+        eventType: "SANCTUM_ABANDONED",
+        topic: topic,
+        metadata: { mode: "boss", milestoneId: milestone.id, milestoneTitle: milestone.title, stage }
+      });
+    }
+    onClose();
+  };
+
+  const logBattleCompleted = (outcome) => {
+    trackTelemetry({
+      eventType: "SANCTUM_COMPLETED",
+      topic: topic,
+      metadata: {
+        mode: "boss",
+        milestoneId: milestone.id,
+        milestoneTitle: milestone.title,
+        outcome
+      }
+    });
+  };
   
   const [bossHP, setBossHP] = useState(100);
   const [playerHP, setPlayerHP] = useState(3);
@@ -720,7 +745,9 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
     let active = true;
     const fetchBossData = async () => {
       try {
-        const BACKEND_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:5000" : "";
+        const BACKEND_URL = typeof window !== "undefined" && ["localhost", "127.0.0.1", "::1", "[::1]"].includes(window.location.hostname)
+          ? `http://${window.location.hostname === "localhost" ? "127.0.0.1" : window.location.hostname}:5000`
+          : "";
         const res = await fetchWithJobPolling(`${BACKEND_URL}/api/boss/generate`, {
           method: "POST",
           headers: { 
@@ -910,6 +937,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
         const next = h - 1;
         if (next <= 0) {
           setTimeout(() => {
+            logBattleCompleted("defeat");
             setStage("defeat");
             sound.stopBackgroundMusic();
             sound.playDefeat();
@@ -924,6 +952,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
               if (currentIdx < bossData.questions.length - 1) {
                 setCurrentIdx((idx) => idx + 1);
               } else {
+                logBattleCompleted("defeat");
                 setStage("defeat");
                 sound.stopBackgroundMusic();
                 sound.playDefeat();
@@ -962,6 +991,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
           const next = hp - 25;
           if (next <= 0) {
             setTimeout(() => {
+              logBattleCompleted("victory");
               setStage("victory");
               sound.stopBackgroundMusic();
               sound.playVictory();
@@ -978,6 +1008,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
                 if (currentIdx < bossData.questions.length - 1) {
                   setCurrentIdx((idx) => idx + 1);
                 } else {
+                  logBattleCompleted("victory");
                   setStage("victory");
                   sound.stopBackgroundMusic();
                   sound.playVictory();
@@ -1004,6 +1035,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
           const next = h - 1;
           if (next <= 0) {
             setTimeout(() => {
+              logBattleCompleted("defeat");
               setStage("defeat");
               sound.stopBackgroundMusic();
               sound.playDefeat();
@@ -1018,6 +1050,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
                 if (currentIdx < bossData.questions.length - 1) {
                   setCurrentIdx((idx) => idx + 1);
                 } else {
+                  logBattleCompleted("defeat");
                   setStage("defeat");
                   sound.stopBackgroundMusic();
                   sound.playDefeat();
@@ -1033,11 +1066,21 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
 
   const handleStartBattle = () => {
     sound.playWhoosh();
+    trackTelemetry({
+      eventType: "SANCTUM_STARTED",
+      topic: topic,
+      metadata: { mode: "boss", milestoneId: milestone.id, milestoneTitle: milestone.title }
+    });
     setStage("battle");
   };
 
   const handleRetry = () => {
     sound.playClockTick();
+    trackTelemetry({
+      eventType: "SANCTUM_STARTED",
+      topic: topic,
+      metadata: { mode: "boss", milestoneId: milestone.id, milestoneTitle: milestone.title, isRetry: true }
+    });
     setBossHP(100);
     setPlayerHP(3);
     setCurrentIdx(0);
@@ -1950,7 +1993,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
 
               {dialogueStep === 2 && (
                 <div style={{ display: "flex", gap: "20px", justifyContent: "center", width: "100%", marginTop: "8px" }}>
-                  <button className="er-action-btn" style={{ borderColor: "#ef4444", color: "#ef4444" }} onClick={onClose}>
+                  <button className="er-action-btn" style={{ borderColor: "#ef4444", color: "#ef4444" }} onClick={handleClose}>
                     RETREAT
                   </button>
                   <button className="er-action-btn" style={{ borderColor: "#ffffff", color: "#ffffff", textShadow: "0 0 10px rgba(255,255,255,0.5)" }} onClick={handleStartBattle}>
@@ -2239,7 +2282,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
             </div>
           </div>
 
-          <button className="er-action-btn" style={{ borderColor: "#ffffff", color: "#ffffff" }} onClick={onClose}>
+          <button className="er-action-btn" style={{ borderColor: "#ffffff", color: "#ffffff" }} onClick={handleClose}>
             RETURN TO ROADMAP
           </button>
         </div>
@@ -2262,7 +2305,7 @@ export default function BossBattleModal({ topic, milestone, username, onClose, o
           </p>
 
           <div style={{ display: "flex", gap: "20px" }}>
-            <button className="er-action-btn" style={{ borderColor: "rgba(255,255,255,0.15)", color: "#a59b84" }} onClick={onClose}>
+            <button className="er-action-btn" style={{ borderColor: "rgba(255,255,255,0.15)", color: "#a59b84" }} onClick={handleClose}>
               ABANDON
             </button>
             <button className="er-action-btn" style={{ borderColor: "#c80000", color: "#c80000" }} onClick={handleRetry}>

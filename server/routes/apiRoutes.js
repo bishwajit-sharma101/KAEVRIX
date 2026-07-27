@@ -6,6 +6,7 @@ import SecurityEvent from "../models/SecurityEvent.js";
 import AITracking from "../models/AITracking.js";
 import TelemetryEvent from "../models/TelemetryEvent.js";
 import SystemConfig from "../models/SystemConfig.js";
+import PracticeSheet from "../models/PracticeSheet.js";
 
 import { curatedVideos } from "../quizData.js";
 import { getLeaderboard, getPlayerProfile, addSoloXp } from "../services/leaderboardService.js";
@@ -15,7 +16,7 @@ import { registerUser, loginUser, verifyMfaLogin, setupMfa, verifyMfaSetup, refr
 import { getConversation, markAsRead } from "../services/chatService.js";
 
 import { validate } from "../middleware/validateRequest.js";
-import { registerSchema, loginSchema, soloXpSchema, cosmeticsSchema, pathfinderGenerateSchema, quizGenerateSchema, telemetrySchema } from "../validations/apiSchemas.js";
+import { registerSchema, loginSchema, soloXpSchema, cosmeticsSchema, pathfinderGenerateSchema, quizGenerateSchema, telemetrySchema, practiceSheetGenerateSchema, practiceSheetToggleSchema } from "../validations/apiSchemas.js";
 import { globalLimiter, authLimiter, aiLimiter, telemetryLimiter } from "../middleware/rateLimiter.js";
 import { requireAuth, requireOwnership, requireAdmin, optionalAuth } from "../middleware/authMiddleware.js";
 import { checkKillSwitch } from "../services/budgetTracker.js";
@@ -672,41 +673,16 @@ router.post("/chat/read", requireAuth, async (req, res, next) => {
 // Telemetry Analytics Route
 // ----------------------------------------------------
 router.post("/telemetry/track", optionalAuth, telemetryLimiter, validate(telemetrySchema), async (req, res, next) => {
-  const { 
-    eventType, 
-    topic, 
-    roadmapId, 
-    videoId, 
-    quizId, 
-    durationMs, 
-    metadata,
-    sessionId,
-    journeyId,
-    correlationId,
-    pagePath,
-    featureName,
-    deviceId
-  } = req.body;
   try {
-    await TelemetryEvent.create({
+    const events = Array.isArray(req.body) ? req.body : [req.body];
+    const eventsToCreate = events.map(evt => ({
       userId: req.user?.userId,
       username: req.user?.username || "anonymous",
       ipAddress: req.ip,
       userAgent: req.headers["user-agent"],
-      eventType,
-      topic,
-      roadmapId,
-      videoId,
-      quizId,
-      durationMs,
-      metadata,
-      sessionId,
-      journeyId,
-      correlationId,
-      pagePath,
-      featureName,
-      deviceId
-    });
+      ...evt
+    }));
+    await TelemetryEvent.create(eventsToCreate);
     res.status(202).json({ success: true });
   } catch (err) {
     next(err);
@@ -722,6 +698,92 @@ router.get("/config/features", optionalAuth, async (req, res, next) => {
       mapping[c.key] = c.value;
     });
     res.json(mapping);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// --- Practice Sheets ---
+router.get("/practice-sheet", requireAuth, async (req, res, next) => {
+  const { topic, level } = req.query;
+  if (!topic || !level) {
+    return res.status(400).json({ error: "topic and level required" });
+  }
+  try {
+    const sheet = await PracticeSheet.findOne({
+      userId: req.user.userId,
+      roadmapTopic: topic.toLowerCase(),
+      level: parseInt(level, 10)
+    });
+    if (!sheet) {
+      return res.json({ exists: false });
+    }
+    res.json({ exists: true, sheet });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/practice-sheet/generate", pathfinderDisabledMiddleware, requireAuth, aiLimiter, aiKillSwitchMiddleware, validate(practiceSheetGenerateSchema), async (req, res, next) => {
+  const { topic, level, milestones, devGoal, devLanguage, difficulty } = req.body;
+  try {
+    const flag = await SystemConfig.findOne({ key: "NOTES_GEN_DISABLED" });
+    if (flag && flag.value) {
+      return res.status(403).json({ error: "AI Practice Sheet generation is temporarily disabled for maintenance." });
+    }
+
+    const payload = { topic, level, milestones, devGoal, devLanguage, difficulty };
+    const { jobId, isDuplicate, lockKey } = await getOrAcquireAiJobLock(req.user.userId, "generate-practice", payload);
+    
+    if (isDuplicate) {
+      return res.status(202).json({ jobId, status: "pending", deduplicated: true });
+    }
+
+    try {
+      const job = await aiQueue.add("generate-level-practice", {
+        type: "generate-level-practice",
+        userId: req.user.userId,
+        data: payload
+      }, { jobId });
+
+      await TelemetryEvent.create({
+        userId: req.user.userId,
+        eventType: "AI_REQUEST_EXECUTED",
+        metadata: { endpoint: "/practice-sheet/generate", jobId: job.id }
+      });
+
+      res.status(202).json({ jobId: job.id, status: "pending" });
+    } catch (enqueueErr) {
+      await redisClient.del(lockKey).catch(() => {});
+      throw enqueueErr;
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch("/practice-sheet/toggle-question", requireAuth, validate(practiceSheetToggleSchema), async (req, res, next) => {
+  const { topic, level, questionId, completed } = req.body;
+  try {
+    const updateQuery = completed
+      ? { $addToSet: { completedQuestionIds: questionId } }
+      : { $pull: { completedQuestionIds: questionId } };
+
+    const updated = await PracticeSheet.findOneAndUpdate(
+      {
+        userId: req.user.userId,
+        roadmapTopic: topic.toLowerCase(),
+        level: parseInt(level, 10)
+      },
+      updateQuery,
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: "Practice sheet not found" });
+    }
+
+    res.json({ success: true, completedQuestionIds: updated.completedQuestionIds });
   } catch (err) {
     next(err);
   }
